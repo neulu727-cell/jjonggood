@@ -113,7 +113,13 @@ class DayTimeline(ctk.CTkFrame):
                     else:
                         break
 
-                end_str = self._calc_end(ts, span, interval)
+                # 열 경계로 잘린 경우 실제 종료시간 사용
+                if is_start:
+                    rh, rm = map(int, r.time.split(":"))
+                    real_end = rh * 60 + rm + r.duration
+                    end_str = f"{real_end // 60:02d}:{real_end % 60:02d}"
+                else:
+                    end_str = self._calc_end(ts, span, interval)
                 w = self._make_booked_merged(ts, end_str, r, is_start, span)
                 px = (0, 2) if col == 0 else (2, 0)
                 w.grid(row=row, column=col, rowspan=span, sticky="nsew", padx=px, pady=1)

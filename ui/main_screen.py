@@ -735,9 +735,16 @@ class MainScreen(ctk.CTkFrame):
         for a, t, c, hc in [("completed", "미용 완료", "#22C55E", "#16A34A"),
                              ("cancelled", "예약 취소", "#EF4444", "#DC2626"),
                              ("no_show", "노쇼", "#F59E0B", "#D97706")]:
-            ctk.CTkButton(btn_row, text=t, height=38, font=("", 15),
+            # 현재 상태와 같으면 롤백 표시
+            if r.status == a:
+                label = f"{t} 취소"
+                action = "confirmed"
+            else:
+                label = t
+                action = a
+            ctk.CTkButton(btn_row, text=label, height=38, font=("", 15),
                            corner_radius=5, fg_color=c, hover_color=hc,
-                           command=lambda x=a, p=popup, mt=memo_text: self._act(r.id, x, p, mt)
+                           command=lambda x=action, p=popup, mt=memo_text: self._act(r.id, x, p, mt)
                            ).pack(side="left", fill="x", expand=True, padx=1)
 
         popup.update_idletasks()
@@ -746,11 +753,15 @@ class MainScreen(ctk.CTkFrame):
         popup.geometry(f"+{(sx-pw)//2}+{(sy-ph)//2 - 30}")
 
     def _act(self, rid, action, popup, memo_text=None):
-        if action in ("cancelled", "no_show"):
-            labels = {"cancelled": "예약 취소", "no_show": "노쇼 처리"}
+        confirm_actions = {
+            "cancelled": "예약 취소",
+            "no_show": "노쇼 처리",
+            "confirmed": "상태 되돌리기",
+        }
+        if action in confirm_actions:
             self._confirm_dialog(
-                title=labels[action],
-                message=f"정말 {labels[action]}하시겠습니까?",
+                title=confirm_actions[action],
+                message=f"정말 {confirm_actions[action]}하시겠습니까?",
                 on_confirm=lambda: self._do_act(rid, action, popup, memo_text),
             )
         else:
