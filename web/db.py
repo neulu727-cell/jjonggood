@@ -1,0 +1,188 @@
+"""PostgreSQL 데이터베이스 관리자
+
+SQLite DatabaseManager와 동일한 인터페이스 제공.
+- execute(query, params) → cursor-like object
+- fetch_one(query, params) → dict or None
+- fetch_all(query, params) → list of dicts
+- ?를 %s로 자동 변환
+"""
+
+import os
+import psycopg2
+import psycopg2.pool
+import psycopg2.extras
+
+
+class CursorResult:
+    """execute() 반환용. lastrowid 호환."""
+    def __init__(self, lastrowid=None, rowcount=0):
+        self.lastrowid = lastrowid
+        self.rowcount = rowcount
+
+
+class DatabaseManager:
+    def __init__(self, database_url: str = None):
+        self._url = database_url or os.environ.get("DATABASE_URL", "")
+        self._pool = None
+
+    def initialize(self):
+        """커넥션 풀 생성 + 테이블 초기화"""
+        self._pool = psycopg2.pool.ThreadedConnectionPool(
+            minconn=1, maxconn=5, dsn=self._url
+        )
+        self._create_tables()
+
+    def _get_conn(self):
+        return self._pool.getconn()
+
+    def _put_conn(self, conn):
+        self._pool.putconn(conn)
+
+    @staticmethod
+    def _convert_query(query: str) -> str:
+        """SQLite ? 플레이스홀더를 PostgreSQL %s로 변환.
+        문자열 리터럴 안의 ?는 건드리지 않음."""
+        result = []
+        in_string = False
+        quote_char = None
+        for ch in query:
+            if in_string:
+                result.append(ch)
+                if ch == quote_char:
+                    in_string = False
+            else:
+                if ch in ("'", '"'):
+                    in_string = True
+                    quote_char = ch
+                    result.append(ch)
+                elif ch == '?':
+                    result.append('%s')
+                else:
+                    result.append(ch)
+        return ''.join(result)
+
+    def execute(self, query: str, params: tuple = ()) -> CursorResult:
+        """INSERT, UPDATE, DELETE 등 쓰기 작업"""
+        query = self._convert_query(query)
+        conn = self._get_conn()
+        try:
+            with conn.cursor() as cur:
+                # INSERT에 RETURNING id 추가 (lastrowid 지원)
+                if query.strip().upper().startswith("INSERT") and "RETURNING" not in query.upper():
+                    query = query.rstrip().rstrip(';') + " RETURNING id"
+                cur.execute(query, params)
+                conn.commit()
+                lastrowid = None
+                if cur.description:
+                    row = cur.fetchone()
+                    if row:
+                        lastrowid = row[0]
+                return CursorResult(lastrowid=lastrowid, rowcount=cur.rowcount)
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self._put_conn(conn)
+
+    def fetch_one(self, query: str, params: tuple = ()):
+        """단일 행 조회. dict 반환 또는 None."""
+        query = self._convert_query(query)
+        conn = self._get_conn()
+        try:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(query, params)
+                return cur.fetchone()
+        finally:
+            self._put_conn(conn)
+
+    def fetch_all(self, query: str, params: tuple = ()):
+        """여러 행 조회. list of dicts."""
+        query = self._convert_query(query)
+        conn = self._get_conn()
+        try:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(query, params)
+                return cur.fetchall()
+        finally:
+            self._put_conn(conn)
+
+    def _create_tables(self):
+        conn = self._get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS customers (
+                        id          SERIAL PRIMARY KEY,
+                        name        TEXT DEFAULT '',
+                        phone       TEXT NOT NULL UNIQUE,
+                        pet_name    TEXT NOT NULL,
+                        breed       TEXT NOT NULL,
+                        weight      REAL,
+                        age         TEXT,
+                        notes       TEXT DEFAULT '',
+                        memo        TEXT DEFAULT '',
+                        created_at  TIMESTAMP DEFAULT NOW(),
+                        updated_at  TIMESTAMP DEFAULT NOW()
+                    );
+
+                    CREATE TABLE IF NOT EXISTS reservations (
+                        id            SERIAL PRIMARY KEY,
+                        customer_id   INTEGER NOT NULL REFERENCES customers(id),
+                        date          DATE NOT NULL,
+                        time          TIME NOT NULL,
+                        service_type  TEXT NOT NULL,
+                        duration      INTEGER DEFAULT 60,
+                        request       TEXT DEFAULT '',
+                        status        TEXT DEFAULT 'confirmed',
+                        amount        INTEGER DEFAULT 0,
+                        fur_length    TEXT DEFAULT '',
+                        groomer_memo  TEXT DEFAULT '',
+                        completed_at  TIMESTAMP DEFAULT NULL,
+                        created_at    TIMESTAMP DEFAULT NOW()
+                    );
+
+                    CREATE TABLE IF NOT EXISTS service_types (
+                        id                SERIAL PRIMARY KEY,
+                        name              TEXT NOT NULL UNIQUE,
+                        default_duration  INTEGER DEFAULT 60,
+                        default_price     INTEGER DEFAULT 0
+                    );
+
+                    CREATE TABLE IF NOT EXISTS groomer_memos (
+                        id              SERIAL PRIMARY KEY,
+                        reservation_id  INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+                        content         TEXT NOT NULL,
+                        created_at      TIMESTAMP DEFAULT NOW()
+                    );
+
+                    CREATE TABLE IF NOT EXISTS call_history (
+                        id          SERIAL PRIMARY KEY,
+                        phone       TEXT NOT NULL,
+                        customer_id INTEGER,
+                        pet_name    TEXT DEFAULT '',
+                        call_type   TEXT DEFAULT 'incoming',
+                        created_at  TIMESTAMP DEFAULT NOW()
+                    );
+
+                    CREATE TABLE IF NOT EXISTS reservation_edits (
+                        id              SERIAL PRIMARY KEY,
+                        reservation_id  INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+                        field_name      TEXT NOT NULL,
+                        old_value       TEXT DEFAULT '',
+                        new_value       TEXT DEFAULT '',
+                        created_at      TIMESTAMP DEFAULT NOW()
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_reservations_date ON reservations(date);
+                    CREATE INDEX IF NOT EXISTS idx_reservations_customer ON reservations(customer_id);
+                    CREATE INDEX IF NOT EXISTS idx_call_history_date ON call_history(created_at);
+                    CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
+                """)
+            conn.commit()
+        finally:
+            self._put_conn(conn)
+
+    def close(self):
+        if self._pool:
+            self._pool.closeall()
+            self._pool = None
