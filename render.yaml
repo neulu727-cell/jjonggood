@@ -3,7 +3,7 @@ services:
     name: jjonggood
     runtime: python
     buildCommand: pip install -r web/requirements.txt
-    startCommand: gunicorn 'web.app:create_app()' --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    startCommand: gunicorn 'web.app:create_app()' --bind 0.0.0.0:$PORT --worker-class gevent --workers 2 --timeout 120
     envVars:
       - key: DATABASE_URL
         sync: false
