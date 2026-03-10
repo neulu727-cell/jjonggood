@@ -57,6 +57,14 @@ def incoming_call():
         stats = queries.get_customer_sales_stats(db, customer.id)
         event_data["last_visit"] = last_visit
         event_data["visit_count"] = stats["count"]
+        # 최근 예약 이력 (최대 3건)
+        recent = queries.get_customer_reservations(db, customer.id)[:3]
+        event_data["recent_reservations"] = [{
+            "date": r.date,
+            "service": r.service_type,
+            "amount": r.amount,
+            "status": r.status,
+        } for r in recent]
 
     _broadcast_event(event_data)
 

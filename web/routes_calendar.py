@@ -48,5 +48,6 @@ def api_day():
             "request": r.request,
             "groomer_memo": r.groomer_memo,
             "status": r.status,
+            "completed_at": r.completed_at,
         })
     return jsonify({"date": date_str, "reservations": items})

@@ -10,6 +10,10 @@ const App = (() => {
     let pendingSlotCustomer = null;
     let searchTimer = null;
     let callSidebarDate = null;
+    // 북킹모드: 고객 선택 후 날짜→빈슬롯 클릭으로 예약
+    let bookingMode = null; // { customer: {...} } or null
+    // 이동모드: 기존 예약의 날짜/시간 변경
+    let moveMode = null; // { reservationId, petName } or null
 
     function isPC() { return window.innerWidth >= 900; }
 
@@ -161,19 +165,20 @@ const App = (() => {
 
         // 타임슬롯 생성 (빈 슬롯 + 예약)
         const slots = generateTimeSlots();
-        const reservationMap = {};
-        const occupiedSlots = new Set();
+        const booked = {};       // slot -> reservation
+        const bookedIsStart = {}; // slot -> bool (예약 시작 슬롯 여부)
 
         for (const r of items) {
-            reservationMap[r.time] = r;
-            // 해당 예약이 차지하는 슬롯들 계산
             const [sh, sm] = r.time.split(':').map(Number);
             const startMin = sh * 60 + sm;
-            const endMin = startMin + r.duration;
-            for (let m = startMin; m < endMin; m += CONFIG.slotInterval) {
-                const h = Math.floor(m / 60);
-                const min = m % 60;
-                occupiedSlots.add(`${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`);
+            const nSlots = Math.max(1, Math.ceil(r.duration / CONFIG.slotInterval));
+            for (let s = 0; s < nSlots; s++) {
+                const t = startMin + s * CONFIG.slotInterval;
+                const ts = `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
+                if (slots.includes(ts)) {
+                    booked[ts] = r;
+                    bookedIsStart[ts] = (s === 0);
+                }
             }
         }
 
@@ -187,51 +192,151 @@ const App = (() => {
                     ${isPC() ? '' : '<button class="timeline-close" onclick="App.closeTimeline()">&times;</button>'}
                 </div>
             </div>
-            <div class="timeline-list">
         `;
 
-        for (const slot of slots) {
-            const r = reservationMap[slot];
-            if (r) {
-                const startLabel = formatTime(r.time);
-                const endLabel = formatTime(r.end_time);
-                const statusCls = r.status || 'confirmed';
-                const statusText = STATUS_LABEL[statusCls] || statusCls;
-                const breedText = r.breed ? `(${r.breed})` : '';
-                const requestText = r.request ? `<div class="res-request">${esc(r.request)}</div>` : '';
+        if (isPC()) {
+            html += renderTimelineGrid(slots, booked, bookedIsStart);
+        } else {
+            html += renderTimelineList(slots, booked, bookedIsStart);
+        }
 
-                html += `
-                    <div class="res-card" onclick="App.showReservationDetail(${r.id})">
-                        <div class="res-time-col">
-                            <div class="res-time-start">${startLabel}</div>
-                            <div class="res-time-end">${endLabel}</div>
-                            <div class="res-dot"></div>
-                        </div>
-                        <div class="res-info">
-                            <div class="res-pet">
-                                ${esc(r.pet_name)}
-                                <span class="breed">${esc(breedText)}</span>
+        content.innerHTML = html;
+        updateStatsBar(data);
+    }
+
+    function renderTimelineList(slots, booked, bookedIsStart) {
+        let html = '<div class="timeline-list">';
+        const rendered = new Set();
+        for (const slot of slots) {
+            if (rendered.has(slot)) continue;
+            const r = booked[slot];
+            if (r) {
+                if (bookedIsStart[slot]) {
+                    // 시작 슬롯 - 예약 카드 렌더
+                    const startLabel = formatTime(r.time);
+                    const endLabel = formatTime(r.end_time);
+                    const statusCls = r.status || 'confirmed';
+                    const statusText = STATUS_LABEL[statusCls] || statusCls;
+                    const breedText = r.breed ? `(${r.breed})` : '';
+                    const amtText = r.amount ? `${r.amount.toLocaleString()}원` : '';
+                    const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
+                    const requestText = r.request ? `<div class="res-request">${esc(r.request)}</div>` : '';
+                    html += `
+                        <div class="res-card" onclick="App.showReservationDetail(${r.id})">
+                            <div class="res-time-col">
+                                <div class="res-time-start">${startLabel}</div>
+                                <div class="res-time-end">${endLabel}</div>
                             </div>
-                            <div class="res-service">${esc(r.service)} ${r.duration}분</div>
-                            ${requestText}
-                        </div>
-                        <span class="res-status ${statusCls}">${statusText}</span>
-                    </div>
-                `;
-            } else if (!occupiedSlots.has(slot)) {
+                            <div class="res-info">
+                                <div class="res-pet">
+                                    ${esc(r.pet_name)}
+                                    <span class="breed">${esc(breedText)}</span>
+                                </div>
+                                <div class="res-service">${esc(r.service)}${furText}${amtText ? ' · ' + amtText : ''}</div>
+                                ${requestText}
+                            </div>
+                            <span class="res-status ${statusCls}">${statusText}</span>
+                        </div>`;
+                }
+                // 연속 슬롯은 건너뜀
+                rendered.add(slot);
+            } else {
                 html += `
                     <div class="slot-item" onclick="App.onSlotClick('${slot}')">
                         <span class="slot-time">${formatTime(slot)}</span>
                         <span class="slot-label">빈 슬롯</span>
                         <span class="slot-add">+</span>
-                    </div>
-                `;
+                    </div>`;
             }
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function renderTimelineGrid(slots, booked, bookedIsStart) {
+        const STATUS_COLORS = {
+            confirmed: { bg: '#DBEAFE', border: '#93C5FD', text: '#1E40AF' },
+            completed: { bg: '#DCFCE7', border: '#86EFAC', text: '#166534' },
+            cancelled: { bg: '#FEE2E2', border: '#FCA5A5', text: '#991B1B' },
+            no_show:   { bg: '#FEF3C7', border: '#FDE68A', text: '#92400E' },
+        };
+
+        const mid = Math.ceil(slots.length / 2);
+        const leftSlots = slots.slice(0, mid);
+        const rightSlots = slots.slice(mid);
+        const maxRows = Math.max(leftSlots.length, rightSlots.length);
+
+        let html = '<div class="tl-grid">';
+
+        // 좌/우 컬럼 각각 렌더 (skip set으로 rowspan 처리)
+        for (let col = 0; col < 2; col++) {
+            const colSlots = col === 0 ? leftSlots : rightSlots;
+            html += `<div class="tl-col">`;
+            const skip = new Set();
+
+            for (let i = 0; i < colSlots.length; i++) {
+                if (skip.has(i)) continue;
+                const ts = colSlots[i];
+                const r = booked[ts];
+
+                if (r) {
+                    const isStart = bookedIsStart[ts];
+                    // 같은 예약이 연속 몇 슬롯 차지하는지 계산 (같은 컬럼 내에서만)
+                    let span = 1;
+                    for (let j = i + 1; j < colSlots.length; j++) {
+                        if (booked[colSlots[j]] === r) { span++; skip.add(j); }
+                        else break;
+                    }
+
+                    const sc = STATUS_COLORS[r.status] || STATUS_COLORS.confirmed;
+                    const height = span * 48 - 2; // 48px per slot, minus gap
+                    const petInfo = r.breed ? `${esc(r.pet_name)}(${esc(r.breed)})` : esc(r.pet_name);
+
+                    if (span === 1) {
+                        // 단일 슬롯 - 가로 레이아웃
+                        html += `<div class="tl-slot tl-booked" style="height:${height}px;background:${sc.bg};border-color:${sc.border};color:${sc.text}" onclick="App.showReservationDetail(${r.id})">
+                            <span class="tl-time">${ts}</span>`;
+                        if (isStart) {
+                            const fur = r.fur_length ? `/${esc(r.fur_length)}` : '';
+                            html += `<span class="tl-info">${petInfo} ${esc(r.service)}${fur}</span>`;
+                            if (r.amount) html += `<span class="tl-amount">${r.amount.toLocaleString()}</span>`;
+                        } else {
+                            html += `<span class="tl-info">~ ${petInfo}</span>`;
+                        }
+                        html += `</div>`;
+                    } else {
+                        // 다중 슬롯 - 세로 레이아웃 (병합)
+                        html += `<div class="tl-slot tl-booked tl-merged" style="height:${height}px;background:${sc.bg};border-color:${sc.border};color:${sc.text}" onclick="App.showReservationDetail(${r.id})">`;
+                        if (isStart) {
+                            const [rh, rm] = r.time.split(':').map(Number);
+                            const endMin = rh * 60 + rm + r.duration;
+                            const endStr = `${String(Math.floor(endMin/60)).padStart(2,'0')}:${String(endMin%60).padStart(2,'0')}`;
+                            const fur = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
+                            const amtText = r.amount ? `  ${r.amount.toLocaleString()}원` : '';
+                            html += `<div class="tl-row"><span class="tl-time">${ts}~${endStr}</span> <span class="tl-info">${petInfo}</span></div>`;
+                            html += `<div class="tl-row"><span class="tl-detail">${esc(r.service)}${fur}${amtText}</span></div>`;
+                            const memoParts = [];
+                            if (r.request) memoParts.push(r.request);
+                            if (r.groomer_memo && r.groomer_memo !== r.request) memoParts.push(r.groomer_memo);
+                            if (memoParts.length) html += `<div class="tl-row"><span class="tl-memo">메모: ${esc(memoParts.join(' / '))}</span></div>`;
+                        } else {
+                            html += `<div class="tl-row"><span class="tl-info">~ ${petInfo}</span></div>`;
+                        }
+                        html += `</div>`;
+                    }
+                } else {
+                    // 빈 슬롯
+                    html += `<div class="tl-slot tl-empty" onclick="App.onSlotClick('${ts}')">
+                        <span class="tl-time">${ts}</span>
+                        <span class="tl-hint">+ 예약</span>
+                    </div>`;
+                }
+            }
+            html += '</div>';
         }
 
         html += '</div>';
-        content.innerHTML = html;
-        updateStatsBar(data);
+        return html;
     }
 
     function closeTimeline() {
@@ -245,6 +350,40 @@ const App = (() => {
 
     function onSlotClick(timeStr) {
         pendingSlotTime = timeStr;
+
+        // 이동모드: 기존 예약의 날짜/시간만 변경
+        if (moveMode) {
+            const rid = moveMode.reservationId;
+            const petName = moveMode.petName;
+            if (!confirm(`${petName} 예약을 ${selectedDate} ${formatTime(timeStr)}로 이동하시겠습니까?`)) return;
+            fetch(`/api/reservation/${rid}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: selectedDate, time: timeStr }),
+            }).then(r => r.json()).then(result => {
+                if (result.ok) {
+                    toast('예약이 이동되었습니다');
+                    selectDate(selectedDate);
+                    loadMonth();
+                } else {
+                    toast(result.error || '이동 실패');
+                }
+            }).catch(() => toast('이동 실패'));
+            moveMode = null;
+            hideModeBar();
+            return;
+        }
+
+        // 북킹모드: 이미 선택된 고객으로 바로 예약 폼
+        if (bookingMode) {
+            pendingSlotCustomer = bookingMode.customer;
+            bookingMode = null;
+            hideModeBar();
+            showReservationForm(pendingSlotCustomer);
+            return;
+        }
+
+        // 일반: 고객 선택 시트 열기
         openSheet('customerSelectSheet');
         document.getElementById('slotCustomerSearch').value = '';
         document.getElementById('slotCustomerResults').innerHTML =
@@ -375,26 +514,27 @@ const App = (() => {
         const input = document.getElementById(field);
         if (input) input.value = btn.dataset.value;
         // 서비스 선택 시 연동
-        if (field === 'resService' && btn.dataset.dur) {
-            document.getElementById('resDuration').value = btn.dataset.dur;
-            document.getElementById('resAmount').value = btn.dataset.price;
-            // 소요시간/금액 버튼도 업데이트
+        if ((field === 'resService' || field === 'editResService') && btn.dataset.dur) {
+            const prefix = field.startsWith('edit') ? 'editRes' : 'res';
+            document.getElementById(prefix + 'Duration').value = btn.dataset.dur;
+            document.getElementById(prefix + 'Amount').value = btn.dataset.price;
             const dur = parseInt(btn.dataset.dur);
             const price = parseInt(btn.dataset.price);
-            document.querySelectorAll('[data-field="resDuration"]').forEach(b =>
+            document.querySelectorAll('[data-field="'+prefix+'Duration"]').forEach(b =>
                 b.classList.toggle('active', parseInt(b.dataset.value) === dur));
-            document.querySelectorAll('[data-field="resAmount"]').forEach(b =>
+            document.querySelectorAll('[data-field="'+prefix+'Amount"]').forEach(b =>
                 b.classList.toggle('active', parseInt(b.dataset.value) === price));
             const durLabel = document.getElementById('durLabel');
             const priceLabel = document.getElementById('priceLabel');
             if (durLabel) durLabel.textContent = dur + '분';
             if (priceLabel) priceLabel.textContent = price.toLocaleString() + '원';
+            return;
         }
-        if (field === 'resDuration') {
+        if (field === 'resDuration' || field === 'editResDuration') {
             const durLabel = document.getElementById('durLabel');
             if (durLabel) durLabel.textContent = btn.dataset.value + '분';
         }
-        if (field === 'resAmount') {
+        if (field === 'resAmount' || field === 'editResAmount') {
             const priceLabel = document.getElementById('priceLabel');
             if (priceLabel) priceLabel.textContent = parseInt(btn.dataset.value).toLocaleString() + '원';
         }
@@ -501,13 +641,16 @@ const App = (() => {
                         <span class="label">상태</span>
                         <span class="value"><span class="res-status ${r.status}">${statusText}</span></span>
                     </div>
+                    ${r.completed_at ? `<div class="detail-row"><span class="label">완료 시간</span><span class="value">${r.completed_at.substring(11, 16)}</span></div>` : ''}
                     ${r.request ? `<div class="detail-row"><span class="label">메모</span><span class="value">${esc(r.request)}</span></div>` : ''}
                     ${r.groomer_memo ? `<div class="detail-row"><span class="label">미용사 메모</span><span class="value">${esc(r.groomer_memo)}</span></div>` : ''}
                 </div>
 
                 <div class="detail-section">
-                    <h4>수정</h4>
-                    <button class="btn-secondary" onclick="App.showEditReservation(${rid})">예약 수정</button>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn-secondary" style="flex:1;margin:0" onclick="App.showEditReservation(${rid})">예약 수정</button>
+                        ${r.status === 'confirmed' ? `<button class="btn-status yellow" style="flex:1;margin:0" onclick="App.enterMoveMode(${rid},'${esc(r.pet_name)}')">예약 변경</button>` : ''}
+                    </div>
                 </div>
 
                 <div class="detail-section">
@@ -535,46 +678,62 @@ const App = (() => {
             const res = await fetch(`/api/reservation/${rid}`);
             const r = await res.json();
 
-            let serviceOptions = CONFIG.services.map(s =>
-                `<option value="${s[0]}" ${s[0]===r.service_type?'selected':''}>${s[0]}</option>`
+            let serviceGrid = CONFIG.services.map(s =>
+                `<button type="button" class="btn-grid-item${s[0]===r.service_type?' active':''}" data-field="editResService" data-value="${esc(s[0])}" data-dur="${s[1]}" data-price="${s[2]}" onclick="App.selectGridBtn(this)">${esc(s[0])}</button>`
             ).join('');
-            // 기존 서비스가 기본 목록에 없으면 추가
             if (!CONFIG.services.find(s => s[0] === r.service_type)) {
-                serviceOptions = `<option value="${esc(r.service_type)}" selected>${esc(r.service_type)}</option>` + serviceOptions;
+                serviceGrid = `<button type="button" class="btn-grid-item active" data-field="editResService" data-value="${esc(r.service_type)}" onclick="App.selectGridBtn(this)">${esc(r.service_type)}</button>` + serviceGrid;
             }
 
-            let furOptions = `<option value="">선택 안함</option>` +
-                CONFIG.furLengths.map(f => `<option value="${f}" ${f===r.fur_length?'selected':''}>${f}</option>`).join('');
+            let furGrid = `<button type="button" class="btn-grid-item${!r.fur_length?' active':''}" data-field="editResFurLength" data-value="" onclick="App.selectGridBtn(this)">없음</button>` +
+                CONFIG.furLengths.map(f =>
+                    `<button type="button" class="btn-grid-item${f===r.fur_length?' active':''}" data-field="editResFurLength" data-value="${f}" onclick="App.selectGridBtn(this)">${f}</button>`
+                ).join('');
+
+            const durations = [30, 60, 90, 120, 150, 180];
+            const durLabels = {30:'30분', 60:'1시간', 90:'1시간30분', 120:'2시간', 150:'2시간30분', 180:'3시간'};
+            let durGrid = durations.map(d =>
+                `<button type="button" class="btn-grid-item${d===r.duration?' active':''}" data-field="editResDuration" data-value="${d}" onclick="App.selectGridBtn(this)">${durLabels[d]||d+'분'}</button>`
+            ).join('');
+
+            const prices = [30000, 40000, 45000, 50000, 55000, 60000, 70000, 80000];
+            let priceGrid = prices.map(p =>
+                `<button type="button" class="btn-grid-item${p===r.amount?' active':''}" data-field="editResAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${(p/10000)}만</button>`
+            ).join('');
 
             const form = document.getElementById('reservationForm');
             document.getElementById('sheetTitle').textContent = '예약 수정';
             form.innerHTML = `
                 <input type="hidden" id="editResId" value="${rid}">
-                <div class="form-group">
-                    <label>날짜</label>
-                    <input type="date" id="editResDate" value="${r.date}">
-                </div>
-                <div class="form-group">
-                    <label>시간</label>
-                    <input type="time" id="editResTime" value="${r.time}">
+                <input type="hidden" id="editResService" value="${esc(r.service_type)}">
+                <input type="hidden" id="editResDuration" value="${r.duration}">
+                <input type="hidden" id="editResAmount" value="${r.amount}">
+                <input type="hidden" id="editResFurLength" value="${esc(r.fur_length || '')}">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>날짜</label>
+                        <input type="date" id="editResDate" value="${r.date}">
+                    </div>
+                    <div class="form-group">
+                        <label>시간</label>
+                        <input type="time" id="editResTime" value="${r.time}">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>미용 종류</label>
-                    <select id="editResService">${serviceOptions}</select>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>소요시간 (분)</label>
-                        <input type="number" id="editResDuration" value="${r.duration}">
-                    </div>
-                    <div class="form-group">
-                        <label>금액 (원)</label>
-                        <input type="number" id="editResAmount" value="${r.amount}">
-                    </div>
+                    <div class="btn-grid">${serviceGrid}</div>
                 </div>
                 <div class="form-group">
                     <label>털 길이</label>
-                    <select id="editResFurLength">${furOptions}</select>
+                    <div class="btn-grid">${furGrid}</div>
+                </div>
+                <div class="form-group">
+                    <label>소요시간 <span class="sub-label" id="durLabel">${r.duration}분</span></label>
+                    <div class="btn-grid">${durGrid}</div>
+                </div>
+                <div class="form-group">
+                    <label>금액 <span class="sub-label" id="priceLabel">${(r.amount||0).toLocaleString()}원</span></label>
+                    <div class="btn-grid">${priceGrid}</div>
                 </div>
                 <div class="form-group">
                     <label>요청사항</label>
@@ -710,7 +869,7 @@ const App = (() => {
     }
 
     function showCustomerForm(customer, onSaved) {
-        const isEdit = !!customer;
+        const isEdit = !!(customer && customer.id);
         document.getElementById('customerFormTitle').textContent =
             isEdit ? '고객 정보 수정' : '신규 고객 등록';
 
@@ -896,17 +1055,24 @@ const App = (() => {
             if (c.reservations && c.reservations.length) {
                 historyHtml = c.reservations.map(r => {
                     const statusLabel = STATUS_LABEL[r.status] || r.status;
+                    const d = new Date(r.date + 'T00:00:00');
+                    const dow = WEEKDAYS_KR[d.getDay()];
+                    const dateStr = `${r.date.replace(/-/g,'.')}(${dow})`;
+                    const timeStr = r.time ? ' ' + formatTime(r.time) : '';
+                    const amt = r.amount ? r.amount.toLocaleString() + '원' : '';
                     return `
-                        <div class="history-item" onclick="App.showReservationDetail(${r.id}); App.closeSheet('customerDetailSheet')">
-                            <span class="history-date">${r.date}</span>
-                            <span class="history-service">${esc(r.service_type)}</span>
-                            <span class="history-amount">${r.amount ? r.amount.toLocaleString() + '원' : '-'}</span>
-                            <span class="history-status res-status ${r.status}">${statusLabel}</span>
+                        <div class="history-card" onclick="App.showReservationDetail(${r.id}); App.closeSheet('customerDetailSheet')">
+                            <span class="res-status ${r.status}" style="min-width:36px;text-align:center">${statusLabel}</span>
+                            <div class="history-card-body">
+                                <div class="history-card-date">${dateStr}${timeStr}</div>
+                                <div class="history-card-service">${esc(r.service_type)}${amt ? ' · ' + amt : ''}</div>
+                            </div>
+                            <span style="color:var(--text-light);font-size:16px">&#8250;</span>
                         </div>
                     `;
                 }).join('');
             } else {
-                historyHtml = '<p style="text-align:center;color:#999;padding:20px">예약 이력 없음</p>';
+                historyHtml = '<p style="text-align:center;color:var(--text-light);padding:24px">예약 이력 없음</p>';
             }
 
             content.innerHTML = `
@@ -986,8 +1152,9 @@ const App = (() => {
                 const name = h.c_pet_name || h.pet_name || '';
                 const breed = h.breed || '';
                 const time = h.created_at ? h.created_at.substring(5, 16) : '';
+                const phone = esc(h.phone || '');
                 return `
-                    <div class="history-item">
+                    <div class="history-item" onclick="App.closeSheet('callHistorySheet');App.onCallHistoryClick('${phone}')" style="cursor:pointer">
                         <span class="history-date">${esc(time)}</span>
                         <span class="history-service">${esc(h.phone_display)} ${name ? esc(name) : '(미등록)'}</span>
                         ${breed ? `<span class="history-amount">${esc(breed)}</span>` : ''}
@@ -1003,21 +1170,34 @@ const App = (() => {
         const popup = document.getElementById('callPopup');
         const content = document.getElementById('callPopupContent');
 
-        // 전화 뱃지 업데이트
-        const badge = document.getElementById('callBadge');
-        const count = parseInt(badge.textContent || '0') + 1;
-        badge.textContent = count;
-        badge.style.display = 'flex';
+        // 전화 뱃지 업데이트 (SSE 수신 시에만 - type이 있을 때)
+        if (data.type === 'incoming_call') {
+            const badge = document.getElementById('callBadge');
+            const count = parseInt(badge.textContent || '0') + 1;
+            badge.textContent = count;
+            badge.style.display = 'flex';
+        }
 
         if (data.is_existing) {
             const visitInfo = data.visit_count ? `${data.visit_count}회 방문` : '';
             const lastVisit = data.last_visit ? `마지막: ${data.last_visit}` : '';
             const meta = [visitInfo, lastVisit].filter(Boolean).join(' | ');
+            let recentHtml = '';
+            if (data.recent_reservations && data.recent_reservations.length) {
+                const statusLabel = { confirmed: '예약', completed: '완료', cancelled: '취소', no_show: '노쇼' };
+                recentHtml = '<div class="call-recent"><div class="call-recent-title">최근 이력</div>' +
+                    data.recent_reservations.map(r => {
+                        const st = statusLabel[r.status] || r.status;
+                        const amt = r.amount ? ` ${r.amount.toLocaleString()}원` : '';
+                        return `<div class="call-recent-item"><span>${esc(r.date)}</span><span>${esc(r.service)}${amt}</span><span class="call-recent-status ${r.status}">${st}</span></div>`;
+                    }).join('') + '</div>';
+            }
             content.innerHTML = `
                 <div class="call-info-existing">
                     <div class="call-phone">${esc(data.phone_display)}</div>
                     <div class="call-customer">${esc(data.pet_name)} (${esc(data.breed)}) - ${esc(data.customer_name)}</div>
                     ${meta ? `<div class="call-customer">${esc(meta)}</div>` : ''}
+                    ${recentHtml}
                 </div>
                 <div class="call-actions">
                     <button class="call-btn-reserve" onclick="App.reserveFromCall(${data.customer_id})">예약하기</button>
@@ -1048,23 +1228,23 @@ const App = (() => {
         clearTimeout(window._callPopupTimer);
     }
 
-    function reserveFromCall(customerId) {
+    async function reserveFromCall(customerId) {
         closeCallPopup();
-        // 오늘 날짜 선택 후 빈슬롯 선택 유도
-        const now = new Date();
-        const todayStr = fmtDate(now);
-        selectedDate = todayStr;
-        currentYear = now.getFullYear();
-        currentMonth = now.getMonth() + 1;
-        showView('calendar');
-        loadMonth().then(() => selectDate(todayStr));
-        toast('날짜에서 빈 슬롯을 선택하세요');
+        try {
+            const res = await fetch(`/api/customer/${customerId}`);
+            const c = await res.json();
+            enterBookingMode(c);
+        } catch (e) {
+            toast('고객 정보 로드 실패');
+        }
     }
 
     function registerFromCall(phone) {
         closeCallPopup();
-        showView('customers');
-        showCustomerForm({ phone: phone, phone_display: phone });
+        // 고객 등록 후 콜백에서 북킹모드 진입
+        showCustomerForm({ phone: phone, phone_display: phone }, (newCustomer) => {
+            enterBookingMode(newCustomer);
+        });
     }
 
     // ==================== 월 이동 ====================
@@ -1198,10 +1378,9 @@ const App = (() => {
             dateLabel.textContent = (targetDate === fmtDate(new Date())) ? '오늘' : targetDate.substring(5);
         }
         try {
-            const res = await fetch('/api/call-history');
+            const res = await fetch(`/api/call-history?date=${targetDate}`);
             const data = await res.json();
-            const history = data.history || [];
-            const filtered = history.filter(h => h.created_at && h.created_at.startsWith(targetDate));
+            const filtered = data.history || [];
             if (!filtered.length) {
                 container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;font-size:13px">전화 이력 없음</p>';
                 return;
@@ -1211,7 +1390,8 @@ const App = (() => {
                 const name = h.c_pet_name || h.pet_name || '';
                 const time = h.created_at ? h.created_at.substring(11, 16) : '';
                 const cls = isKnown ? 'known' : 'unknown';
-                return '<div class="call-sidebar-item ' + cls + '">' +
+                const phone = esc(h.phone || '');
+                return '<div class="call-sidebar-item ' + cls + '" onclick="App.onCallHistoryClick(\'' + phone + '\')">' +
                     '<span class="call-sidebar-time">' + esc(time) + ' ' + (name ? esc(name) : '신규') + '</span>' +
                     '<span class="call-sidebar-phone">' + esc(h.phone_display) + '</span>' +
                     '</div>';
@@ -1263,6 +1443,78 @@ const App = (() => {
         toast('타임라인에서 빈 슬롯을 선택하세요');
     }
 
+    // ==================== 수신기록 클릭 ====================
+
+    async function onCallHistoryClick(phone) {
+        if (!phone) return;
+        const unknownPopup = {
+            phone: phone,
+            phone_display: phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'),
+            is_existing: false,
+        };
+        try {
+            const res = await fetch(`/api/customer/by-phone?phone=${encodeURIComponent(phone)}`);
+            const data = await res.json();
+            const c = data.customer;
+            if (c && c.id) {
+                showCallPopup({
+                    phone: phone,
+                    phone_display: c.phone_display || phone,
+                    is_existing: true,
+                    customer_id: c.id,
+                    customer_name: c.name || '',
+                    pet_name: c.pet_name || '',
+                    breed: c.breed || '',
+                    visit_count: c.visit_count || 0,
+                    last_visit: c.last_visit || '',
+                    recent_reservations: c.recent_reservations || [],
+                });
+            } else {
+                showCallPopup(unknownPopup);
+            }
+        } catch (e) {
+            showCallPopup(unknownPopup);
+        }
+    }
+
+    // ==================== 북킹모드 / 이동모드 ====================
+
+    function showModeBar(type, text) {
+        const bar = document.getElementById('modeBar');
+        const textEl = document.getElementById('modeBarText');
+        bar.className = 'mode-bar ' + type;
+        textEl.textContent = text;
+        bar.style.display = 'flex';
+    }
+
+    function hideModeBar() {
+        document.getElementById('modeBar').style.display = 'none';
+    }
+
+    function enterBookingMode(customer) {
+        bookingMode = { customer };
+        moveMode = null;
+        showModeBar('booking', `${customer.pet_name || '고객'} 예약 중 - 날짜 선택 → 빈 슬롯 클릭`);
+        showView('calendar');
+        if (!selectedDate) goToday();
+        toast('캘린더에서 날짜를 선택 후 빈 슬롯을 클릭하세요');
+    }
+
+    function enterMoveMode(reservationId, petName) {
+        moveMode = { reservationId, petName };
+        bookingMode = null;
+        closeSheet('reservationDetailSheet');
+        showModeBar('moving', `${petName} 예약 이동 중 - 새 날짜/시간 선택`);
+        toast('캘린더에서 날짜를 선택 후 빈 슬롯을 클릭하세요');
+    }
+
+    function cancelMode() {
+        bookingMode = null;
+        moveMode = null;
+        hideModeBar();
+        toast('취소되었습니다');
+    }
+
     // 초기화
     init();
 
@@ -1283,5 +1535,6 @@ const App = (() => {
         showCustomerForm, showReservationForm,
         changeCallDate, refresh, onQuickReserve, testCall,
         selectGridBtn, applyPrevService,
+        onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode,
     };
 })();

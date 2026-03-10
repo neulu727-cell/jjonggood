@@ -61,6 +61,7 @@ def get_reservation(rid):
         "request": r.request,
         "groomer_memo": r.groomer_memo,
         "status": r.status,
+        "completed_at": r.completed_at,
     })
 
 
