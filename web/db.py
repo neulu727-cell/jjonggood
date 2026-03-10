@@ -27,13 +27,40 @@ class DatabaseManager:
 
     def initialize(self):
         """커넥션 풀 생성 + 테이블 초기화"""
+        # connect_timeout: 연결 시도 최대 10초
+        # keepalives: TCP keepalive로 죽은 연결 감지
+        # options: statement_timeout으로 쿼리 최대 30초
+        dsn = self._url
+        if "?" not in dsn:
+            dsn += "?"
+        else:
+            dsn += "&"
+        dsn += "connect_timeout=10&keepalives=1&keepalives_idle=30&keepalives_interval=10&keepalives_count=3&options=-c%20statement_timeout%3D30000"
+
         self._pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=1, maxconn=5, dsn=self._url
+            minconn=1, maxconn=5, dsn=dsn
         )
         self._create_tables()
 
     def _get_conn(self):
-        return self._pool.getconn()
+        """풀에서 커넥션을 꺼내되, 죽은 연결이면 재생성."""
+        conn = self._pool.getconn()
+        try:
+            # 연결 상태 확인 (죽은 연결 감지)
+            conn.isolation_level
+            if conn.closed:
+                raise psycopg2.OperationalError("closed")
+            # 실제 ping
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+        except Exception:
+            # 죽은 연결 → 버리고 새로 만들기
+            try:
+                self._pool.putconn(conn, close=True)
+            except Exception:
+                pass
+            conn = self._pool.getconn()
+        return conn
 
     def _put_conn(self, conn):
         self._pool.putconn(conn)

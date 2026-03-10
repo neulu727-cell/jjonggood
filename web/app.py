@@ -102,6 +102,14 @@ def create_app():
             "slot_interval": config.TIME_SLOT_INTERVAL,
         })
 
+    # 앱 시작 시 DB 미리 연결 (Render 부팅 중에 연결해서 첫 요청 지연 방지)
+    with app.app_context():
+        try:
+            get_db()
+            print("[APP] DB pre-connected at startup")
+        except Exception as e:
+            print(f"[APP] DB pre-connect failed (will retry on first request): {e}")
+
     return app
 
 
