@@ -9,6 +9,9 @@ const App = (() => {
     let pendingSlotTime = null; // 빈슬롯 클릭 시 선택된 시간
     let pendingSlotCustomer = null;
     let searchTimer = null;
+    let callSidebarDate = null;
+
+    function isPC() { return window.innerWidth >= 900; }
 
     const WEEKDAYS_KR = ['일','월','화','수','목','금','토'];
     const STATUS_LABEL = { confirmed: '예약', completed: '완료', cancelled: '취소', no_show: '노쇼' };
@@ -19,8 +22,14 @@ const App = (() => {
         const now = new Date();
         currentYear = now.getFullYear();
         currentMonth = now.getMonth() + 1;
-        loadMonth();
         setupSwipe();
+        if (isPC()) {
+            startClock();
+            loadCallSidebar();
+            goToday();
+        } else {
+            loadMonth();
+        }
     }
 
     // ==================== 뷰 전환 ====================
@@ -35,12 +44,16 @@ const App = (() => {
         const custView = document.getElementById('customerView');
 
         if (view === 'calendar') {
-            calSec.style.display = '';
-            tlSec.style.display = '';
+            if (!isPC()) {
+                calSec.style.display = '';
+                tlSec.style.display = '';
+            }
             custView.style.display = 'none';
         } else if (view === 'customers') {
-            calSec.style.display = 'none';
-            tlSec.style.display = 'none';
+            if (!isPC()) {
+                calSec.style.display = 'none';
+                tlSec.style.display = 'none';
+            }
             custView.style.display = 'flex';
             document.getElementById('customerSearchInput').focus();
         }
@@ -171,7 +184,7 @@ const App = (() => {
                     <span class="timeline-count">${items.length}건</span>
                 </div>
                 <div class="timeline-actions">
-                    <button class="timeline-close" onclick="App.closeTimeline()">&times;</button>
+                    ${isPC() ? '' : '<button class="timeline-close" onclick="App.closeTimeline()">&times;</button>'}
                 </div>
             </div>
             <div class="timeline-list">
@@ -218,6 +231,7 @@ const App = (() => {
 
         html += '</div>';
         content.innerHTML = html;
+        updateStatsBar(data);
     }
 
     function closeTimeline() {
@@ -273,15 +287,51 @@ const App = (() => {
         document.getElementById('sheetTitle').textContent =
             `예약 등록 - ${customer.pet_name}`;
 
-        let serviceOptions = CONFIG.services.map((s, i) =>
-            `<option value="${s[0]}" ${i===0?'selected':''}>${s[0]}</option>`
+        const svc0 = CONFIG.services[0];
+        let serviceGrid = CONFIG.services.map((s, i) =>
+            `<button type="button" class="btn-grid-item${i===0?' active':''}" data-field="resService" data-value="${esc(s[0])}" data-dur="${s[1]}" data-price="${s[2]}" onclick="App.selectGridBtn(this)">${esc(s[0])}</button>`
         ).join('');
 
-        let furOptions = '<option value="">선택 안함</option>' +
-            CONFIG.furLengths.map(f => `<option value="${f}">${f}</option>`).join('');
+        let furGrid = `<button type="button" class="btn-grid-item active" data-field="resFurLength" data-value="" onclick="App.selectGridBtn(this)">없음</button>` +
+            CONFIG.furLengths.map(f =>
+                `<button type="button" class="btn-grid-item" data-field="resFurLength" data-value="${f}" onclick="App.selectGridBtn(this)">${f}</button>`
+            ).join('');
+
+        const durations = [30, 60, 90, 120, 150, 180];
+        const durLabels = {30:'30분', 60:'1시간', 90:'1시간30분', 120:'2시간', 150:'2시간30분', 180:'3시간'};
+        let durGrid = durations.map(d =>
+            `<button type="button" class="btn-grid-item${d===svc0[1]?' active':''}" data-field="resDuration" data-value="${d}" onclick="App.selectGridBtn(this)">${durLabels[d]}</button>`
+        ).join('');
+
+        const prices = [30000, 40000, 45000, 50000, 55000, 60000, 70000, 80000];
+        let priceGrid = prices.map(p =>
+            `<button type="button" class="btn-grid-item${p===svc0[2]?' active':''}" data-field="resAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${(p/10000)}만</button>`
+        ).join('');
+
+        // 이전 서비스 이력
+        let prevHtml = '';
+        if (customer.reservations && customer.reservations.length) {
+            const recent = customer.reservations.slice(0, 5);
+            prevHtml = `
+                <div class="prev-services">
+                    <button type="button" class="prev-services-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+                        이전 서비스 이력 (${customer.reservations.length}건) <span>▼</span>
+                    </button>
+                    <div class="prev-services-list" style="display:none">
+                        ${recent.map(r => `<div class="prev-service-item" onclick="App.applyPrevService('${esc(r.service_type)}',${r.duration},${r.amount||0},'${esc(r.fur_length||'')}')">
+                            <span>${esc(r.service_type)} / ${r.duration}분</span>
+                            <span>${r.amount ? r.amount.toLocaleString()+'원' : '-'}</span>
+                        </div>`).join('')}
+                    </div>
+                </div>`;
+        }
 
         form.innerHTML = `
             <input type="hidden" id="resCustomerId" value="${customer.id}">
+            <input type="hidden" id="resService" value="${esc(svc0[0])}">
+            <input type="hidden" id="resDuration" value="${svc0[1]}">
+            <input type="hidden" id="resAmount" value="${svc0[2]}">
+            <input type="hidden" id="resFurLength" value="">
             <div class="form-group">
                 <label>고객</label>
                 <input type="text" value="${esc(customer.pet_name)} (${esc(customer.breed || '')}) - ${esc(customer.name || customer.phone_display || '')}" disabled>
@@ -290,23 +340,22 @@ const App = (() => {
                 <label>시간</label>
                 <input type="text" value="${formatTime(pendingSlotTime)} (${pendingSlotTime})" disabled>
             </div>
+            ${prevHtml}
             <div class="form-group">
-                <label>미용 종류 *</label>
-                <select id="resService" onchange="App.onServiceChange()">${serviceOptions}</select>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>소요시간 (분)</label>
-                    <input type="number" id="resDuration" value="${CONFIG.services[0][1]}">
-                </div>
-                <div class="form-group">
-                    <label>금액 (원)</label>
-                    <input type="number" id="resAmount" value="${CONFIG.services[0][2]}">
-                </div>
+                <label>미용 종류</label>
+                <div class="btn-grid">${serviceGrid}</div>
             </div>
             <div class="form-group">
                 <label>털 길이</label>
-                <select id="resFurLength">${furOptions}</select>
+                <div class="btn-grid">${furGrid}</div>
+            </div>
+            <div class="form-group">
+                <label>소요시간 <span class="sub-label" id="durLabel">${svc0[1]}분</span></label>
+                <div class="btn-grid">${durGrid}</div>
+            </div>
+            <div class="form-group">
+                <label>금액 <span class="sub-label" id="priceLabel">${svc0[2].toLocaleString()}원</span></label>
+                <div class="btn-grid">${priceGrid}</div>
             </div>
             <div class="form-group">
                 <label>메모</label>
@@ -317,13 +366,66 @@ const App = (() => {
         openSheet('reservationSheet');
     }
 
-    function onServiceChange() {
-        const name = document.getElementById('resService').value;
-        const svc = CONFIG.services.find(s => s[0] === name);
-        if (svc) {
-            document.getElementById('resDuration').value = svc[1];
-            document.getElementById('resAmount').value = svc[2];
+    function selectGridBtn(btn) {
+        const field = btn.dataset.field;
+        // 같은 그룹의 active 해제
+        btn.parentElement.querySelectorAll('.btn-grid-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // hidden input 업데이트
+        const input = document.getElementById(field);
+        if (input) input.value = btn.dataset.value;
+        // 서비스 선택 시 연동
+        if (field === 'resService' && btn.dataset.dur) {
+            document.getElementById('resDuration').value = btn.dataset.dur;
+            document.getElementById('resAmount').value = btn.dataset.price;
+            // 소요시간/금액 버튼도 업데이트
+            const dur = parseInt(btn.dataset.dur);
+            const price = parseInt(btn.dataset.price);
+            document.querySelectorAll('[data-field="resDuration"]').forEach(b =>
+                b.classList.toggle('active', parseInt(b.dataset.value) === dur));
+            document.querySelectorAll('[data-field="resAmount"]').forEach(b =>
+                b.classList.toggle('active', parseInt(b.dataset.value) === price));
+            const durLabel = document.getElementById('durLabel');
+            const priceLabel = document.getElementById('priceLabel');
+            if (durLabel) durLabel.textContent = dur + '분';
+            if (priceLabel) priceLabel.textContent = price.toLocaleString() + '원';
         }
+        if (field === 'resDuration') {
+            const durLabel = document.getElementById('durLabel');
+            if (durLabel) durLabel.textContent = btn.dataset.value + '분';
+        }
+        if (field === 'resAmount') {
+            const priceLabel = document.getElementById('priceLabel');
+            if (priceLabel) priceLabel.textContent = parseInt(btn.dataset.value).toLocaleString() + '원';
+        }
+    }
+
+    function applyPrevService(service, duration, amount, furLength) {
+        document.getElementById('resService').value = service;
+        document.getElementById('resDuration').value = duration;
+        document.getElementById('resAmount').value = amount;
+        document.getElementById('resFurLength').value = furLength;
+        // 버튼 active 상태 업데이트
+        document.querySelectorAll('[data-field="resService"]').forEach(b =>
+            b.classList.toggle('active', b.dataset.value === service));
+        document.querySelectorAll('[data-field="resDuration"]').forEach(b =>
+            b.classList.toggle('active', parseInt(b.dataset.value) === duration));
+        document.querySelectorAll('[data-field="resAmount"]').forEach(b =>
+            b.classList.toggle('active', parseInt(b.dataset.value) === amount));
+        document.querySelectorAll('[data-field="resFurLength"]').forEach(b =>
+            b.classList.toggle('active', b.dataset.value === furLength));
+        const durLabel = document.getElementById('durLabel');
+        const priceLabel = document.getElementById('priceLabel');
+        if (durLabel) durLabel.textContent = duration + '분';
+        if (priceLabel) priceLabel.textContent = amount.toLocaleString() + '원';
+        // 이전 서비스 리스트 접기
+        const list = document.querySelector('.prev-services-list');
+        if (list) list.style.display = 'none';
+        toast(service + ' 적용');
+    }
+
+    function onServiceChange() {
+        // legacy - 버튼 그리드 방식에서는 selectGridBtn이 대신 처리
     }
 
     async function saveReservation() {
@@ -621,10 +723,7 @@ const App = (() => {
                 <label>전화번호 *</label>
                 <input type="tel" id="cfPhone" value="${esc(c.phone_display || c.phone || '')}" placeholder="010-0000-0000" inputmode="tel">
             </div>
-            <div class="form-group">
-                <label>보호자 이름</label>
-                <input type="text" id="cfName" value="${esc(c.name || '')}" placeholder="보호자 이름">
-            </div>
+            <input type="hidden" id="cfName" value="${esc(c.name || '')}">
             <div class="form-group">
                 <label>반려동물 이름 *</label>
                 <input type="text" id="cfPetName" value="${esc(c.pet_name || '')}" placeholder="반려동물 이름">
@@ -632,7 +731,8 @@ const App = (() => {
             <div class="form-group" style="position:relative">
                 <label>견종 *</label>
                 <input type="text" id="cfBreed" value="${esc(breedValue)}" placeholder="견종" autocomplete="off"
-                       oninput="App.onBreedInput(this.value)" onfocus="App.onBreedInput(this.value)">
+                       oninput="App.onBreedInput(this.value)" onfocus="App.onBreedInput(this.value)"
+                       onkeydown="App.onBreedKeydown(event)">
                 <div class="breed-suggestions" id="breedSuggestions" style="display:none"></div>
             </div>
             <div class="form-row">
@@ -662,7 +762,10 @@ const App = (() => {
         openSheet('customerFormSheet');
     }
 
+    let breedSelIndex = -1;
+
     function onBreedInput(value) {
+        breedSelIndex = -1;
         const container = document.getElementById('breedSuggestions');
         if (!value.trim()) {
             container.style.display = 'none';
@@ -677,9 +780,42 @@ const App = (() => {
             return;
         }
         container.innerHTML = matches.map(b =>
-            `<div class="breed-suggestion" onclick="document.getElementById('cfBreed').value='${esc(b)}';document.getElementById('breedSuggestions').style.display='none'">${esc(b)}</div>`
+            `<div class="breed-suggestion" onclick="App.selectBreed('${esc(b)}')">${esc(b)}</div>`
         ).join('');
         container.style.display = 'block';
+    }
+
+    function selectBreed(value) {
+        document.getElementById('cfBreed').value = value;
+        document.getElementById('breedSuggestions').style.display = 'none';
+        breedSelIndex = -1;
+    }
+
+    function onBreedKeydown(e) {
+        const container = document.getElementById('breedSuggestions');
+        if (container.style.display === 'none') return;
+        const items = container.querySelectorAll('.breed-suggestion');
+        if (!items.length) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            breedSelIndex = Math.min(breedSelIndex + 1, items.length - 1);
+            items.forEach((el, i) => el.classList.toggle('active', i === breedSelIndex));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            breedSelIndex = Math.max(breedSelIndex - 1, 0);
+            items.forEach((el, i) => el.classList.toggle('active', i === breedSelIndex));
+        } else if (e.key === 'Enter' && breedSelIndex >= 0) {
+            e.preventDefault();
+            selectBreed(items[breedSelIndex].textContent);
+        } else if (e.key === 'Tab') {
+            e.preventDefault();
+            const idx = breedSelIndex >= 0 ? breedSelIndex : 0;
+            selectBreed(items[idx].textContent);
+        } else if (e.key === 'Escape') {
+            container.style.display = 'none';
+            breedSelIndex = -1;
+        }
     }
 
     async function saveCustomer(isEdit) {
@@ -1024,6 +1160,109 @@ const App = (() => {
         setTimeout(() => el.remove(), 2500);
     }
 
+    // ==================== PC 전용 ====================
+
+    function startClock() {
+        const el = document.getElementById('pcClock');
+        if (!el) return;
+        function tick() {
+            const now = new Date();
+            el.textContent = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+        }
+        tick();
+        setInterval(tick, 30000);
+    }
+
+    function updateStatsBar(data) {
+        if (!isPC()) return;
+        const dateEl = document.getElementById('statsDate');
+        const infoEl = document.getElementById('statsInfo');
+        if (!dateEl || !infoEl) return;
+        const items = data.reservations || [];
+        const confirmed = items.filter(r => r.status === 'confirmed').length;
+        const completed = items.filter(r => r.status === 'completed').length;
+        const date = new Date(data.date + 'T00:00:00');
+        const dow = WEEKDAYS_KR[date.getDay()];
+        const parts = data.date.split('-');
+        dateEl.textContent = parts[1] + '/' + parts[2] + '(' + dow + ')';
+        infoEl.textContent = '예약 ' + confirmed + ' 완료 ' + completed;
+    }
+
+    async function loadCallSidebar() {
+        if (!isPC()) return;
+        const container = document.getElementById('callSidebarList');
+        if (!container) return;
+        const targetDate = callSidebarDate || fmtDate(new Date());
+        const dateLabel = document.getElementById('callSidebarDate');
+        if (dateLabel) {
+            dateLabel.textContent = (targetDate === fmtDate(new Date())) ? '오늘' : targetDate.substring(5);
+        }
+        try {
+            const res = await fetch('/api/call-history');
+            const data = await res.json();
+            const history = data.history || [];
+            const filtered = history.filter(h => h.created_at && h.created_at.startsWith(targetDate));
+            if (!filtered.length) {
+                container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;font-size:13px">전화 이력 없음</p>';
+                return;
+            }
+            container.innerHTML = filtered.map(h => {
+                const isKnown = !!(h.c_pet_name || h.pet_name);
+                const name = h.c_pet_name || h.pet_name || '';
+                const time = h.created_at ? h.created_at.substring(11, 16) : '';
+                const cls = isKnown ? 'known' : 'unknown';
+                return '<div class="call-sidebar-item ' + cls + '">' +
+                    '<span class="call-sidebar-time">' + esc(time) + ' ' + (name ? esc(name) : '신규') + '</span>' +
+                    '<span class="call-sidebar-phone">' + esc(h.phone_display) + '</span>' +
+                    '</div>';
+            }).join('');
+        } catch (e) {
+            container.innerHTML = '<p style="text-align:center;color:#999;padding:12px;font-size:12px">로드 실패</p>';
+        }
+    }
+
+    function changeCallDate(delta) {
+        const current = callSidebarDate ? new Date(callSidebarDate + 'T00:00:00') : new Date();
+        current.setDate(current.getDate() + delta);
+        callSidebarDate = fmtDate(current);
+        loadCallSidebar();
+    }
+
+    function refresh() {
+        loadMonth();
+        if (selectedDate) selectDate(selectedDate);
+        if (isPC()) loadCallSidebar();
+        toast('새로고침');
+    }
+
+    async function testCall() {
+        const phone = prompt('테스트 전화번호 입력:', '01084247395');
+        if (!phone) return;
+        try {
+            const res = await fetch('/api/incoming-call?key=' + encodeURIComponent(CONFIG.taskerKey || ''), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone }),
+            });
+            const result = await res.json();
+            if (result.ok) {
+                toast('테스트 전화 발신: ' + phone);
+                if (isPC()) loadCallSidebar();
+            } else {
+                toast('실패: ' + (result.error || ''));
+            }
+        } catch (e) {
+            toast('테스트 실패');
+        }
+    }
+
+    function onQuickReserve() {
+        if (!selectedDate) {
+            goToday();
+        }
+        toast('타임라인에서 빈 슬롯을 선택하세요');
+    }
+
     // 초기화
     init();
 
@@ -1037,10 +1276,12 @@ const App = (() => {
         updateReservation, changeStatus,
         searchCustomers, showCustomerDetail,
         showCustomerForm_edit,
-        saveCustomer, deleteCustomer, onBreedInput,
+        saveCustomer, deleteCustomer, onBreedInput, onBreedKeydown, selectBreed,
         toggleCallHistory, showCallPopup, closeCallPopup,
         reserveFromCall, registerFromCall, downloadBackup,
         openSheet, closeSheet,
         showCustomerForm, showReservationForm,
+        changeCallDate, refresh, onQuickReserve, testCall,
+        selectGridBtn, applyPrevService,
     };
 })();

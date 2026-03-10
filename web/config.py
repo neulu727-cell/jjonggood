@@ -1,6 +1,8 @@
 """웹 앱 설정"""
 
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # === 데이터베이스 ===
 DATABASE_URL = os.environ.get("DATABASE_URL", "")

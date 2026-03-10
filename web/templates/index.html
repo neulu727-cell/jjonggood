@@ -5,12 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#7c5cbf">
+<meta name="theme-color" content="#4F46E5">
 <title>예약관리</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 <div id="app">
+    <!-- PC 헤더 -->
+    <div class="pc-header pc-only">
+        <span class="pc-title">&#128062; 예약관리</span>
+        <div style="display:flex;align-items:center;gap:12px">
+            <button onclick="App.testCall()" style="background:#EF4444;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer">&#128222; 테스트 전화</button>
+            <span class="pc-clock" id="pcClock"></span>
+        </div>
+    </div>
+
+    <div class="main-content">
+    <div class="left-panel">
+
     <!-- 헤더 -->
     <div class="header">
         <button class="btn-today" onclick="App.goToday()">오늘</button>
@@ -20,6 +32,9 @@
             <button onclick="App.changeMonth(1)">&#8250;</button>
         </div>
         <div class="header-actions">
+            <button class="btn-icon" onclick="App.testCall()" title="테스트 전화" style="color:var(--red)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+            </button>
             <button class="btn-icon" onclick="App.downloadBackup()" title="백업">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </button>
@@ -42,18 +57,48 @@
         <div class="calendar-grid" id="calendarGrid"></div>
     </div>
 
+    <!-- 통계 바 (PC) -->
+    <div class="stats-bar pc-only" id="statsBar">
+        <span class="stats-date" id="statsDate"></span>
+        <span class="stats-info" id="statsInfo"></span>
+    </div>
+
+    <!-- 액션 버튼 (PC) -->
+    <div class="action-buttons pc-only">
+        <button class="action-btn blue" onclick="App.showView('customers')">고객 검색</button>
+        <button class="action-btn green" onclick="App.onQuickReserve()">예약 등록</button>
+        <button class="action-btn purple" onclick="App.showNewCustomerForm()">고객 등록</button>
+        <button class="action-btn gray" onclick="App.refresh()">새로고침</button>
+    </div>
+
+    <!-- 전화 이력 사이드바 (PC) -->
+    <div class="call-sidebar pc-only" id="callSidebar">
+        <div class="call-sidebar-header">
+            <button onclick="App.changeCallDate(-1)">&#8249;</button>
+            <span class="call-sidebar-date" id="callSidebarDate">오늘</span>
+            <button onclick="App.changeCallDate(1)">&#8250;</button>
+        </div>
+        <div class="call-sidebar-list" id="callSidebarList">
+            <p style="text-align:center;color:#999;padding:20px;font-size:13px">전화 이력 없음</p>
+        </div>
+    </div>
+
+    </div><!-- /.left-panel -->
+
     <!-- 타임라인 -->
     <div class="timeline-section" id="timelineSection">
         <div id="timelineContent">
             <div class="empty-timeline">
-                <div class="icon">📅</div>
+                <div class="icon">&#128197;</div>
                 <p>날짜를 선택하세요</p>
             </div>
         </div>
     </div>
 
-    <!-- 하단 네비 -->
-    <div class="bottom-nav">
+    </div><!-- /.main-content -->
+
+    <!-- 하단 네비 (모바일) -->
+    <div class="bottom-nav mobile-only">
         <button class="nav-item active" onclick="App.showView('calendar')" data-view="calendar">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>캘린더</span>
@@ -76,7 +121,6 @@
             <button class="sheet-close" onclick="App.closeSheet('reservationSheet')">&times;</button>
         </div>
         <div class="sheet-body" id="reservationForm">
-            <!-- 동적 생성 -->
         </div>
     </div>
 </div>
@@ -102,6 +146,9 @@
             <input type="text" id="customerSearchInput" placeholder="이름, 전화번호, 반려동물 이름" oninput="App.searchCustomers(this.value)">
         </div>
         <button class="btn-primary-sm" onclick="App.showNewCustomerForm()">+ 신규</button>
+        <button class="btn-icon" onclick="App.showView('calendar')" title="닫기" style="margin-left:4px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
     </div>
     <div id="customerSearchResults" class="customer-list"></div>
 </div>
@@ -180,6 +227,7 @@ const CONFIG = {
     businessStart: "{{ business_start }}",
     businessEnd: "{{ business_end }}",
     slotInterval: {{ slot_interval }},
+    taskerKey: "{{ tasker_key }}",
 };
 </script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>

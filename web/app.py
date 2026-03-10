@@ -13,12 +13,19 @@ db = None
 
 def get_db() -> DatabaseManager:
     global db
-    if db is None:
-        db = DatabaseManager(config.DATABASE_URL)
-        db.initialize()
-        # 기본 서비스 타입 초기화
-        from web import queries
-        queries.init_default_services(db, config.DEFAULT_SERVICES)
+    if db is None or db._pool is None:
+        try:
+            print(f"[DB] Connecting to: {config.DATABASE_URL[:40]}...")
+            db = DatabaseManager(config.DATABASE_URL)
+            db.initialize()
+            # 기본 서비스 타입 초기화
+            from web import queries
+            queries.init_default_services(db, config.DEFAULT_SERVICES)
+            print("[DB] Connection successful!")
+        except Exception as e:
+            print(f"[DB] Connection FAILED: {e}")
+            db = None
+            raise
     return db
 
 
@@ -77,7 +84,8 @@ def create_app():
                                breeds=config.COMMON_BREEDS,
                                business_start=config.BUSINESS_HOURS_START,
                                business_end=config.BUSINESS_HOURS_END,
-                               slot_interval=config.TIME_SLOT_INTERVAL)
+                               slot_interval=config.TIME_SLOT_INTERVAL,
+                               tasker_key=config.TASKER_API_KEY)
 
     @app.route("/api/config")
     def api_config():
