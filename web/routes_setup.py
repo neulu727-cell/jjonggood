@@ -28,8 +28,12 @@ def _get_adb_bridge_content():
 @setup_bp.route("/setup")
 def setup_page():
     """설치 안내 페이지 (인증 불필요)"""
-    server_url = request.url_root.rstrip("/")
-    return SETUP_HTML.replace("{{SERVER_URL}}", server_url)
+    import traceback
+    try:
+        server_url = request.url_root.rstrip("/")
+        return SETUP_HTML.replace("{{SERVER_URL}}", server_url)
+    except Exception as e:
+        return f"<pre>Setup page error:\n{traceback.format_exc()}</pre>", 500
 
 
 @setup_bp.route("/setup/adb_bridge.py")
