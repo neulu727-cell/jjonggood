@@ -95,7 +95,7 @@ def create_reservation(db: DatabaseManager, customer_id: int, date: str,
 
 def get_reservations_by_date(db: DatabaseManager, date: str) -> List[Reservation]:
     rows = db.fetch_all(
-        """SELECT r.*, c.name as customer_name, c.pet_name, c.phone as customer_phone, c.breed
+        """SELECT r.*, c.name as customer_name, c.pet_name, c.phone as customer_phone, c.breed, c.memo as customer_memo
            FROM reservations r
            JOIN customers c ON r.customer_id = c.id
            WHERE r.date = ?::date AND r.status NOT IN ('cancelled', 'no_show')
@@ -103,6 +103,24 @@ def get_reservations_by_date(db: DatabaseManager, date: str) -> List[Reservation
         (date,)
     )
     return [_row_to_reservation(row) for row in rows]
+
+
+def get_reservations_by_date_with_memo(db: DatabaseManager, date: str) -> list:
+    """타임라인용: 예약 + 고객 메모 포함"""
+    rows = db.fetch_all(
+        """SELECT r.id, TO_CHAR(r.time, 'HH24:MI') as time, r.duration,
+                  r.customer_id, c.name as customer_name, c.pet_name,
+                  c.phone as customer_phone, c.breed, c.memo as customer_memo,
+                  r.service_type as service, r.amount, r.fur_length,
+                  r.request, r.groomer_memo, r.status,
+                  TO_CHAR(r.completed_at, 'YYYY-MM-DD HH24:MI:SS') as completed_at
+           FROM reservations r
+           JOIN customers c ON r.customer_id = c.id
+           WHERE r.date = ?::date AND r.status NOT IN ('cancelled', 'no_show')
+           ORDER BY r.time""",
+        (date,)
+    )
+    return [dict(row) for row in rows]
 
 
 def get_reservation_by_id(db: DatabaseManager, reservation_id: int) -> Optional[Reservation]:

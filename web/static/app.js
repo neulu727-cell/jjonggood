@@ -222,7 +222,7 @@ const App = (() => {
                     const breedText = r.breed ? `(${r.breed})` : '';
                     const amtText = r.amount ? `${r.amount.toLocaleString()}원` : '';
                     const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
-                    const requestText = r.request ? `<div class="res-request">${esc(r.request)}</div>` : '';
+                    const memoText = r.customer_memo ? `<div class="res-memo">${esc(r.customer_memo)}</div>` : '';
                     html += `
                         <div class="res-card" onclick="App.showReservationDetail(${r.id})">
                             <div class="res-time-col">
@@ -235,7 +235,7 @@ const App = (() => {
                                     <span class="breed">${esc(breedText)}</span>
                                 </div>
                                 <div class="res-service">${esc(r.service)}${furText}${amtText ? ' · ' + amtText : ''}</div>
-                                ${requestText}
+                                ${memoText}
                             </div>
                             <span class="res-status ${statusCls}">${statusText}</span>
                         </div>`;
@@ -661,6 +661,7 @@ const App = (() => {
                         <span class="value">${esc(r.service_type)} (${r.duration}분)</span>
                     </div>
                     ${r.fur_length ? `<div class="detail-row"><span class="label">털 길이</span><span class="value">${esc(r.fur_length)}</span></div>` : ''}
+                    ${r.customer_memo ? `<div class="detail-row"><span class="label">메모</span><span class="value" style="color:#F59E0B">${esc(r.customer_memo)}</span></div>` : ''}
                     <div class="detail-row">
                         <span class="label">상담금액</span>
                         <span class="value">${quotedText}</span>

@@ -43,6 +43,7 @@ def get_reservation(rid):
     r = queries.get_reservation_by_id(db, rid)
     if not r:
         return jsonify({"error": "not found"}), 404
+    customer = queries.get_customer_by_id(db, r.customer_id)
     start_h, start_m = map(int, r.time.split(":"))
     end_minutes = start_h * 60 + start_m + r.duration
     end_h, end_m = divmod(end_minutes, 60)
@@ -64,6 +65,7 @@ def get_reservation(rid):
         "fur_length": r.fur_length,
         "request": r.request,
         "groomer_memo": r.groomer_memo,
+        "customer_memo": customer.memo if customer else "",
         "status": r.status,
         "completed_at": r.completed_at,
     })

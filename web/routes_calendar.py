@@ -26,28 +26,12 @@ def api_day():
     date_str = request.args.get("date", "")
     if not date_str:
         return jsonify({"error": "date required"}), 400
-    reservations = queries.get_reservations_by_date(db, date_str)
+    reservations = queries.get_reservations_by_date_with_memo(db, date_str)
     items = []
     for r in reservations:
-        start_h, start_m = map(int, r.time.split(":"))
-        end_minutes = start_h * 60 + start_m + r.duration
+        start_h, start_m = map(int, r["time"].split(":"))
+        end_minutes = start_h * 60 + start_m + r["duration"]
         end_h, end_m = divmod(end_minutes, 60)
-        items.append({
-            "id": r.id,
-            "time": r.time,
-            "end_time": f"{end_h:02d}:{end_m:02d}",
-            "customer_id": r.customer_id,
-            "customer_name": r.customer_name,
-            "pet_name": r.pet_name,
-            "breed": r.breed,
-            "customer_phone": r.customer_phone,
-            "service": r.service_type,
-            "duration": r.duration,
-            "amount": r.amount,
-            "fur_length": r.fur_length,
-            "request": r.request,
-            "groomer_memo": r.groomer_memo,
-            "status": r.status,
-            "completed_at": r.completed_at,
-        })
+        r["end_time"] = f"{end_h:02d}:{end_m:02d}"
+        items.append(r)
     return jsonify({"date": date_str, "reservations": items})
