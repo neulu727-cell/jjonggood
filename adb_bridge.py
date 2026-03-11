@@ -135,17 +135,24 @@ def main():
 
     previous_state = 0
     last_heartbeat = 0
+    last_device = ""       # 마지막으로 확인된 기기 ID
+    last_adb_ok = 0        # 마지막으로 ADB 성공한 시간
 
     while True:
         try:
             now = time.time()
 
             connected, device = check_adb(adb_cmd)
+            if connected:
+                last_device = device
+                last_adb_ok = now
 
+            # 하트비트 (60초마다)
             if now - last_heartbeat > HEARTBEAT_INTERVAL:
-                if connected:
-                    send_heartbeat(render_url, api_key, "ok", device)
-                    print(f"[{time.strftime('%H:%M:%S')}] heartbeat (device: {device})")
+                # 최근 30초 내 ADB 성공했으면 "ok"로 간주
+                if (now - last_adb_ok) < 30:
+                    send_heartbeat(render_url, api_key, "ok", last_device)
+                    print(f"[{time.strftime('%H:%M:%S')}] heartbeat (device: {last_device})")
                 else:
                     send_heartbeat(render_url, api_key, "no_device")
                     print(f"[{time.strftime('%H:%M:%S')}] heartbeat (no device - retrying)")
@@ -160,6 +167,7 @@ def main():
                 capture_output=True, text=True, timeout=5,
             )
             if result.returncode == 0:
+                last_adb_ok = time.time()  # dumpsys 성공 = ADB 정상
                 output = result.stdout
                 state_match = re.search(r"mCallState=(\d+)", output)
                 number_match = re.search(r"mCallIncomingNumber=([\d+\-]+)", output)
