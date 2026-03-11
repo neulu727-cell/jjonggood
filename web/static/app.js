@@ -1397,7 +1397,8 @@ const App = (() => {
                     '</div>';
             }).join('');
         } catch (e) {
-            container.innerHTML = '<p style="text-align:center;color:#999;padding:12px;font-size:12px">로드 실패</p>';
+            console.error('call-sidebar load error:', e);
+            container.innerHTML = '<p style="text-align:center;color:#999;padding:12px;font-size:12px">로드 실패: ' + esc(e.message) + '</p>';
         }
     }
 

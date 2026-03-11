@@ -645,7 +645,7 @@ html, body {
     .main-content { flex-direction: row; flex: 1; }
 
     .left-panel {
-        width: 280px; flex-shrink: 0;
+        width: 420px; flex-shrink: 0;
         display: flex; flex-direction: column;
         background: #F8F9FB; border-right: 1px solid var(--border-strong);
         overflow: hidden; height: 100%;
@@ -653,18 +653,18 @@ html, body {
 
     .header {
         background: #F8F9FB; border-bottom: 1px solid var(--border-strong);
-        padding: 6px 10px;
+        padding: 8px 14px;
     }
-    .month-label { font-size: 15px; min-width: 75px; }
-    .month-nav button { font-size: 20px; padding: 4px 8px; }
-    .btn-today { font-size: 12px; padding: 4px 10px; }
+    .month-label { font-size: 17px; min-width: 85px; }
+    .month-nav button { font-size: 22px; padding: 6px 10px; }
+    .btn-today { font-size: 13px; padding: 5px 12px; }
     .calendar-section { background: #F8F9FB; }
     .weekday-row { background: #F8F9FB; border-bottom-color: var(--border-strong); padding: 4px 4px 2px; }
-    .calendar-grid { gap: 0; padding: 2px 4px; }
-    .cal-cell { min-height: 58px; padding: 4px 1px; }
-    .cal-day { font-size: 14px; width: 26px; height: 26px; margin-bottom: 2px; }
-    .cal-badge { font-size: 9px; padding: 0 3px; }
-    .cal-badges { gap: 1px; }
+    .calendar-grid { gap: 1px; padding: 4px 6px; }
+    .cal-cell { min-height: 72px; padding: 5px 2px; }
+    .cal-day { font-size: 15px; width: 28px; height: 28px; margin-bottom: 3px; }
+    .cal-badge { font-size: 10px; }
+    .cal-badges { gap: 2px; }
 
     .timeline-section {
         flex: 1; border-top: none;
@@ -732,16 +732,16 @@ html, body {
 
     /* PC 2-column 타임라인 그리드 */
     .tl-grid {
-        display: flex; gap: 6px; padding: 8px;
+        display: flex; gap: 4px; padding: 6px;
         flex: 1; min-height: 0;
     }
     .tl-col {
         flex: 1; display: flex; flex-direction: column; gap: 3px;
     }
     .tl-slot {
-        border-radius: 6px; padding: 0 10px;
+        border-radius: 6px; padding: 0 8px;
         display: flex; align-items: center;
-        cursor: pointer; font-size: 15px;
+        cursor: pointer; font-size: 13px;
         height: 42px; min-height: 42px;
         transition: all var(--transition);
     }
@@ -749,20 +749,20 @@ html, body {
         background: #F0FDF4; border: 1px solid #BBF7D0;
     }
     .tl-slot.tl-empty .tl-time {
-        font-weight: 700; color: #16A34A; min-width: 50px;
+        font-weight: 700; color: #16A34A; min-width: 42px;
     }
     .tl-slot.tl-empty .tl-hint {
-        color: #86EFAC; font-size: 15px;
+        color: #86EFAC; font-size: 13px;
     }
     .tl-slot.tl-empty:hover { background: #DCFCE7; transform: translateY(-1px); }
     .tl-slot.tl-booked {
         border-width: 2px; border-style: solid;
     }
     .tl-slot.tl-booked .tl-time {
-        font-weight: 700; min-width: 50px; flex-shrink: 0;
+        font-weight: 700; min-width: 42px; flex-shrink: 0;
     }
     .tl-slot.tl-booked .tl-info {
-        flex: 1; font-weight: 700; margin-left: 4px;
+        flex: 1; font-weight: 700; margin-left: 3px;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .tl-slot.tl-booked .tl-amount {
