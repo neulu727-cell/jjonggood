@@ -143,6 +143,11 @@ const App = (() => {
         selectedDate = dateStr;
         renderCalendar();
 
+        // 모바일: 캘린더 접어서 타임라인 공간 확보
+        if (window.innerWidth < 900) {
+            document.querySelector('.calendar-section')?.classList.add('collapsed');
+        }
+
         const content = document.getElementById('timelineContent');
         content.innerHTML = '<div class="loading">불러오는 중</div>';
 
@@ -260,6 +265,13 @@ const App = (() => {
     }
 
     function renderTimelineGrid(slots, booked, bookedIsStart) {
+        const isPast = selectedDate < fmtDate(new Date());
+
+        // 과거 날짜: 완료된 예약만 리스트로 표시 (그리드 아닌 리스트)
+        if (isPast) {
+            return renderTimelineList(slots, booked, bookedIsStart);
+        }
+
         const STATUS_COLORS = {
             confirmed: { bg: '#DBEAFE', border: '#93C5FD', text: '#1E40AF' },
             completed: { bg: '#DCFCE7', border: '#86EFAC', text: '#166534' },
@@ -274,7 +286,6 @@ const App = (() => {
 
         let html = '<div class="tl-grid">';
 
-        // 좌/우 컬럼 각각 렌더 (skip set으로 rowspan 처리)
         for (let col = 0; col < 2; col++) {
             const colSlots = col === 0 ? leftSlots : rightSlots;
             html += `<div class="tl-col">`;
@@ -287,7 +298,6 @@ const App = (() => {
 
                 if (r) {
                     const isStart = bookedIsStart[ts];
-                    // 같은 예약이 연속 몇 슬롯 차지하는지 계산 (같은 컬럼 내에서만)
                     let span = 1;
                     for (let j = i + 1; j < colSlots.length; j++) {
                         if (booked[colSlots[j]] === r) { span++; skip.add(j); }
@@ -295,11 +305,10 @@ const App = (() => {
                     }
 
                     const sc = STATUS_COLORS[r.status] || STATUS_COLORS.confirmed;
-                    const height = span * 48 - 2; // 48px per slot, minus gap
+                    const height = span * 48 - 2;
                     const petInfo = r.breed ? `${esc(r.pet_name)}(${esc(r.breed)})` : esc(r.pet_name);
 
                     if (span === 1) {
-                        // 단일 슬롯 - 가로 레이아웃
                         html += `<div class="tl-slot tl-booked" style="height:${height}px;background:${sc.bg};border-color:${sc.border};color:${sc.text}" onclick="App.showReservationDetail(${r.id})">
                             <span class="tl-time">${ts}</span>`;
                         if (isStart) {
@@ -311,7 +320,6 @@ const App = (() => {
                         }
                         html += `</div>`;
                     } else {
-                        // 다중 슬롯 - 세로 레이아웃 (병합)
                         html += `<div class="tl-slot tl-booked tl-merged" style="height:${height}px;background:${sc.bg};border-color:${sc.border};color:${sc.text}" onclick="App.showReservationDetail(${r.id})">`;
                         if (isStart) {
                             const [rh, rm] = r.time.split(':').map(Number);
@@ -322,16 +330,15 @@ const App = (() => {
                             html += `<div class="tl-row"><span class="tl-time">${ts}~${endStr}</span> <span class="tl-info">${petInfo}</span></div>`;
                             html += `<div class="tl-row"><span class="tl-detail">${esc(r.service)}${fur}${amtText}</span></div>`;
                             const memoParts = [];
+                            if (r.customer_memo) memoParts.push(r.customer_memo);
                             if (r.request) memoParts.push(r.request);
-                            if (r.groomer_memo && r.groomer_memo !== r.request) memoParts.push(r.groomer_memo);
-                            if (memoParts.length) html += `<div class="tl-row"><span class="tl-memo">메모: ${esc(memoParts.join(' / '))}</span></div>`;
+                            if (memoParts.length) html += `<div class="tl-row"><span class="tl-memo">${esc(memoParts.join(' / '))}</span></div>`;
                         } else {
                             html += `<div class="tl-row"><span class="tl-info">~ ${petInfo}</span></div>`;
                         }
                         html += `</div>`;
                     }
                 } else {
-                    // 빈 슬롯
                     html += `<div class="tl-slot tl-empty" onclick="App.onSlotClick('${ts}')">
                         <span class="tl-time">${ts}</span>
                         <span class="tl-hint">+ 예약</span>
@@ -348,6 +355,7 @@ const App = (() => {
     function closeTimeline() {
         selectedDate = null;
         renderCalendar();
+        document.querySelector('.calendar-section')?.classList.remove('collapsed');
         document.getElementById('timelineContent').innerHTML =
             '<div class="empty-timeline"><div class="icon">📅</div><p>날짜를 선택하세요</p></div>';
     }

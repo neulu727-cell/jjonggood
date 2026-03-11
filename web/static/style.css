@@ -622,6 +622,20 @@ html, body {
 }
 .mode-bar button:hover { background: rgba(0,0,0,0.15); }
 
+/* === 모바일 캘린더 접기 === */
+@media (max-width: 899px) {
+    .calendar-section .calendar-grid {
+        transition: max-height 0.3s ease;
+        max-height: 600px;
+    }
+    .calendar-section.collapsed .calendar-grid {
+        max-height: 0; overflow: hidden;
+    }
+    .calendar-section.collapsed .weekday-row {
+        display: none;
+    }
+}
+
 /* === 반응형: PC/모바일 === */
 .pc-only { display: none !important; }
 .main-content {
