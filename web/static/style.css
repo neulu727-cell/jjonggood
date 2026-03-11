@@ -636,26 +636,35 @@ html, body {
 
     .pc-header {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 10px 24px; background: var(--primary); color: #fff; flex-shrink: 0;
+        padding: 4px 18px; background: var(--primary); color: #fff; flex-shrink: 0;
+        min-height: 0;
     }
-    .pc-title { font-size: 16px; font-weight: 700; }
-    .pc-clock { font-size: 14px; color: #A5B4FC; }
+    .pc-title { font-size: 14px; font-weight: 700; }
+    .pc-clock { font-size: 13px; color: #A5B4FC; }
 
     .main-content { flex-direction: row; flex: 1; }
 
     .left-panel {
-        width: 320px; flex-shrink: 0;
+        width: 280px; flex-shrink: 0;
         display: flex; flex-direction: column;
         background: #F8F9FB; border-right: 1px solid var(--border-strong);
-        overflow-y: auto;
+        overflow: hidden; height: 100%;
     }
 
-    .header { background: #F8F9FB; border-bottom: 1px solid var(--border-strong); }
+    .header {
+        background: #F8F9FB; border-bottom: 1px solid var(--border-strong);
+        padding: 6px 10px;
+    }
+    .month-label { font-size: 15px; min-width: 75px; }
+    .month-nav button { font-size: 20px; padding: 4px 8px; }
+    .btn-today { font-size: 12px; padding: 4px 10px; }
     .calendar-section { background: #F8F9FB; }
-    .weekday-row { background: #F8F9FB; border-bottom-color: var(--border-strong); }
-    .cal-cell { min-height: 72px; }
-    .cal-day { font-size: 15px; }
-    .cal-badge { font-size: 10px; }
+    .weekday-row { background: #F8F9FB; border-bottom-color: var(--border-strong); padding: 4px 4px 2px; }
+    .calendar-grid { gap: 0; padding: 2px 4px; }
+    .cal-cell { min-height: 58px; padding: 4px 1px; }
+    .cal-day { font-size: 14px; width: 26px; height: 26px; margin-bottom: 2px; }
+    .cal-badge { font-size: 9px; padding: 0 3px; }
+    .cal-badges { gap: 1px; }
 
     .timeline-section {
         flex: 1; border-top: none;
@@ -663,23 +672,24 @@ html, body {
         overflow-y: auto;
     }
 
-    /* 통계 바 */
+    /* 통계 바 (call-sidebar 내부) */
     .stats-bar {
-        display: flex !important; align-items: center; justify-content: space-between;
-        padding: 10px 16px; font-size: 14px;
-        border-top: 1px solid var(--border-strong); background: #F8F9FB; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 6px 10px; font-size: 13px;
+        border-bottom: 1px solid var(--border-strong); background: #F0F1F5; flex-shrink: 0;
     }
     .stats-date { font-weight: 700; color: var(--primary); }
     .stats-info { color: var(--text-light); font-weight: 600; }
 
-    /* 액션 버튼 */
+    /* 액션 버튼 (call-sidebar 하단) */
     .action-buttons {
-        display: grid !important; grid-template-columns: 1fr 1fr;
-        gap: 8px; padding: 10px 14px; background: #F8F9FB; flex-shrink: 0;
+        display: grid; grid-template-columns: 1fr 1fr;
+        gap: 5px; padding: 6px 8px; background: #F0F1F5; flex-shrink: 0;
+        border-top: 1px solid var(--border-strong); margin-top: auto;
     }
     .action-btn {
-        padding: 10px 8px; border: none; border-radius: var(--radius-sm);
-        font-size: 13px; font-weight: 600; cursor: pointer; color: #fff;
+        padding: 7px 4px; border: none; border-radius: var(--radius-sm);
+        font-size: 12px; font-weight: 600; cursor: pointer; color: #fff;
         transition: all var(--transition);
     }
     .action-btn.blue { background: #3B82F6; }
@@ -691,14 +701,14 @@ html, body {
 
     /* 수신기록 (중간 컬럼) */
     .call-sidebar {
-        width: 280px; flex-shrink: 0;
+        width: 220px; flex-shrink: 0;
         display: flex !important; flex-direction: column;
         background: #F8F9FB; border-right: 1px solid var(--border-strong);
         overflow: hidden; height: 100%;
     }
     .call-sidebar-header {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 8px 14px; flex-shrink: 0;
+        padding: 6px 10px; flex-shrink: 0;
     }
     .call-sidebar-header button {
         background: none; border: none; font-size: 20px; cursor: pointer;
