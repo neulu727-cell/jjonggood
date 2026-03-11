@@ -104,7 +104,7 @@ def import_data():
     """통합 TSV 파일 하나로 고객+예약 동시 임포트.
 
     양식 (탭 구분, 첫 줄 헤더):
-    전화번호  반려동물  견종  몸무게  메모  날짜  시간  소요시간(분)  서비스  털길이  금액  결제금액  결제방법  상태
+    전화번호  반려동물  견종  몸무게  나이  메모  날짜  시간  소요시간(분)  서비스  털길이  금액  결제금액  결제방법  상태
 
     - 같은 전화번호가 여러 줄이면 → 고객 1명, 예약 여러 건
     - 날짜가 비어있으면 → 고객만 등록 (예약 없음)
@@ -158,14 +158,15 @@ def import_data():
         pet_name = cols[1].strip() if len(cols) > 1 else ""
         breed = cols[2].strip() if len(cols) > 2 else ""
         weight = _safe_float(cols[3] if len(cols) > 3 else "")
-        memo = cols[4].strip() if len(cols) > 4 else ""
+        age = cols[4].strip() if len(cols) > 4 else ""
+        memo = cols[5].strip() if len(cols) > 5 else ""
 
         # 같은 전화번호 첫 등장 시 고객 등록
         if phone not in phone_to_id:
             try:
                 cid = queries.create_customer(
                     db, name="", phone=phone, pet_name=pet_name,
-                    breed=breed, weight=weight, memo=memo
+                    breed=breed, weight=weight, age=age, memo=memo
                 )
                 phone_to_id[phone] = cid
                 customers_count += 1
@@ -176,7 +177,7 @@ def import_data():
         customer_id = phone_to_id[phone]
 
         # 예약 정보 — 날짜가 있을 때만
-        date_raw = cols[5].strip() if len(cols) > 5 else ""
+        date_raw = cols[6].strip() if len(cols) > 6 else ""
         if not date_raw:
             continue  # 고객만 등록, 예약 없음
 
@@ -186,14 +187,14 @@ def import_data():
             errors.append(f"{i}행: {e}")
             continue
 
-        time_str = cols[6].strip() if len(cols) > 6 else "10:00"
-        duration = _safe_int(cols[7] if len(cols) > 7 else "", 60)
-        service = cols[8].strip() if len(cols) > 8 else "전체미용"
-        fur_length = cols[9].strip() if len(cols) > 9 else ""
-        quoted_amount = _safe_int(cols[10] if len(cols) > 10 else "", 0)
-        amount = _safe_int(cols[11] if len(cols) > 11 else "", 0)
-        payment_method = cols[12].strip() if len(cols) > 12 else ""
-        status_raw = cols[13].strip() if len(cols) > 13 else "예약"
+        time_str = cols[7].strip() if len(cols) > 7 else "10:00"
+        duration = _safe_int(cols[8] if len(cols) > 8 else "", 60)
+        service = cols[9].strip() if len(cols) > 9 else "전체미용"
+        fur_length = cols[10].strip() if len(cols) > 10 else ""
+        quoted_amount = _safe_int(cols[11] if len(cols) > 11 else "", 0)
+        amount = _safe_int(cols[12] if len(cols) > 12 else "", 0)
+        payment_method = cols[13].strip() if len(cols) > 13 else ""
+        status_raw = cols[14].strip() if len(cols) > 14 else "예약"
         status = STATUS_MAP.get(status_raw, "confirmed")
 
         try:
