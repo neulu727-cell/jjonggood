@@ -644,7 +644,7 @@ html, body {
     .main-content { flex-direction: row; flex: 1; }
 
     .left-panel {
-        width: 420px; flex-shrink: 0;
+        width: 320px; flex-shrink: 0;
         display: flex; flex-direction: column;
         background: #F8F9FB; border-right: 1px solid var(--border-strong);
         overflow-y: auto;
@@ -689,11 +689,12 @@ html, body {
     .action-btn:hover { opacity: 0.9; transform: translateY(-1px); }
     .action-btn:active { opacity: 0.85; transform: translateY(0); }
 
-    /* 전화 이력 사이드바 */
+    /* 수신기록 (중간 컬럼) */
     .call-sidebar {
-        flex: 1; display: flex !important; flex-direction: column;
-        background: #F8F9FB; border-top: 1px solid var(--border-strong);
-        overflow: hidden; min-height: 0;
+        width: 280px; flex-shrink: 0;
+        display: flex !important; flex-direction: column;
+        background: #F8F9FB; border-right: 1px solid var(--border-strong);
+        overflow: hidden; height: 100%;
     }
     .call-sidebar-header {
         display: flex; align-items: center; justify-content: space-between;
@@ -721,7 +722,7 @@ html, body {
 
     /* PC 2-column 타임라인 그리드 */
     .tl-grid {
-        display: flex; gap: 6px; padding: 14px;
+        display: flex; gap: 6px; padding: 8px;
         flex: 1; min-height: 0;
     }
     .tl-col {
@@ -731,7 +732,7 @@ html, body {
         border-radius: 6px; padding: 0 10px;
         display: flex; align-items: center;
         cursor: pointer; font-size: 15px;
-        height: 46px; min-height: 46px;
+        height: 42px; min-height: 42px;
         transition: all var(--transition);
     }
     .tl-slot.tl-empty {

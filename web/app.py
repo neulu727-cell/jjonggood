@@ -62,6 +62,7 @@ def create_app():
     from web.routes_customer import customer_bp
     from web.routes_call import call_bp
     from web.routes_backup import backup_bp
+    from web.routes_setup import setup_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(calendar_bp)
@@ -69,6 +70,7 @@ def create_app():
     app.register_blueprint(customer_bp)
     app.register_blueprint(call_bp)
     app.register_blueprint(backup_bp)
+    app.register_blueprint(setup_bp)
 
     @app.route("/health")
     def health():
