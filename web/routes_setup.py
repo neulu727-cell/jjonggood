@@ -276,6 +276,13 @@ code {
 .status-no-device { background: #FEF9C3; color: #854D0E; }
 .status-dead { background: #FEE2E2; color: #991B1B; }
 .status-unknown { background: #F2F3F5; color: #6B7280; }
+.restart-btn {
+    display: block; width: 100%; padding: 14px; text-align: center;
+    background: #FEE2E2; color: #991B1B; border: 2px solid #FECACA;
+    border-radius: 12px; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+}
+.restart-btn:hover { background: #FECACA; }
 </style>
 </head>
 <body>
@@ -300,6 +307,18 @@ code {
         <h2>현재 Bridge 상태</h2>
         <div class="status-box status-unknown" id="bridgeStatusBox">
             확인 중...
+        </div>
+        <!-- Bridge 꺼져있을 때만 표시 -->
+        <div id="restartGuide" style="display:none; margin-top:14px">
+            <p style="font-size:13px; color:#991B1B; text-align:center; margin-bottom:10px">
+                Bridge가 실행되고 있지 않습니다
+            </p>
+            <button onclick="openBridgeFolder()" class="restart-btn">
+                &#128194; 설치 폴더 열기 &rarr; run_bridge.bat 실행
+            </button>
+            <p style="font-size:12px; color:#6B7280; text-align:center; margin-top:8px">
+                또는 PC를 재부팅하면 자동 실행됩니다
+            </p>
         </div>
     </div>
 
@@ -355,30 +374,40 @@ code {
 </div>
 
 <script>
-// 설치 페이지에서도 Bridge 상태 표시
-(function() {
-    fetch('/api/bridge-status', {credentials: 'same-origin'})
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-            if (!data) return;
-            const box = document.getElementById('bridgeStatusBox');
-            if (data.alive && data.status === 'ok') {
-                box.className = 'status-box status-alive';
-                box.textContent = '\\uD83D\\uDFE2 ADB 감시중 (기기: ' + (data.device || '연결됨') + ')';
-            } else if (data.alive && data.status === 'no_device') {
-                box.className = 'status-box status-no-device';
-                box.textContent = '\\uD83D\\uDFE1 Bridge 실행 중 (기기 없음)';
-            } else {
-                box.className = 'status-box status-dead';
-                box.textContent = '\\uD83D\\uDD34 Bridge 꺼짐';
-            }
-        })
-        .catch(() => {
-            const box = document.getElementById('bridgeStatusBox');
-            box.className = 'status-box status-dead';
-            box.textContent = '\\uD83D\\uDD34 Bridge 꺼짐';
-        });
-})();
+function updateStatus(data) {
+    const box = document.getElementById('bridgeStatusBox');
+    const guide = document.getElementById('restartGuide');
+    if (data && data.alive && data.status === 'ok') {
+        box.className = 'status-box status-alive';
+        box.textContent = '\uD83D\uDFE2 ADB 감시중 (기기: ' + (data.device || '연결됨') + ')';
+        guide.style.display = 'none';
+    } else if (data && data.alive && data.status === 'no_device') {
+        box.className = 'status-box status-no-device';
+        box.textContent = '\uD83D\uDFE1 Bridge 실행 중 (기기 없음)';
+        guide.style.display = 'none';
+    } else {
+        box.className = 'status-box status-dead';
+        box.textContent = '\uD83D\uDD34 Bridge 꺼짐';
+        guide.style.display = '';
+    }
+}
+
+function openBridgeFolder() {
+    // 클립보드에 경로 복사 + 안내
+    var path = '%USERPROFILE%\\\\jjonggood-bridge';
+    var input = document.createElement('textarea');
+    input.value = 'explorer %USERPROFILE%\\\\jjonggood-bridge';
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+    alert('아래 명령이 클립보드에 복사되었습니다!\\n\\nWin+R 누르고 붙여넣기(Ctrl+V) 하세요:\\n\\nexplorer %USERPROFILE%\\\\jjonggood-bridge\\n\\n열린 폴더에서 run_bridge.bat 를 더블클릭하세요.');
+}
+
+fetch('/api/bridge-status', {credentials: 'same-origin'})
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) { updateStatus(data); })
+    .catch(function() { updateStatus(null); });
 </script>
 </body>
 </html>'''
