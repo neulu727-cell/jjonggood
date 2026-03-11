@@ -53,6 +53,9 @@ def open_folder_bat():
 def download_install_bat():
     """Windows 설치 배치파일 다운로드 (API 키 자동 주입)"""
     server_url = request.args.get("server", request.url_root.rstrip("/"))
+    # HTTPS 강제
+    if server_url.startswith("http://"):
+        server_url = "https://" + server_url[7:]
     api_key = config.TASKER_API_KEY  # 서버에서 자동 주입
     bat_text = _generate_install_bat(server_url, api_key)
     # Windows cmd.exe는 CP949로 .bat을 파싱하므로 CP949로 인코딩
@@ -165,8 +168,7 @@ echo        OK
 
 :: === 4. .env ===
 echo [4/6] Config...
-echo RENDER_URL={server_url}> "%INSTALL_DIR%\\.env"
-echo TASKER_API_KEY={api_key}>> "%INSTALL_DIR%\\.env"
+powershell -Command "Set-Content -Path '%INSTALL_DIR%\\.env' -Value ('RENDER_URL={server_url}' + [char]10 + 'TASKER_API_KEY={api_key}') -NoNewline -Encoding UTF8"
 echo        OK - server: {server_url}
 echo.
 
