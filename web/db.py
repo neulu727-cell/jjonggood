@@ -162,6 +162,8 @@ class DatabaseManager:
                         request       TEXT DEFAULT '',
                         status        TEXT DEFAULT 'confirmed',
                         amount        INTEGER DEFAULT 0,
+                        quoted_amount INTEGER DEFAULT 0,
+                        payment_method TEXT DEFAULT '',
                         fur_length    TEXT DEFAULT '',
                         groomer_memo  TEXT DEFAULT '',
                         completed_at  TIMESTAMP DEFAULT NULL,
@@ -204,6 +206,24 @@ class DatabaseManager:
                     CREATE INDEX IF NOT EXISTS idx_reservations_customer ON reservations(customer_id);
                     CREATE INDEX IF NOT EXISTS idx_call_history_date ON call_history(created_at);
                     CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
+                """)
+                # 마이그레이션: quoted_amount 컬럼 추가
+                cur.execute("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'reservations' AND column_name = 'quoted_amount'
+                        ) THEN
+                            ALTER TABLE reservations ADD COLUMN quoted_amount INTEGER DEFAULT 0;
+                        END IF;
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'reservations' AND column_name = 'payment_method'
+                        ) THEN
+                            ALTER TABLE reservations ADD COLUMN payment_method TEXT DEFAULT '';
+                        END IF;
+                    END $$;
                 """)
             conn.commit()
         finally:

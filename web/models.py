@@ -30,6 +30,8 @@ class Reservation:
     request: str = ""
     status: str = "confirmed"
     amount: int = 0
+    quoted_amount: int = 0
+    payment_method: str = ""
     fur_length: str = ""
     groomer_memo: str = ""
     created_at: Optional[str] = None

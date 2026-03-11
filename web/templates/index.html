@@ -38,6 +38,9 @@
             <button onclick="App.changeMonth(1)">&#8250;</button>
         </div>
         <div class="header-actions">
+            <button class="btn-icon" onclick="App.showImportForm()" title="데이터 임포트">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </button>
             <button class="btn-icon" onclick="App.downloadBackup()" title="백업">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </button>
@@ -216,6 +219,33 @@
             </div>
             <button class="btn-new-customer-inline" onclick="App.showNewCustomerFormForSlot()">+ 신규 고객 등록 후 예약</button>
             <div id="slotCustomerResults" class="customer-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 데이터 임포트 바텀시트 -->
+<div class="bottom-sheet-overlay" id="importSheet" style="display:none">
+    <div class="bottom-sheet tall">
+        <div class="sheet-handle" onclick="App.closeSheet('importSheet')"></div>
+        <div class="sheet-header">
+            <h3>데이터 임포트</h3>
+            <button class="sheet-close" onclick="App.closeSheet('importSheet')">&times;</button>
+        </div>
+        <div class="sheet-body" id="importFormContent">
+            <p style="font-size:13px;color:#999;margin-bottom:12px">
+                이전 프로그램 데이터를 텍스트 파일(TSV)로 일괄 등록합니다.<br>
+                <strong style="color:#EF4444">기존 데이터가 모두 삭제</strong>된 후 새로 등록됩니다.
+            </p>
+            <div class="form-group">
+                <label>데이터 파일 (.txt)</label>
+                <input type="file" id="importFile" accept=".txt,.tsv,.csv">
+                <small style="color:#999;font-size:11px;line-height:1.6">
+                    탭 구분, 첫 줄 헤더. 같은 전화번호 = 같은 고객.<br>
+                    전화번호 &#9; 반려동물 &#9; 견종 &#9; 몸무게 &#9; 메모 &#9; 날짜 &#9; 시간 &#9; 소요시간 &#9; 서비스 &#9; 털길이 &#9; 금액 &#9; 결제금액 &#9; 결제방법 &#9; 상태
+                </small>
+            </div>
+            <div id="importResult" style="display:none;margin-bottom:12px;padding:10px;border-radius:8px;font-size:13px"></div>
+            <button class="btn-primary" onclick="App.submitImport()" id="importBtn">임포트 실행</button>
         </div>
     </div>
 </div>

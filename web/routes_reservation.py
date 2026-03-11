@@ -30,6 +30,8 @@ def create_reservation():
         request=data.get("request", ""),
         amount=int(data.get("amount", 0)),
         fur_length=data.get("fur_length", ""),
+        quoted_amount=int(data.get("quoted_amount", 0)),
+        payment_method=data.get("payment_method", ""),
     )
     return jsonify({"ok": True, "id": rid})
 
@@ -57,6 +59,8 @@ def get_reservation(rid):
         "service_type": r.service_type,
         "duration": r.duration,
         "amount": r.amount,
+        "quoted_amount": r.quoted_amount,
+        "payment_method": r.payment_method,
         "fur_length": r.fur_length,
         "request": r.request,
         "groomer_memo": r.groomer_memo,

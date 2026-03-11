@@ -74,11 +74,12 @@ def get_customer_by_id(db: DatabaseManager, customer_id: int) -> Optional[Custom
 def create_reservation(db: DatabaseManager, customer_id: int, date: str,
                        time: str, service_type: str, duration: int = 60,
                        request: str = "", amount: int = 0,
-                       fur_length: str = "") -> int:
+                       fur_length: str = "", quoted_amount: int = 0,
+                       payment_method: str = "") -> int:
     cursor = db.execute(
-        """INSERT INTO reservations (customer_id, date, time, service_type, duration, request, amount, fur_length)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (customer_id, date, time, service_type, duration, request, amount, fur_length)
+        """INSERT INTO reservations (customer_id, date, time, service_type, duration, request, amount, quoted_amount, payment_method, fur_length)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (customer_id, date, time, service_type, duration, request, amount, quoted_amount, payment_method, fur_length)
     )
     return cursor.lastrowid
 
@@ -162,7 +163,7 @@ def update_reservation_status(db: DatabaseManager, reservation_id: int, status: 
 
 
 _RESERVATION_FIELDS = {"date", "time", "service_type", "duration", "request",
-                       "status", "amount", "fur_length", "groomer_memo"}
+                       "status", "amount", "quoted_amount", "payment_method", "fur_length", "groomer_memo"}
 
 def update_reservation_with_history(db: DatabaseManager, reservation_id: int, **fields) -> None:
     if not fields:
@@ -351,6 +352,17 @@ def get_call_history_by_date(db: DatabaseManager, date_str: str) -> list:
     return [dict(row) for row in rows]
 
 
+# ==================== 데이터 초기화 ====================
+
+def clear_all_data(db: DatabaseManager) -> None:
+    """모든 데이터 삭제 (FK 순서 준수)"""
+    db.execute("DELETE FROM reservation_edits")
+    db.execute("DELETE FROM groomer_memos")
+    db.execute("DELETE FROM call_history")
+    db.execute("DELETE FROM reservations")
+    db.execute("DELETE FROM customers")
+
+
 # ==================== 헬퍼 ====================
 
 def _row_to_reservation(row) -> Reservation:
@@ -383,6 +395,8 @@ def _row_to_reservation(row) -> Reservation:
         request=d.get("request", ""),
         status=d.get("status", "confirmed"),
         amount=d.get("amount", 0),
+        quoted_amount=d.get("quoted_amount", 0),
+        payment_method=d.get("payment_method", ""),
         fur_length=d.get("fur_length", ""),
         groomer_memo=d.get("groomer_memo", ""),
         created_at=str(created_at) if created_at else None,

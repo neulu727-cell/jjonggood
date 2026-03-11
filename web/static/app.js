@@ -494,8 +494,21 @@ const App = (() => {
                 <div class="btn-grid">${durGrid}</div>
             </div>
             <div class="form-group">
-                <label>금액 <span class="sub-label" id="priceLabel">${svc0[2].toLocaleString()}원</span></label>
+                <label>상담금액 <span class="sub-label" id="quotedPriceLabel">${svc0[2].toLocaleString()}원</span></label>
+                <div class="btn-grid">${priceGrid.replace(/data-field="resAmount"/g, 'data-field="resQuotedAmount"')}</div>
+                <input type="hidden" id="resQuotedAmount" value="${svc0[2]}">
+            </div>
+            <div class="form-group">
+                <label>결제금액 <span class="sub-label" id="priceLabel">${svc0[2].toLocaleString()}원</span></label>
                 <div class="btn-grid">${priceGrid}</div>
+            </div>
+            <div class="form-group">
+                <label>결제방법</label>
+                <input type="hidden" id="resPaymentMethod" value="">
+                <div class="btn-grid">
+                    <button type="button" class="btn-grid-item" data-field="resPaymentMethod" data-value="카드" onclick="App.selectGridBtn(this)">카드</button>
+                    <button type="button" class="btn-grid-item" data-field="resPaymentMethod" data-value="현금" onclick="App.selectGridBtn(this)">현금</button>
+                </div>
             </div>
             <div class="form-group">
                 <label>메모</label>
@@ -519,16 +532,22 @@ const App = (() => {
             const prefix = field.startsWith('edit') ? 'editRes' : 'res';
             document.getElementById(prefix + 'Duration').value = btn.dataset.dur;
             document.getElementById(prefix + 'Amount').value = btn.dataset.price;
+            const quotedEl = document.getElementById(prefix + 'QuotedAmount');
+            if (quotedEl) quotedEl.value = btn.dataset.price;
             const dur = parseInt(btn.dataset.dur);
             const price = parseInt(btn.dataset.price);
             document.querySelectorAll('[data-field="'+prefix+'Duration"]').forEach(b =>
                 b.classList.toggle('active', parseInt(b.dataset.value) === dur));
             document.querySelectorAll('[data-field="'+prefix+'Amount"]').forEach(b =>
                 b.classList.toggle('active', parseInt(b.dataset.value) === price));
+            document.querySelectorAll('[data-field="'+prefix+'QuotedAmount"]').forEach(b =>
+                b.classList.toggle('active', parseInt(b.dataset.value) === price));
             const durLabel = document.getElementById('durLabel');
             const priceLabel = document.getElementById('priceLabel');
+            const quotedPriceLabel = document.getElementById('quotedPriceLabel');
             if (durLabel) durLabel.textContent = dur + '분';
             if (priceLabel) priceLabel.textContent = price.toLocaleString() + '원';
+            if (quotedPriceLabel) quotedPriceLabel.textContent = price.toLocaleString() + '원';
             return;
         }
         if (field === 'resDuration' || field === 'editResDuration') {
@@ -538,6 +557,10 @@ const App = (() => {
         if (field === 'resAmount' || field === 'editResAmount') {
             const priceLabel = document.getElementById('priceLabel');
             if (priceLabel) priceLabel.textContent = parseInt(btn.dataset.value).toLocaleString() + '원';
+        }
+        if (field === 'resQuotedAmount' || field === 'editResQuotedAmount') {
+            const quotedPriceLabel = document.getElementById('quotedPriceLabel');
+            if (quotedPriceLabel) quotedPriceLabel.textContent = parseInt(btn.dataset.value).toLocaleString() + '원';
         }
     }
 
@@ -577,6 +600,8 @@ const App = (() => {
             service_type: document.getElementById('resService').value,
             duration: parseInt(document.getElementById('resDuration').value) || 60,
             amount: parseInt(document.getElementById('resAmount').value) || 0,
+            quoted_amount: parseInt((document.getElementById('resQuotedAmount') || {}).value) || 0,
+            payment_method: (document.getElementById('resPaymentMethod') || {}).value || '',
             fur_length: document.getElementById('resFurLength').value,
             request: document.getElementById('resRequest').value.trim(),
         };
@@ -613,6 +638,7 @@ const App = (() => {
             const r = await res.json();
 
             const statusText = STATUS_LABEL[r.status] || r.status;
+            const quotedText = r.quoted_amount ? `${r.quoted_amount.toLocaleString()}원` : '-';
             const amountText = r.amount ? `${r.amount.toLocaleString()}원` : '-';
 
             content.innerHTML = `
@@ -635,9 +661,14 @@ const App = (() => {
                     </div>
                     ${r.fur_length ? `<div class="detail-row"><span class="label">털 길이</span><span class="value">${esc(r.fur_length)}</span></div>` : ''}
                     <div class="detail-row">
-                        <span class="label">금액</span>
+                        <span class="label">상담금액</span>
+                        <span class="value">${quotedText}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">결제금액</span>
                         <span class="value">${amountText}</span>
                     </div>
+                    ${r.payment_method ? `<div class="detail-row"><span class="label">결제방법</span><span class="value">${esc(r.payment_method)}</span></div>` : ''}
                     <div class="detail-row">
                         <span class="label">상태</span>
                         <span class="value"><span class="res-status ${r.status}">${statusText}</span></span>
@@ -701,6 +732,9 @@ const App = (() => {
             let priceGrid = prices.map(p =>
                 `<button type="button" class="btn-grid-item${p===r.amount?' active':''}" data-field="editResAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${(p/10000)}만</button>`
             ).join('');
+            let quotedPriceGrid = prices.map(p =>
+                `<button type="button" class="btn-grid-item${p===(r.quoted_amount||0)?' active':''}" data-field="editResQuotedAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${(p/10000)}만</button>`
+            ).join('');
 
             const form = document.getElementById('reservationForm');
             document.getElementById('sheetTitle').textContent = '예약 수정';
@@ -709,6 +743,7 @@ const App = (() => {
                 <input type="hidden" id="editResService" value="${esc(r.service_type)}">
                 <input type="hidden" id="editResDuration" value="${r.duration}">
                 <input type="hidden" id="editResAmount" value="${r.amount}">
+                <input type="hidden" id="editResQuotedAmount" value="${r.quoted_amount||0}">
                 <input type="hidden" id="editResFurLength" value="${esc(r.fur_length || '')}">
                 <div class="form-row">
                     <div class="form-group">
@@ -733,8 +768,20 @@ const App = (() => {
                     <div class="btn-grid">${durGrid}</div>
                 </div>
                 <div class="form-group">
-                    <label>금액 <span class="sub-label" id="priceLabel">${(r.amount||0).toLocaleString()}원</span></label>
+                    <label>상담금액 <span class="sub-label" id="quotedPriceLabel">${(r.quoted_amount||0).toLocaleString()}원</span></label>
+                    <div class="btn-grid">${quotedPriceGrid}</div>
+                </div>
+                <div class="form-group">
+                    <label>결제금액 <span class="sub-label" id="priceLabel">${(r.amount||0).toLocaleString()}원</span></label>
                     <div class="btn-grid">${priceGrid}</div>
+                </div>
+                <div class="form-group">
+                    <label>결제방법</label>
+                    <input type="hidden" id="editResPaymentMethod" value="${esc(r.payment_method || '')}">
+                    <div class="btn-grid">
+                        <button type="button" class="btn-grid-item${r.payment_method==='카드'?' active':''}" data-field="editResPaymentMethod" data-value="카드" onclick="App.selectGridBtn(this)">카드</button>
+                        <button type="button" class="btn-grid-item${r.payment_method==='현금'?' active':''}" data-field="editResPaymentMethod" data-value="현금" onclick="App.selectGridBtn(this)">현금</button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>요청사항</label>
@@ -760,6 +807,8 @@ const App = (() => {
             service_type: document.getElementById('editResService').value,
             duration: parseInt(document.getElementById('editResDuration').value) || 60,
             amount: parseInt(document.getElementById('editResAmount').value) || 0,
+            quoted_amount: parseInt((document.getElementById('editResQuotedAmount') || {}).value) || 0,
+            payment_method: (document.getElementById('editResPaymentMethod') || {}).value || '',
             fur_length: document.getElementById('editResFurLength').value,
             request: document.getElementById('editResRequest').value.trim(),
             groomer_memo: document.getElementById('editResGroomerMemo').value.trim(),
@@ -1567,6 +1616,70 @@ const App = (() => {
         }
     }
 
+    // ==================== 데이터 임포트 ====================
+
+    function showImportForm() {
+        document.getElementById('importResult').style.display = 'none';
+        document.getElementById('importFile').value = '';
+        document.getElementById('importBtn').disabled = false;
+        document.getElementById('importBtn').textContent = '임포트 실행';
+        openSheet('importSheet');
+    }
+
+    async function submitImport() {
+        const file = document.getElementById('importFile').files[0];
+        if (!file) {
+            toast('파일을 선택하세요');
+            return;
+        }
+
+        if (!confirm('기존 데이터가 모두 삭제됩니다. 계속하시겠습니까?')) return;
+
+        const btn = document.getElementById('importBtn');
+        btn.disabled = true;
+        btn.textContent = '처리 중...';
+        const resultEl = document.getElementById('importResult');
+        resultEl.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('datafile', file);
+
+        try {
+            const res = await fetch('/api/import-data', {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await res.json();
+            if (data.ok) {
+                resultEl.style.background = '#064E3B';
+                resultEl.style.color = '#6EE7B7';
+                let msg = `고객 ${data.customers_count}명, 예약 ${data.reservations_count}건 등록 완료`;
+                if (data.errors && data.errors.length) {
+                    msg += `<br><br><strong>알림 (${data.errors.length}건):</strong><br>` +
+                        data.errors.map(e => '- ' + esc(e)).join('<br>');
+                }
+                resultEl.innerHTML = msg;
+                resultEl.style.display = 'block';
+                // 캘린더 새로고침
+                loadMonth();
+                if (selectedDate) selectDate(selectedDate);
+            } else {
+                resultEl.style.background = '#7F1D1D';
+                resultEl.style.color = '#FCA5A5';
+                resultEl.textContent = data.error || '임포트 실패';
+                resultEl.style.display = 'block';
+            }
+        } catch (e) {
+            resultEl.style.background = '#7F1D1D';
+            resultEl.style.color = '#FCA5A5';
+            resultEl.textContent = '임포트 실패: ' + e.message;
+            resultEl.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '임포트 실행';
+        }
+    }
+
     return {
         selectDate, closeTimeline, changeMonth, goToday,
         showView, onSlotClick, searchCustomersForSlot,
@@ -1585,5 +1698,6 @@ const App = (() => {
         selectGridBtn, applyPrevService,
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode,
         updateBridgeStatus,
+        showImportForm, submitImport,
     };
 })();
