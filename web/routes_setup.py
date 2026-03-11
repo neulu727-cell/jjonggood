@@ -28,12 +28,8 @@ def _get_adb_bridge_content():
 @setup_bp.route("/setup")
 def setup_page():
     """설치 안내 페이지 (인증 불필요)"""
-    import traceback
-    try:
-        server_url = request.url_root.rstrip("/")
-        return SETUP_HTML.replace("{{SERVER_URL}}", server_url)
-    except Exception as e:
-        return f"<pre>Setup page error:\n{traceback.format_exc()}</pre>", 500
+    server_url = request.url_root.rstrip("/")
+    return SETUP_HTML.replace("{{SERVER_URL}}", server_url)
 
 
 @setup_bp.route("/setup/adb_bridge.py")
@@ -395,15 +391,15 @@ function updateStatus(data) {
     const guide = document.getElementById('restartGuide');
     if (data && data.alive && data.status === 'ok') {
         box.className = 'status-box status-alive';
-        box.textContent = '\uD83D\uDFE2 ADB 감시중 (기기: ' + (data.device || '연결됨') + ')';
+        box.textContent = String.fromCodePoint(0x1F7E2) + ' ADB 감시중 (기기: ' + (data.device || '연결됨') + ')';
         guide.style.display = 'none';
     } else if (data && data.alive && data.status === 'no_device') {
         box.className = 'status-box status-no-device';
-        box.textContent = '\uD83D\uDFE1 Bridge 실행 중 (기기 없음)';
+        box.textContent = String.fromCodePoint(0x1F7E1) + ' Bridge 실행 중 (기기 없음)';
         guide.style.display = 'none';
     } else {
         box.className = 'status-box status-dead';
-        box.textContent = '\uD83D\uDD34 Bridge 꺼짐';
+        box.textContent = String.fromCodePoint(0x1F534) + ' Bridge 꺼짐';
         guide.style.display = '';
     }
 }
