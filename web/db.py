@@ -50,8 +50,9 @@ class DatabaseManager:
             conn.isolation_level
             if conn.closed:
                 raise psycopg2.OperationalError("closed")
-            # 실제 ping
+            # 실제 ping + KST 설정
             with conn.cursor() as cur:
+                cur.execute("SET timezone = 'Asia/Seoul'")
                 cur.execute("SELECT 1")
         except Exception:
             # 죽은 연결 → 버리고 새로 만들기
@@ -137,6 +138,7 @@ class DatabaseManager:
         conn = self._get_conn()
         try:
             with conn.cursor() as cur:
+                cur.execute("SET timezone = 'Asia/Seoul'")
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS customers (
                         id          SERIAL PRIMARY KEY,

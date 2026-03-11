@@ -3,7 +3,9 @@
 from typing import Optional, List
 from web.db import DatabaseManager
 from web.models import Customer, Reservation, GroomerMemo
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+KST = timezone(timedelta(hours=9))
 
 
 # ==================== 고객 관련 ====================
@@ -157,7 +159,7 @@ def get_last_visit_date(db: DatabaseManager, customer_id: int) -> Optional[str]:
 
 def update_reservation_status(db: DatabaseManager, reservation_id: int, status: str) -> None:
     if status == "completed":
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now = datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S")
         db.execute(
             "UPDATE reservations SET status = ?, completed_at = ?::timestamp WHERE id = ?",
             (status, now, reservation_id)
@@ -182,7 +184,7 @@ def update_reservation_with_history(db: DatabaseManager, reservation_id: int, **
     if not row:
         return
     current = dict(row)
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(KST).strftime("%Y-%m-%d")
     changed = {}
     for k, v in safe_fields.items():
         old_val = str(current.get(k, ""))
@@ -318,7 +320,7 @@ def get_service_types(db: DatabaseManager) -> list:
 
 def add_call_history(db: DatabaseManager, phone: str, customer_id: int = None,
                      pet_name: str = "") -> int:
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S")
     cursor = db.execute(
         "INSERT INTO call_history (phone, customer_id, pet_name, created_at) VALUES (?, ?, ?, ?::timestamp)",
         (phone, customer_id, pet_name, now)
