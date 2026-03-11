@@ -40,6 +40,15 @@ def download_adb_bridge():
                     headers={"Content-Disposition": "attachment; filename=adb_bridge.py"})
 
 
+@setup_bp.route("/setup/open_folder.bat")
+def open_folder_bat():
+    """설치 폴더를 탐색기로 여는 배치파일"""
+    bat = '@echo off\r\nexplorer "%USERPROFILE%\\jjonggood-bridge"\r\nexit\r\n'
+    return Response(bat.encode("cp949", errors="replace"),
+                    mimetype="application/octet-stream",
+                    headers={"Content-Disposition": "attachment; filename=open_folder.bat"})
+
+
 @setup_bp.route("/setup/install.bat")
 def download_install_bat():
     """Windows 설치 배치파일 다운로드 (API 키 자동 주입)"""
@@ -313,9 +322,12 @@ code {
             <p style="font-size:13px; color:#991B1B; text-align:center; margin-bottom:10px">
                 Bridge가 실행되고 있지 않습니다
             </p>
-            <button onclick="openBridgeFolder()" class="restart-btn">
-                &#128194; 설치 폴더 열기 &rarr; run_bridge.bat 실행
-            </button>
+            <a href="/setup/open_folder.bat" class="restart-btn" style="text-decoration:none; display:block">
+                &#128194; 설치 폴더 열기 (다운 후 더블클릭)
+            </a>
+            <p style="font-size:12px; color:#991B1B; text-align:center; margin-top:6px">
+                열린 폴더에서 <strong>run_bridge.bat</strong> 더블클릭
+            </p>
             <p style="font-size:12px; color:#6B7280; text-align:center; margin-top:8px">
                 또는 PC를 재부팅하면 자동 실행됩니다
             </p>
@@ -390,18 +402,6 @@ function updateStatus(data) {
         box.textContent = '\uD83D\uDD34 Bridge 꺼짐';
         guide.style.display = '';
     }
-}
-
-function openBridgeFolder() {
-    // 클립보드에 경로 복사 + 안내
-    var path = '%USERPROFILE%\\\\jjonggood-bridge';
-    var input = document.createElement('textarea');
-    input.value = 'explorer %USERPROFILE%\\\\jjonggood-bridge';
-    document.body.appendChild(input);
-    input.select();
-    document.execCommand('copy');
-    document.body.removeChild(input);
-    alert('아래 명령이 클립보드에 복사되었습니다!\\n\\nWin+R 누르고 붙여넣기(Ctrl+V) 하세요:\\n\\nexplorer %USERPROFILE%\\\\jjonggood-bridge\\n\\n열린 폴더에서 run_bridge.bat 를 더블클릭하세요.');
 }
 
 fetch('/api/bridge-status', {credentials: 'same-origin'})
