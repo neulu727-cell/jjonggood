@@ -45,191 +45,157 @@ def download_install_bat():
     """Windows 설치 배치파일 다운로드 (API 키 자동 주입)"""
     server_url = request.args.get("server", request.url_root.rstrip("/"))
     api_key = config.TASKER_API_KEY  # 서버에서 자동 주입
-    bat = _generate_install_bat(server_url, api_key)
-    return Response(bat, mimetype="application/octet-stream",
+    bat_text = _generate_install_bat(server_url, api_key)
+    # Windows cmd.exe는 CP949로 .bat을 파싱하므로 CP949로 인코딩
+    bat_bytes = bat_text.encode("cp949", errors="replace")
+    return Response(bat_bytes, mimetype="application/octet-stream",
                     headers={"Content-Disposition": "attachment; filename=jjonggood_setup.bat"})
 
 
 def _generate_install_bat(server_url: str, api_key: str) -> str:
     return f'''@echo off
-chcp 65001 >nul
-title 쫑굿 ADB Bridge 원클릭 설치
+chcp 949 >nul
+title JJongGood ADB Bridge Setup
 setlocal enabledelayedexpansion
 
 echo ============================================
-echo   쫑굿 ADB Bridge 원클릭 설치
+echo   JJongGood ADB Bridge Auto Setup
 echo ============================================
 echo.
 
-:: 설치 폴더
 set INSTALL_DIR=%USERPROFILE%\\jjonggood-bridge
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
-echo   설치 위치: %INSTALL_DIR%
+echo   Install: %INSTALL_DIR%
 echo.
 
-:: ── 1단계: Python 확인 / 자동 설치 ──
-echo [1/6] Python 확인 중...
-set PYTHON_CMD=
+:: === 1. Python ===
+echo [1/6] Python...
 set LOCAL_PYTHON=%INSTALL_DIR%\\python\\python.exe
 
-:: 로컬 임베디드 Python 먼저 확인
 if exist "%LOCAL_PYTHON%" (
-    echo        로컬 Python 발견!
-    set PYTHON_CMD=%LOCAL_PYTHON%
+    echo        OK - local python
     goto :python_ok
 )
 
-:: 시스템 Python 확인
 python --version >nul 2>&1
 if not errorlevel 1 (
-    echo        시스템 Python 발견!
-    set PYTHON_CMD=python
+    echo        OK - system python
+    set LOCAL_PYTHON=python
     goto :python_ok
 )
 
-:: Python 없음 → 임베디드 버전 자동 다운로드
-echo        Python이 없습니다. 자동 다운로드 중...
+echo        Downloading Python...
 set PY_URL=https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip
 set PY_ZIP=%INSTALL_DIR%\\python_embed.zip
-
-powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%PY_URL%' -OutFile '%PY_ZIP%'" 2>nul
+powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%PY_URL%' -OutFile '%PY_ZIP%'"
 if not exist "%PY_ZIP%" (
-    echo [오류] Python 다운로드 실패. 인터넷 연결을 확인하세요.
+    echo        [FAIL] Python download failed.
     pause
     exit /b 1
 )
-
-echo        압축 해제 중...
+echo        Extracting...
 if not exist "%INSTALL_DIR%\\python" mkdir "%INSTALL_DIR%\\python"
-powershell -Command "$ProgressPreference='SilentlyContinue'; Expand-Archive -Path '%PY_ZIP%' -DestinationPath '%INSTALL_DIR%\\python' -Force" 2>nul
+powershell -Command "$ProgressPreference='SilentlyContinue'; Expand-Archive -Path '%PY_ZIP%' -DestinationPath '%INSTALL_DIR%\\python' -Force"
 del "%PY_ZIP%" >nul 2>&1
-
-if exist "%LOCAL_PYTHON%" (
-    echo        Python 설치 완료!
-    set PYTHON_CMD=%LOCAL_PYTHON%
-) else (
-    echo [오류] Python 설치 실패.
+if not exist "%LOCAL_PYTHON%" (
+    echo        [FAIL] Python install failed.
     pause
     exit /b 1
 )
+echo        OK - python installed
 
 :python_ok
 echo.
 
-:: ── 2단계: ADB 확인 / 자동 설치 ──
-echo [2/6] ADB 확인 중...
-set ADB_CMD=
+:: === 2. ADB ===
+echo [2/6] ADB...
 set LOCAL_ADB=%INSTALL_DIR%\\platform-tools\\adb.exe
 
-:: 로컬 ADB 먼저 확인
 if exist "%LOCAL_ADB%" (
-    echo        로컬 ADB 발견!
-    set ADB_CMD=%LOCAL_ADB%
+    echo        OK - local adb
     goto :adb_ok
 )
 
-:: 시스템 ADB 확인
 adb version >nul 2>&1
 if not errorlevel 1 (
-    echo        시스템 ADB 발견!
-    set ADB_CMD=adb
+    echo        OK - system adb
     goto :adb_ok
 )
 
-:: ADB 없음 → 자동 다운로드
-echo        ADB가 없습니다. 자동 다운로드 중...
+echo        Downloading ADB...
 set ADB_URL=https://dl.google.com/android/repository/platform-tools-latest-windows.zip
 set ADB_ZIP=%INSTALL_DIR%\\platform-tools.zip
-
-powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%ADB_URL%' -OutFile '%ADB_ZIP%'" 2>nul
+powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%ADB_URL%' -OutFile '%ADB_ZIP%'"
 if not exist "%ADB_ZIP%" (
-    echo [오류] ADB 다운로드 실패. 인터넷 연결을 확인하세요.
+    echo        [FAIL] ADB download failed.
     pause
     exit /b 1
 )
-
-echo        압축 해제 중...
-powershell -Command "$ProgressPreference='SilentlyContinue'; Expand-Archive -Path '%ADB_ZIP%' -DestinationPath '%INSTALL_DIR%' -Force" 2>nul
+echo        Extracting...
+powershell -Command "$ProgressPreference='SilentlyContinue'; Expand-Archive -Path '%ADB_ZIP%' -DestinationPath '%INSTALL_DIR%' -Force"
 del "%ADB_ZIP%" >nul 2>&1
-
-if exist "%LOCAL_ADB%" (
-    echo        ADB 설치 완료!
-    set ADB_CMD=%LOCAL_ADB%
-) else (
-    echo [오류] ADB 설치 실패.
+if not exist "%LOCAL_ADB%" (
+    echo        [FAIL] ADB install failed.
     pause
     exit /b 1
 )
+echo        OK - adb installed
 
 :adb_ok
 echo.
 
-:: ── 3단계: adb_bridge.py 다운로드 ──
-echo [3/6] adb_bridge.py 다운로드 중...
-powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '{server_url}/setup/adb_bridge.py' -OutFile '%INSTALL_DIR%\\adb_bridge.py'" 2>nul
+:: === 3. adb_bridge.py ===
+echo [3/6] adb_bridge.py...
+powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '{server_url}/setup/adb_bridge.py' -OutFile '%INSTALL_DIR%\\adb_bridge.py'"
 if not exist "%INSTALL_DIR%\\adb_bridge.py" (
-    echo [오류] 다운로드 실패. 서버 연결을 확인하세요.
+    echo        [FAIL] Download failed.
     pause
     exit /b 1
 )
-echo        완료!
+echo        OK
+
+:: === 4. .env ===
+echo [4/6] Config...
+echo RENDER_URL={server_url}> "%INSTALL_DIR%\\.env"
+echo TASKER_API_KEY={api_key}>> "%INSTALL_DIR%\\.env"
+echo        OK - server: {server_url}
 echo.
 
-:: ── 4단계: .env 파일 생성 (API 키 자동 주입) ──
-echo [4/6] 설정 파일 생성...
-(
-    echo RENDER_URL={server_url}
-    echo TASKER_API_KEY={api_key}
-) > "%INSTALL_DIR%\\.env"
-echo        서버: {server_url}
-echo        API 키: 자동 설정 완료
-echo.
-
-:: ── 5단계: 시작프로그램 등록 ──
-echo [5/6] 시작프로그램 등록...
+:: === 5. Startup ===
+echo [5/6] Startup registration...
 set STARTUP_DIR=%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup
 set VBS_PATH=%INSTALL_DIR%\\start_bridge.vbs
 
-:: VBS로 숨김 실행 (CMD 창 안 뜨게)
-(
-    echo Set WshShell = CreateObject^("WScript.Shell"^)
-    echo WshShell.Run "cmd /c cd /d %INSTALL_DIR% && ""%PYTHON_CMD%"" adb_bridge.py", 0, False
-) > "%VBS_PATH%"
+echo Set WshShell = CreateObject("WScript.Shell")> "%VBS_PATH%"
+echo WshShell.Run "cmd /c cd /d %INSTALL_DIR% ^&^& ""%LOCAL_PYTHON%"" adb_bridge.py", 0, False>> "%VBS_PATH%"
 
-:: 시작프로그램 폴더에 바로가기 복사
 copy "%VBS_PATH%" "%STARTUP_DIR%\\jjonggood_bridge.vbs" >nul 2>&1
+echo        OK
 
-:: 바로 실행용 배치파일도 생성
-(
-    echo @echo off
-    echo chcp 65001 ^>nul
-    echo title 쫑굿 ADB Bridge
-    echo cd /d %INSTALL_DIR%
-    echo echo 쫑굿 ADB Bridge 실행 중... ^(이 창을 닫으면 종료^)
-    echo "%PYTHON_CMD%" adb_bridge.py
-    echo pause
-) > "%INSTALL_DIR%\\run_bridge.bat"
-
-echo        완료!
+:: run_bridge.bat
+echo @echo off> "%INSTALL_DIR%\\run_bridge.bat"
+echo title JJongGood ADB Bridge>> "%INSTALL_DIR%\\run_bridge.bat"
+echo cd /d "%INSTALL_DIR%">> "%INSTALL_DIR%\\run_bridge.bat"
+echo "%LOCAL_PYTHON%" adb_bridge.py>> "%INSTALL_DIR%\\run_bridge.bat"
+echo pause>> "%INSTALL_DIR%\\run_bridge.bat"
 echo.
 
-:: ── 6단계: 바로 실행 ──
-echo [6/6] ADB Bridge 시작...
+:: === 6. Run ===
+echo [6/6] Starting...
 echo.
 echo ============================================
-echo   설치 완료!
+echo   Setup Complete!
 echo ============================================
 echo.
-echo   폰을 USB로 연결하고 USB 디버깅을 켜주세요.
-echo   PC 재부팅 시 자동으로 실행됩니다.
+echo   - USB debugging must be ON
+echo   - Auto-start registered
+echo   - Close this window to stop bridge
 echo.
-echo   이 창을 닫으면 Bridge가 종료됩니다.
-echo   (PC 재부팅 시 자동 재시작됨)
 echo ============================================
 echo.
 
 cd /d "%INSTALL_DIR%"
-"%PYTHON_CMD%" adb_bridge.py
+"%LOCAL_PYTHON%" adb_bridge.py
 pause
 '''
 
