@@ -40,6 +40,18 @@ def download_adb_bridge():
                     headers={"Content-Disposition": "attachment; filename=adb_bridge.py"})
 
 
+@setup_bp.route("/setup/bridge.env")
+def download_bridge_env():
+    """Bridge용 .env 파일 다운로드 (API 키 자동 포함)"""
+    server_url = request.url_root.rstrip("/")
+    if server_url.startswith("http://"):
+        server_url = "https://" + server_url[7:]
+    api_key = config.TASKER_API_KEY
+    content = f"RENDER_URL={server_url}\nTASKER_API_KEY={api_key}\n"
+    return Response(content, mimetype="text/plain",
+                    headers={"Content-Disposition": "attachment; filename=.env"})
+
+
 @setup_bp.route("/setup/open_folder.bat")
 def open_folder_bat():
     """설치 폴더를 탐색기로 여는 배치파일"""
@@ -56,15 +68,14 @@ def download_install_bat():
     # HTTPS 강제
     if server_url.startswith("http://"):
         server_url = "https://" + server_url[7:]
-    api_key = config.TASKER_API_KEY  # 서버에서 자동 주입
-    bat_text = _generate_install_bat(server_url, api_key)
+    bat_text = _generate_install_bat(server_url)
     # Windows cmd.exe는 CP949로 .bat을 파싱하므로 CP949로 인코딩
     bat_bytes = bat_text.encode("cp949", errors="replace")
     return Response(bat_bytes, mimetype="application/octet-stream",
                     headers={"Content-Disposition": "attachment; filename=jjonggood_setup.bat"})
 
 
-def _generate_install_bat(server_url: str, api_key: str) -> str:
+def _generate_install_bat(server_url: str) -> str:
     return f'''@echo off
 chcp 949 >nul
 title JJongGood ADB Bridge Setup
@@ -168,7 +179,7 @@ echo        OK
 
 :: === 4. .env ===
 echo [4/6] Config...
-powershell -Command "Set-Content -Path '%INSTALL_DIR%\\.env' -Value ('RENDER_URL={server_url}' + [char]10 + 'TASKER_API_KEY={api_key}') -NoNewline -Encoding UTF8"
+powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '{server_url}/setup/bridge.env' -OutFile '%INSTALL_DIR%\\.env'"
 echo        OK - server: {server_url}
 echo.
 
