@@ -122,7 +122,8 @@ const App = (() => {
                     label += `(${b})`;
                 }
                 if (label.length > 8) label = label.substring(0, 7) + '..';
-                badgesHtml += `<span class="cal-badge">${esc(label)}</span>`;
+                const statusCls = entry.status === 'completed' ? 'completed' : 'confirmed';
+                badgesHtml += `<span class="cal-badge ${statusCls}">${esc(label)}</span>`;
             }
             if (names.length > maxBadges) {
                 badgesHtml += `<span class="cal-more">+${names.length - maxBadges}</span>`;
