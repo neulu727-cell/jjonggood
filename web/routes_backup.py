@@ -161,20 +161,21 @@ def import_data():
         age = cols[4].strip() if len(cols) > 4 else ""
         memo = cols[5].strip() if len(cols) > 5 else ""
 
-        # 같은 전화번호 첫 등장 시 고객 등록
-        if phone not in phone_to_id:
+        # 같은 전화번호+반려동물 첫 등장 시 고객 등록
+        key = (phone, pet_name)
+        if key not in phone_to_id:
             try:
                 cid = queries.create_customer(
                     db, name="", phone=phone, pet_name=pet_name,
                     breed=breed, weight=weight, age=age, memo=memo
                 )
-                phone_to_id[phone] = cid
+                phone_to_id[key] = cid
                 customers_count += 1
             except Exception as e:
                 errors.append(f"{i}행: 고객 등록 실패 - {e}")
                 continue
 
-        customer_id = phone_to_id[phone]
+        customer_id = phone_to_id[key]
 
         # 예약 정보 — 날짜가 있을 때만
         date_raw = cols[6].strip() if len(cols) > 6 else ""

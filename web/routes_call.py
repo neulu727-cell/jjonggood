@@ -38,10 +38,11 @@ def incoming_call():
 
     db = get_db()
 
-    # 고객 조회
-    customer = queries.find_customer_by_phone(db, phone)
+    # 고객 조회 (같은 번호에 여러 반려동물 가능)
+    customers = queries.find_customers_by_phone(db, phone)
+    customer = customers[0] if customers else None
     customer_id = customer.id if customer else None
-    pet_name = customer.pet_name if customer else ""
+    pet_name = ", ".join(c.pet_name for c in customers) if customers else ""
 
     # 전화이력 저장
     queries.add_call_history(db, phone, customer_id, pet_name)
@@ -54,21 +55,29 @@ def incoming_call():
         "customer_id": customer_id,
         "customer_name": customer.name if customer else "",
         "pet_name": pet_name,
-        "breed": customer.breed if customer else "",
+        "breed": ", ".join(c.breed for c in customers) if customers else "",
     }
     if customer:
-        last_visit = queries.get_last_visit_date(db, customer.id)
-        stats = queries.get_customer_sales_stats(db, customer.id)
+        # 모든 반려동물의 통계 합산
+        total_count = 0
+        last_visit = None
+        all_recent = []
+        for c in customers:
+            stats = queries.get_customer_sales_stats(db, c.id)
+            total_count += stats["count"]
+            lv = queries.get_last_visit_date(db, c.id)
+            if lv and (not last_visit or lv > last_visit):
+                last_visit = lv
+            all_recent.extend(queries.get_customer_reservations(db, c.id)[:3])
         event_data["last_visit"] = last_visit
-        event_data["visit_count"] = stats["count"]
-        # 최근 예약 이력 (최대 3건)
-        recent = queries.get_customer_reservations(db, customer.id)[:3]
+        event_data["visit_count"] = total_count
+        all_recent.sort(key=lambda r: r.date, reverse=True)
         event_data["recent_reservations"] = [{
             "date": r.date,
             "service": r.service_type,
             "amount": r.amount,
             "status": r.status,
-        } for r in recent]
+        } for r in all_recent[:3]]
 
     _broadcast_event(event_data)
 

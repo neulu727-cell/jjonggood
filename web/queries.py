@@ -9,10 +9,17 @@ from datetime import datetime
 # ==================== 고객 관련 ====================
 
 def find_customer_by_phone(db: DatabaseManager, phone: str) -> Optional[Customer]:
-    row = db.fetch_one("SELECT * FROM customers WHERE phone = ?", (phone,))
+    """전화번호로 첫 번째 고객 반환 (하위 호환)"""
+    row = db.fetch_one("SELECT * FROM customers WHERE phone = ? ORDER BY id LIMIT 1", (phone,))
     if row is None:
         return None
     return Customer(**dict(row))
+
+
+def find_customers_by_phone(db: DatabaseManager, phone: str) -> List[Customer]:
+    """전화번호로 모든 고객(반려동물) 반환"""
+    rows = db.fetch_all("SELECT * FROM customers WHERE phone = ? ORDER BY id", (phone,))
+    return [Customer(**dict(row)) for row in rows]
 
 
 def create_customer(db: DatabaseManager, name: str, phone: str, pet_name: str,

@@ -58,10 +58,11 @@ def create_customer():
     if not breed:
         return jsonify({"error": "견종을 입력하세요"}), 400
 
-    # 기존 고객 확인
-    existing = queries.find_customer_by_phone(db, phone)
-    if existing:
-        return jsonify({"error": "이미 등록된 전화번호입니다", "customer_id": existing.id}), 409
+    # 기존 고객 확인 (같은 전화번호 + 같은 반려동물 이름)
+    existing_list = queries.find_customers_by_phone(db, phone)
+    for existing in existing_list:
+        if existing.pet_name == pet_name:
+            return jsonify({"error": "이미 등록된 전화번호+반려동물입니다", "customer_id": existing.id}), 409
 
     cid = queries.create_customer(
         db,
@@ -145,23 +146,34 @@ def find_by_phone():
     phone = normalize_phone(request.args.get("phone", ""))
     if not phone:
         return jsonify({"customer": None})
-    c = queries.find_customer_by_phone(db, phone)
-    if not c:
+    customers = queries.find_customers_by_phone(db, phone)
+    if not customers:
         return jsonify({"customer": None})
-    stats = queries.get_customer_sales_stats(db, c.id)
-    last_visit = queries.get_last_visit_date(db, c.id)
-    recent = queries.get_customer_reservations(db, c.id)[:3]
+    c = customers[0]
+    # 모든 반려동물 통계 합산
+    total_count = 0
+    last_visit = None
+    all_recent = []
+    for cu in customers:
+        s = queries.get_customer_sales_stats(db, cu.id)
+        total_count += s["count"]
+        lv = queries.get_last_visit_date(db, cu.id)
+        if lv and (not last_visit or lv > last_visit):
+            last_visit = lv
+        all_recent.extend(queries.get_customer_reservations(db, cu.id)[:3])
+    all_recent.sort(key=lambda r: r.date, reverse=True)
     return jsonify({
         "customer": {
             "id": c.id, "name": c.name, "phone": c.phone,
             "phone_display": format_phone_display(c.phone),
-            "pet_name": c.pet_name, "breed": c.breed,
+            "pet_name": ", ".join(cu.pet_name for cu in customers),
+            "breed": ", ".join(cu.breed for cu in customers),
             "weight": c.weight,
-            "visit_count": stats["count"],
+            "visit_count": total_count,
             "last_visit": last_visit,
             "recent_reservations": [{
                 "date": r.date, "service": r.service_type,
                 "amount": r.amount, "status": r.status,
-            } for r in recent],
+            } for r in all_recent[:3]],
         }
     })

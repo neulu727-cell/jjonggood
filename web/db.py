@@ -141,7 +141,7 @@ class DatabaseManager:
                     CREATE TABLE IF NOT EXISTS customers (
                         id          SERIAL PRIMARY KEY,
                         name        TEXT DEFAULT '',
-                        phone       TEXT NOT NULL UNIQUE,
+                        phone       TEXT NOT NULL,
                         pet_name    TEXT NOT NULL,
                         breed       TEXT NOT NULL,
                         weight      REAL,
@@ -206,6 +206,7 @@ class DatabaseManager:
                     CREATE INDEX IF NOT EXISTS idx_reservations_customer ON reservations(customer_id);
                     CREATE INDEX IF NOT EXISTS idx_call_history_date ON call_history(created_at);
                     CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
+                    CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_phone_pet ON customers(phone, pet_name);
                 """)
                 # 마이그레이션: quoted_amount 컬럼 추가
                 cur.execute("""
@@ -222,6 +223,20 @@ class DatabaseManager:
                             WHERE table_name = 'reservations' AND column_name = 'payment_method'
                         ) THEN
                             ALTER TABLE reservations ADD COLUMN payment_method TEXT DEFAULT '';
+                        END IF;
+                    END $$;
+                """)
+                # 마이그레이션: phone UNIQUE → (phone, pet_name) UNIQUE
+                cur.execute("""
+                    DO $$
+                    BEGIN
+                        -- 기존 phone UNIQUE 제약 제거
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.table_constraints
+                            WHERE table_name = 'customers' AND constraint_type = 'UNIQUE'
+                              AND constraint_name = 'customers_phone_key'
+                        ) THEN
+                            ALTER TABLE customers DROP CONSTRAINT customers_phone_key;
                         END IF;
                     END $$;
                 """)
