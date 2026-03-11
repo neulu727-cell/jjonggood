@@ -14,7 +14,9 @@
         eventSource.onmessage = function(event) {
             try {
                 const data = JSON.parse(event.data);
-                if (data.type === 'incoming_call') {
+                if (data.type === 'bridge_status') {
+                    if (App.updateBridgeStatus) App.updateBridgeStatus(data);
+                } else if (data.type === 'incoming_call') {
                     App.showCallPopup(data);
                     // 브라우저 알림 (권한 있을 때)
                     if (Notification.permission === 'granted') {

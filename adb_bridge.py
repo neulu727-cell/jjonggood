@@ -25,6 +25,7 @@ import urllib.parse
 # === 설정 ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 POLL_INTERVAL = 1.5  # 초
+HEARTBEAT_INTERVAL = 60  # 초
 
 
 def load_env():
@@ -44,18 +45,31 @@ def load_env():
                 os.environ[key] = value
 
 
-def check_adb():
+def find_adb():
+    """ADB 실행 경로 탐색 (PATH 또는 로컬 설치)"""
+    # 로컬 platform-tools 폴더 확인
+    local_adb = os.path.join(BASE_DIR, "platform-tools", "adb.exe")
+    if os.path.exists(local_adb):
+        return local_adb
+    # PATH에서 탐색
+    try:
+        subprocess.run(["adb", "version"], capture_output=True, timeout=5)
+        return "adb"
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+
+
+def check_adb(adb_cmd):
     """ADB 연결 상태 확인"""
     try:
-        r = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=5)
+        r = subprocess.run([adb_cmd, "devices"], capture_output=True, text=True, timeout=5)
         lines = r.stdout.strip().split("\n")
         for line in lines[1:]:
             if "\tdevice" in line:
                 return True, line.split("\t")[0]
         return False, ""
     except FileNotFoundError:
-        print("오류: adb가 설치되어 있지 않습니다.")
-        sys.exit(1)
+        return False, ""
     except subprocess.TimeoutExpired:
         return False, ""
 
@@ -77,6 +91,20 @@ def send_to_web(render_url, api_key, phone_number):
         print(f"  → 웹앱 알림 실패: {e}")
 
 
+def send_heartbeat(render_url, api_key, status, device=""):
+    """서버에 하트비트 전송"""
+    url = f"{render_url}/api/bridge-heartbeat?key={urllib.parse.quote(api_key, safe='')}"
+    data = urllib.parse.urlencode({"status": status, "device": device}).encode()
+    req = urllib.request.Request(url, data=data, method="POST")
+    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            pass
+    except Exception:
+        pass  # 하트비트 실패는 무시
+
+
 def main():
     load_env()
 
@@ -93,27 +121,48 @@ def main():
         print("  .env 파일에 TASKER_API_KEY=내비밀키 추가하세요.")
         sys.exit(1)
 
-    # ADB 연결 확인
-    connected, device = check_adb()
-    if not connected:
-        print("오류: ADB에 연결된 기기가 없습니다.")
-        print("  폰을 USB로 연결하고, USB 디버깅을 활성화하세요.")
+    # ADB 실행파일 탐색
+    adb_cmd = find_adb()
+    if not adb_cmd:
+        print("오류: ADB를 찾을 수 없습니다.")
+        print("  platform-tools 폴더가 같은 디렉토리에 있는지 확인하세요.")
         sys.exit(1)
 
     print("=" * 50)
     print("  ADB 전화 감지 → 웹앱 알림 브릿지")
-    print(f"  기기: {device}")
+    print(f"  ADB: {adb_cmd}")
     print(f"  서버: {render_url}")
     print(f"  감지 주기: {POLL_INTERVAL}초")
     print("  종료: Ctrl+C")
     print("=" * 50)
 
     previous_state = 0
+    last_heartbeat = 0
 
     while True:
         try:
+            now = time.time()
+
+            # ADB 연결 확인
+            connected, device = check_adb(adb_cmd)
+
+            # 하트비트 전송 (60초마다)
+            if now - last_heartbeat > HEARTBEAT_INTERVAL:
+                if connected:
+                    send_heartbeat(render_url, api_key, "ok", device)
+                    print(f"[{time.strftime('%H:%M:%S')}] ♥ 하트비트 (기기: {device})")
+                else:
+                    send_heartbeat(render_url, api_key, "no_device")
+                    print(f"[{time.strftime('%H:%M:%S')}] ♥ 하트비트 (기기 없음 - 재시도 중)")
+                last_heartbeat = now
+
+            if not connected:
+                time.sleep(POLL_INTERVAL)
+                continue
+
+            # 전화 상태 감지
             result = subprocess.run(
-                ["adb", "shell", "dumpsys", "telephony.registry"],
+                [adb_cmd, "shell", "dumpsys", "telephony.registry"],
                 capture_output=True, text=True, timeout=5,
             )
             if result.returncode == 0:
@@ -129,8 +178,8 @@ def main():
                         if number_match:
                             phone = number_match.group(1)
                             if phone and phone != "0":
-                                now = time.strftime("%H:%M:%S")
-                                print(f"\n[{now}] 전화 수신: {phone}")
+                                ts = time.strftime("%H:%M:%S")
+                                print(f"\n[{ts}] 전화 수신: {phone}")
                                 send_to_web(render_url, api_key, phone)
 
                     previous_state = current_state

@@ -1,6 +1,7 @@
-"""Tasker 웹훅 + SSE 스트림 + 전화이력"""
+"""Tasker 웹훅 + SSE 스트림 + 전화이력 + ADB Bridge 상태"""
 
 import json
+import time
 import queue
 from flask import Blueprint, jsonify, request, Response
 from web.app import get_db, require_auth
@@ -11,6 +12,9 @@ call_bp = Blueprint("call", __name__)
 
 # SSE 이벤트 큐 (브라우저 알림용)
 _call_queues = []  # list of queue.Queue
+
+# ADB Bridge 상태
+_bridge_status = {"last_seen": 0, "status": "unknown", "device": ""}
 
 
 @call_bp.route("/api/incoming-call", methods=["POST", "GET"])
@@ -122,9 +126,48 @@ def call_history():
     return jsonify({"history": history})
 
 
+@call_bp.route("/api/bridge-heartbeat", methods=["POST"])
+def bridge_heartbeat():
+    """ADB Bridge에서 60초마다 호출하는 하트비트"""
+    key = request.args.get("key", "") or request.headers.get("X-API-Key", "")
+    if config.TASKER_API_KEY and key != config.TASKER_API_KEY:
+        return jsonify({"error": "unauthorized"}), 401
+
+    status = request.form.get("status", "ok")
+    device = request.form.get("device", "")
+
+    _bridge_status["last_seen"] = time.time()
+    _bridge_status["status"] = status
+    _bridge_status["device"] = device
+
+    # SSE로 브라우저에 상태 전파
+    _broadcast_event({
+        "type": "bridge_status",
+        "status": status,
+        "device": device,
+        "alive": True,
+    })
+
+    return jsonify({"ok": True})
+
+
+@call_bp.route("/api/bridge-status")
+@require_auth
+def bridge_status():
+    """ADB Bridge 연결 상태 조회"""
+    alive = (time.time() - _bridge_status["last_seen"]) < 90
+    return jsonify({
+        "status": _bridge_status["status"],
+        "device": _bridge_status["device"],
+        "alive": alive,
+        "last_seen": _bridge_status["last_seen"],
+    })
+
+
 def _broadcast_event(data: dict):
     """모든 SSE 연결에 이벤트 전송"""
-    data["type"] = "incoming_call"
+    if "type" not in data:
+        data["type"] = "incoming_call"
     for q in list(_call_queues):
         try:
             q.put_nowait(data)

@@ -31,6 +31,7 @@ const App = (() => {
             startClock();
             loadCallSidebar();
             goToday();
+            loadBridgeStatus();
         } else {
             loadMonth();
         }
@@ -1520,6 +1521,52 @@ const App = (() => {
     init();
 
     // Public API
+    // ==================== ADB Bridge 상태 ====================
+
+    let _bridgeStatusTimer = null;
+
+    function loadBridgeStatus() {
+        fetch('/api/bridge-status', {credentials: 'same-origin'})
+            .then(r => r.ok ? r.json() : null)
+            .then(data => { if (data) updateBridgeStatus(data); })
+            .catch(() => updateBridgeStatus({alive: false, status: 'unknown'}));
+    }
+
+    function updateBridgeStatus(data) {
+        const el = document.getElementById('bridgeStatus');
+        if (!el) return;
+
+        // 타이머 리셋: 90초간 업데이트 없으면 자동으로 꺼짐 표시
+        clearTimeout(_bridgeStatusTimer);
+        _bridgeStatusTimer = setTimeout(() => {
+            _setBridgeIndicator(el, 'dead');
+        }, 90000);
+
+        if (data.alive && data.status === 'ok') {
+            _setBridgeIndicator(el, 'alive');
+        } else if (data.alive && data.status === 'no_device') {
+            _setBridgeIndicator(el, 'no_device');
+        } else {
+            _setBridgeIndicator(el, 'dead');
+        }
+    }
+
+    function _setBridgeIndicator(el, state) {
+        if (state === 'alive') {
+            el.style.background = '#065F46';
+            el.style.color = '#34D399';
+            el.innerHTML = '&#9679; ADB 감시중';
+        } else if (state === 'no_device') {
+            el.style.background = '#78350F';
+            el.style.color = '#FCD34D';
+            el.innerHTML = '&#9679; 기기 없음';
+        } else {
+            el.style.background = '#7F1D1D';
+            el.style.color = '#FCA5A5';
+            el.innerHTML = '&#9679; ADB 꺼짐';
+        }
+    }
+
     return {
         selectDate, closeTimeline, changeMonth, goToday,
         showView, onSlotClick, searchCustomersForSlot,
@@ -1537,5 +1584,6 @@ const App = (() => {
         changeCallDate, refresh, onQuickReserve, testCall,
         selectGridBtn, applyPrevService,
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode,
+        updateBridgeStatus,
     };
 })();
