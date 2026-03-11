@@ -152,7 +152,6 @@ def bridge_heartbeat():
 
 
 @call_bp.route("/api/bridge-status")
-@require_auth
 def bridge_status():
     """ADB Bridge 연결 상태 조회"""
     alive = (time.time() - _bridge_status["last_seen"]) < 90
