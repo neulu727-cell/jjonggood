@@ -52,14 +52,6 @@ def download_bridge_env():
                     headers={"Content-Disposition": "attachment; filename=.env"})
 
 
-@setup_bp.route("/setup/open_folder.bat")
-def open_folder_bat():
-    """설치 폴더를 탐색기로 여는 배치파일"""
-    bat = '@echo off\r\nexplorer "%USERPROFILE%\\jjonggood-bridge"\r\nexit\r\n'
-    return Response(bat.encode("cp949", errors="replace"),
-                    mimetype="application/octet-stream",
-                    headers={"Content-Disposition": "attachment; filename=open_folder.bat"})
-
 
 @setup_bp.route("/setup/install.bat")
 def download_install_bat():
@@ -340,14 +332,8 @@ code {
             <p style="font-size:13px; color:#991B1B; text-align:center; margin-bottom:10px">
                 Bridge가 실행되고 있지 않습니다
             </p>
-            <a href="/setup/open_folder.bat" class="restart-btn" style="text-decoration:none; display:block">
-                &#128194; 설치 폴더 열기 (다운 후 더블클릭)
-            </a>
-            <p style="font-size:12px; color:#991B1B; text-align:center; margin-top:6px">
-                열린 폴더에서 <strong>run_bridge.bat</strong> 더블클릭
-            </p>
-            <p style="font-size:12px; color:#6B7280; text-align:center; margin-top:8px">
-                또는 PC를 재부팅하면 자동 실행됩니다
+            <p style="font-size:12px; color:#6B7280; text-align:center">
+                PC를 재부팅하면 자동 실행됩니다
             </p>
         </div>
     </div>
