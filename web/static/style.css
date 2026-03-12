@@ -94,6 +94,7 @@ html, body {
     text-align: center; font-size: 12px; font-weight: 600;
     padding: 10px 4px 6px; color: var(--text-light);
     border-bottom: 1px solid var(--border);
+    gap: 1px;
 }
 .weekday-row span:first-child { color: var(--sunday); }
 .weekday-row span:last-child { color: var(--saturday); }
@@ -679,7 +680,7 @@ html, body {
     .month-nav button { font-size: 22px; padding: 6px 10px; }
     .btn-today { font-size: 13px; padding: 5px 12px; }
     .calendar-section { background: #F8F9FB; }
-    .weekday-row { background: #F8F9FB; border-bottom-color: var(--border-strong); padding: 4px 4px 2px; }
+    .weekday-row { background: #F8F9FB; border-bottom-color: var(--border-strong); padding: 4px 6px 2px; gap: 1px; }
     .calendar-grid { gap: 1px; padding: 4px 6px; }
     .cal-cell { min-height: 72px; padding: 5px 2px; }
     .cal-day { font-size: 15px; width: 28px; height: 28px; margin-bottom: 3px; }
