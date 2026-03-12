@@ -106,7 +106,8 @@ def send_to_web(render_url, api_key, phone_number):
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             return resp.status == 200
-    except Exception:
+    except Exception as e:
+        print(f"[send_to_web] FAIL: {e}")
         return False
 
 
@@ -304,9 +305,12 @@ def polling_loop(gui, adb_cmd, render_url, api_key):
                             if phone and phone != "0":
                                 ts = time.strftime("%H:%M:%S")
                                 gui.update_ui(gui.set_last_receive, ts)
-                                gui.update_ui(gui.add_log, f"[{ts}] \uc218\uc2e0: {phone}")
                                 ok = send_to_web(render_url, api_key, phone)
                                 gui.update_ui(gui.set_server_status, ok)
+                                if ok:
+                                    gui.update_ui(gui.add_log, f"[{ts}] \uc218\uc2e0: {phone} \u2192 \uc804\uc1a1OK")
+                                else:
+                                    gui.update_ui(gui.add_log, f"[{ts}] \uc218\uc2e0: {phone} \u2192 \uc804\uc1a1\uc2e4\ud328!")
                     previous_state = current_state
 
         except subprocess.TimeoutExpired:

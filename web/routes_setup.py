@@ -80,6 +80,8 @@ def _bat_escape(s: str) -> str:
 
 def _generate_install_bat(server_url: str) -> str:
     api_key_safe = _bat_escape(config.TASKER_API_KEY)
+    # PowerShell 문자열 안전 처리 (싱글쿼트 이스케이프)
+    api_key_ps = config.TASKER_API_KEY.replace("'", "''")
     return f'''@echo off
 chcp 949 >nul
 title JJongGood ADB Bridge Setup
@@ -193,10 +195,9 @@ for %%A in ("%INSTALL_DIR%\\adb_bridge.py") do if %%~zA LSS 100 (
 )
 echo        OK
 
-:: === 4. .env (API 키 직접 주입 — 네트워크 노출 방지) ===
+:: === 4. .env (PowerShell로 안전하게 생성 — bat 특수문자 문제 회피) ===
 echo [4/6] Config...
-echo RENDER_URL={server_url}> "%INSTALL_DIR%\\.env"
-echo TASKER_API_KEY={api_key_safe}>> "%INSTALL_DIR%\\.env"
+powershell -Command "Set-Content -Path '%INSTALL_DIR%\\.env' -Value ('RENDER_URL={server_url}' + [char]10 + 'TASKER_API_KEY={api_key_ps}' + [char]10) -NoNewline -Encoding UTF8"
 if not exist "%INSTALL_DIR%\\.env" (
     echo        [FAIL] .env creation failed.
     pause
