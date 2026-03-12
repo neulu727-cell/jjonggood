@@ -100,7 +100,7 @@ html, body {
 .weekday-row span:last-child { color: var(--saturday); }
 
 .calendar-grid {
-    display: grid; grid-template-columns: repeat(7, 1fr);
+    display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 1px; padding: 4px 4px;
 }
 .cal-cell {
@@ -108,6 +108,7 @@ html, body {
     padding: 6px 1px; min-height: 68px; cursor: pointer;
     border-radius: var(--radius-sm); position: relative;
     transition: background var(--transition);
+    overflow: hidden; min-width: 0;
 }
 .cal-cell:active { background: var(--primary-light); }
 .cal-cell.selected { background: var(--primary-light); }

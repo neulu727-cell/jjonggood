@@ -901,6 +901,10 @@ const App = (() => {
 
     async function searchCustomers(keyword) {
         clearTimeout(searchTimer);
+        if (!(keyword || '').trim()) {
+            loadCustomerList('', customerSort);
+            return;
+        }
         searchTimer = setTimeout(() => loadCustomerList(keyword, customerSort), 300);
     }
 
