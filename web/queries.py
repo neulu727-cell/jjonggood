@@ -78,6 +78,36 @@ def get_customer_by_id(db: DatabaseManager, customer_id: int) -> Optional[Custom
     return Customer(**dict(row))
 
 
+def get_customer_detail(db: DatabaseManager, customer_id: int) -> Optional[dict]:
+    """고객 정보 + 통계 + 최근 예약을 단일 쿼리 2개로 조회 (기존 4쿼리 → 2쿼리)"""
+    row = db.fetch_one("""
+        SELECT c.*,
+               MAX(CASE WHEN r.status='completed' THEN r.date END) AS last_visit,
+               COUNT(CASE WHEN r.status='completed' AND r.amount>0 THEN 1 END) AS visit_count,
+               COALESCE(SUM(CASE WHEN r.status='completed' AND r.amount>0 THEN r.amount END),0) AS total_sales,
+               COALESCE(AVG(CASE WHEN r.status='completed' AND r.amount>0 THEN r.amount END),0) AS avg_amount
+        FROM customers c
+        LEFT JOIN reservations r ON r.customer_id = c.id
+        WHERE c.id = ?
+        GROUP BY c.id
+    """, (customer_id,))
+    if row is None:
+        return None
+    d = dict(row)
+    lv = d.get("last_visit")
+    if lv and hasattr(lv, 'strftime'):
+        lv = lv.strftime("%Y-%m-%d")
+    elif lv:
+        lv = str(lv)
+    d["last_visit"] = lv
+    d["stats"] = {
+        "count": d.pop("visit_count", 0),
+        "total": int(d.pop("total_sales", 0)),
+        "avg": int(d.pop("avg_amount", 0)),
+    }
+    return d
+
+
 # ==================== 예약 관련 ====================
 
 def create_reservation(db: DatabaseManager, customer_id: int, date: str,

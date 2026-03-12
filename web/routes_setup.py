@@ -42,7 +42,10 @@ def download_adb_bridge():
 
 @setup_bp.route("/setup/bridge.env")
 def download_bridge_env():
-    """Bridge용 .env 파일 다운로드 (API 키 자동 포함)"""
+    """Bridge용 .env 파일 다운로드 (세션 인증 필요 — API 키 보호)"""
+    from flask import session
+    if not session.get("authenticated"):
+        return Response("인증이 필요합니다. 먼저 로그인하세요.", status=401)
     server_url = request.url_root.rstrip("/")
     if server_url.startswith("http://"):
         server_url = "https://" + server_url[7:]
@@ -61,13 +64,22 @@ def download_install_bat():
     if server_url.startswith("http://"):
         server_url = "https://" + server_url[7:]
     bat_text = _generate_install_bat(server_url)
-    # Windows cmd.exe는 CP949로 .bat을 파싱하므로 CP949로 인코딩
+    # Windows cmd.exe는 CRLF + CP949 필수 (LF만 있으면 if/for 블록 파싱 실패)
+    bat_text = bat_text.replace('\r\n', '\n').replace('\n', '\r\n')
     bat_bytes = bat_text.encode("cp949", errors="replace")
     return Response(bat_bytes, mimetype="application/octet-stream",
                     headers={"Content-Disposition": "attachment; filename=jjonggood_setup.bat"})
 
 
+def _bat_escape(s: str) -> str:
+    """bat 특수문자 이스케이프 (^, &, |, <, > 등)"""
+    for ch in ('^', '&', '|', '<', '>', '(', ')'):
+        s = s.replace(ch, f'^{ch}')
+    return s
+
+
 def _generate_install_bat(server_url: str) -> str:
+    api_key_safe = _bat_escape(config.TASKER_API_KEY)
     return f'''@echo off
 chcp 949 >nul
 title JJongGood ADB Bridge Setup
@@ -181,11 +193,12 @@ for %%A in ("%INSTALL_DIR%\\adb_bridge.py") do if %%~zA LSS 100 (
 )
 echo        OK
 
-:: === 4. .env ===
+:: === 4. .env (API 키 직접 주입 — 네트워크 노출 방지) ===
 echo [4/6] Config...
-powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '{server_url}/setup/bridge.env' -OutFile '%INSTALL_DIR%\\.env'"
+echo RENDER_URL={server_url}> "%INSTALL_DIR%\\.env"
+echo TASKER_API_KEY={api_key_safe}>> "%INSTALL_DIR%\\.env"
 if not exist "%INSTALL_DIR%\\.env" (
-    echo        [FAIL] .env download failed.
+    echo        [FAIL] .env creation failed.
     pause
     exit /b 1
 )

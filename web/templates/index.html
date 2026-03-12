@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#4F46E5">
 <title>예약관리</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ static_url('style.css') }}">
 </head>
 <body>
 <div id="app">
@@ -266,7 +266,7 @@ const CONFIG = {
     taskerKey: "{{ tasker_key }}",
 };
 </script>
-<script src="{{ url_for('static', filename='app.js') }}"></script>
-<script src="{{ url_for('static', filename='call.js') }}"></script>
+<script src="{{ static_url('app.js') }}"></script>
+<script src="{{ static_url('call.js') }}"></script>
 </body>
 </html>

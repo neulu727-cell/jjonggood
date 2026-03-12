@@ -38,7 +38,7 @@ class DatabaseManager:
         dsn += "connect_timeout=10&keepalives=1&keepalives_idle=30&keepalives_interval=10&keepalives_count=3&options=-c%20statement_timeout%3D30000"
 
         self._pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=1, maxconn=5, dsn=dsn
+            minconn=2, maxconn=10, dsn=dsn
         )
         self._create_tables()
 
@@ -229,9 +229,13 @@ class DatabaseManager:
                     CREATE INDEX IF NOT EXISTS idx_reservations_date ON reservations(date);
                     CREATE INDEX IF NOT EXISTS idx_reservations_customer ON reservations(customer_id);
                     CREATE INDEX IF NOT EXISTS idx_reservations_date_customer ON reservations(date, customer_id);
+                    -- 통계 쿼리용 커버링 인덱스 (status+amount 필터)
+                    CREATE INDEX IF NOT EXISTS idx_reservations_customer_status ON reservations(customer_id, status, date DESC);
                     CREATE INDEX IF NOT EXISTS idx_call_history_date ON call_history(created_at);
+                    CREATE INDEX IF NOT EXISTS idx_call_history_phone ON call_history(phone);
                     CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
                     CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_phone_pet ON customers(phone, pet_name);
+                    CREATE INDEX IF NOT EXISTS idx_reservation_edits_rid ON reservation_edits(reservation_id, created_at DESC);
                 """)
                 # 마이그레이션: quoted_amount 컬럼 추가
                 cur.execute("""

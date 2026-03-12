@@ -86,8 +86,8 @@ def create_customer():
         return jsonify({"error": "no data"}), 400
 
     phone = normalize_phone(data.get("phone", ""))
-    pet_name = data.get("pet_name", "").strip()
-    breed = data.get("breed", "").strip()
+    pet_name = data.get("pet_name", "").strip()[:50]
+    breed = data.get("breed", "").strip()[:50]
 
     if not phone:
         return jsonify({"error": "유효한 전화번호를 입력하세요"}), 400
@@ -104,14 +104,14 @@ def create_customer():
 
     cid = queries.create_customer(
         db,
-        name=data.get("name", "").strip(),
+        name=data.get("name", "").strip()[:50],
         phone=phone,
         pet_name=pet_name,
         breed=breed,
         weight=_safe_float(data.get("weight")),
-        age=data.get("age", ""),
-        notes=data.get("notes", ""),
-        memo=data.get("memo", ""),
+        age=data.get("age", "")[:20],
+        notes=data.get("notes", "")[:500],
+        memo=data.get("memo", "")[:500],
     )
     return jsonify({"ok": True, "id": cid})
 
@@ -120,30 +120,25 @@ def create_customer():
 @require_auth
 def get_customer(cid):
     db = get_db()
-    c = queries.get_customer_by_id(db, cid)
-    if not c:
+    d = queries.get_customer_detail(db, cid)
+    if not d:
         return jsonify({"error": "not found"}), 404
 
-    last_visit = queries.get_last_visit_date(db, cid)
-    stats = queries.get_customer_sales_stats(db, cid)
     reservations = queries.get_customer_reservations(db, cid)
-
-    res_list = []
-    for r in reservations:
-        res_list.append({
-            "id": r.id, "date": r.date, "time": r.time,
-            "service_type": r.service_type, "status": r.status,
-            "amount": r.amount, "duration": r.duration,
-        })
+    res_list = [{
+        "id": r.id, "date": r.date, "time": r.time,
+        "service_type": r.service_type, "status": r.status,
+        "amount": r.amount, "duration": r.duration,
+    } for r in reservations]
 
     return jsonify({
-        "id": c.id, "name": c.name, "phone": c.phone,
-        "phone_display": format_phone_display(c.phone),
-        "pet_name": c.pet_name, "breed": c.breed,
-        "weight": c.weight, "age": c.age,
-        "notes": c.notes, "memo": c.memo,
-        "last_visit": last_visit,
-        "stats": stats,
+        "id": d["id"], "name": d.get("name", ""), "phone": d.get("phone", ""),
+        "phone_display": format_phone_display(d.get("phone", "")),
+        "pet_name": d.get("pet_name", ""), "breed": d.get("breed", ""),
+        "weight": d.get("weight"), "age": d.get("age"),
+        "notes": d.get("notes", ""), "memo": d.get("memo", ""),
+        "last_visit": d["last_visit"],
+        "stats": d["stats"],
         "reservations": res_list,
     })
 

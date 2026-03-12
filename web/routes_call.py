@@ -10,7 +10,7 @@ from web.utils.phone_formatter import normalize_phone, format_phone_display
 
 call_bp = Blueprint("call", __name__)
 
-# SSE 이벤트 큐 (브라우저 알림용)
+# SSE 이벤트 큐 (브라우저 알림용) — maxsize로 메모리 폭주 방지
 _call_queues = []  # list of queue.Queue
 
 # ADB Bridge 상태
@@ -58,26 +58,35 @@ def incoming_call():
         "breed": ", ".join(c.breed for c in customers) if customers else "",
     }
     if customer:
-        # 모든 반려동물의 통계 합산
-        total_count = 0
-        last_visit = None
-        all_recent = []
-        for c in customers:
-            stats = queries.get_customer_sales_stats(db, c.id)
-            total_count += stats["count"]
-            lv = queries.get_last_visit_date(db, c.id)
-            if lv and (not last_visit or lv > last_visit):
-                last_visit = lv
-            all_recent.extend(queries.get_customer_reservations(db, c.id)[:3])
+        # 단일 쿼리로 모든 고객의 통계 합산
+        customer_ids = [c.id for c in customers]
+        placeholders = ",".join("?" for _ in customer_ids)
+        stats_row = db.fetch_one(f"""
+            SELECT COUNT(*) as cnt,
+                   MAX(CASE WHEN status='completed' THEN date END) as last_visit
+            FROM reservations
+            WHERE customer_id IN ({placeholders}) AND status = 'completed' AND amount > 0
+        """, tuple(customer_ids))
+        last_visit = stats_row["last_visit"] if stats_row else None
+        if last_visit and hasattr(last_visit, 'strftime'):
+            last_visit = last_visit.strftime("%Y-%m-%d")
+        elif last_visit:
+            last_visit = str(last_visit)
         event_data["last_visit"] = last_visit
-        event_data["visit_count"] = total_count
-        all_recent.sort(key=lambda r: r.date, reverse=True)
+        event_data["visit_count"] = stats_row["cnt"] if stats_row else 0
+
+        recent_rows = db.fetch_all(f"""
+            SELECT date, service_type, amount, status
+            FROM reservations
+            WHERE customer_id IN ({placeholders})
+            ORDER BY date DESC, time DESC LIMIT 3
+        """, tuple(customer_ids))
         event_data["recent_reservations"] = [{
-            "date": r.date,
-            "service": r.service_type,
-            "amount": r.amount,
-            "status": r.status,
-        } for r in all_recent[:3]]
+            "date": r["date"].strftime("%Y-%m-%d") if hasattr(r["date"], 'strftime') else str(r["date"]),
+            "service": r["service_type"],
+            "amount": r["amount"],
+            "status": r["status"],
+        } for r in recent_rows]
 
     _broadcast_event(event_data)
 
@@ -88,25 +97,25 @@ def incoming_call():
 @require_auth
 def call_stream():
     """SSE 스트림 - 브라우저가 연결하여 전화 알림 수신"""
-    q = queue.Queue()
+    q = queue.Queue(maxsize=50)
     _call_queues.append(q)
 
     def generate():
         try:
-            # 연결 확인용 초기 이벤트
             yield "data: {\"type\":\"connected\"}\n\n"
             while True:
                 try:
                     data = q.get(timeout=30)
                     yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
                 except queue.Empty:
-                    # keep-alive
                     yield ": heartbeat\n\n"
         except GeneratorExit:
             pass
         finally:
-            if q in _call_queues:
+            try:
                 _call_queues.remove(q)
+            except ValueError:
+                pass
 
     return Response(
         generate(),
@@ -173,11 +182,17 @@ def bridge_status():
 
 
 def _broadcast_event(data: dict):
-    """모든 SSE 연결에 이벤트 전송"""
+    """모든 SSE 연결에 이벤트 전송 (가득 찬 큐는 제거)"""
     if "type" not in data:
         data["type"] = "incoming_call"
+    dead = []
     for q in list(_call_queues):
         try:
             q.put_nowait(data)
         except queue.Full:
+            dead.append(q)
+    for q in dead:
+        try:
+            _call_queues.remove(q)
+        except ValueError:
             pass

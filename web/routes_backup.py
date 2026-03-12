@@ -1,9 +1,12 @@
 """백업 다운로드 / 데이터 임포트 API"""
 
 import json
+import logging
 import re
 from datetime import datetime
 from flask import Blueprint, Response
+
+log = logging.getLogger("jjonggood.backup")
 
 backup_bp = Blueprint("backup", __name__)
 
@@ -126,7 +129,8 @@ def import_data():
     try:
         text = data_file.read().decode("utf-8-sig")
     except Exception as e:
-        return jsonify({"error": f"파일 읽기 실패: {e}"}), 400
+        log.exception("파일 읽기 실패")
+        return jsonify({"error": "파일 읽기 실패"}), 400
 
     db = get_db()
     errors = []
@@ -216,7 +220,8 @@ def import_data():
         conn.commit()
     except Exception as e:
         conn.rollback()
-        return jsonify({"error": f"임포트 실패 (데이터 복원됨): {e}"}), 500
+        log.exception("임포트 실패 (롤백됨)")
+        return jsonify({"error": "임포트 실패 (데이터 복원됨)"}), 500
     finally:
         db.put_conn(conn)
 

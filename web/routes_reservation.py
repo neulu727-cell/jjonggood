@@ -47,13 +47,13 @@ def create_reservation():
         customer_id=customer_id,
         date=data["date"],
         time=data["time"],
-        service_type=data["service_type"],
+        service_type=data["service_type"][:50],
         duration=duration,
-        request=data.get("request", ""),
+        request=data.get("request", "")[:500],
         amount=amount,
-        fur_length=data.get("fur_length", ""),
+        fur_length=data.get("fur_length", "")[:20],
         quoted_amount=quoted_amount,
-        payment_method=data.get("payment_method", ""),
+        payment_method=data.get("payment_method", "")[:30],
     )
     return jsonify({"ok": True, "id": rid})
 
