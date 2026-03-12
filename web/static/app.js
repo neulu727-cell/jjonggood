@@ -150,7 +150,7 @@ const App = (() => {
         }
 
         const content = document.getElementById('timelineContent');
-        content.innerHTML = '<div class="loading">불러오는 중</div>';
+        content.innerHTML = _skeletonTimeline();
 
         try {
             const res = await fetch(`/api/day?date=${dateStr}`);
@@ -158,7 +158,7 @@ const App = (() => {
             const data = await res.json();
             renderTimeline(data);
         } catch (e) {
-            content.innerHTML = '<div class="empty-timeline"><div class="icon">!</div><p>데이터를 불러올 수 없습니다</p></div>';
+            content.innerHTML = '<div class="empty-timeline"><div class="icon">!</div><p>데이터를 불러올 수 없습니다</p><button class="btn-secondary" style="width:auto;margin-top:12px;padding:10px 24px" onclick="App.selectDate(\'' + dateStr + '\')">다시 시도</button></div>';
         }
         document.getElementById('timelineSection').scrollTop = 0;
     }
@@ -644,7 +644,7 @@ const App = (() => {
 
     async function showReservationDetail(rid) {
         const content = document.getElementById('reservationDetailContent');
-        content.innerHTML = '<div class="loading">불러오는 중</div>';
+        content.innerHTML = '<div style="padding:8px">' + Array(5).fill('<div class="skeleton-slot"><div class="skeleton skeleton-time"></div><div class="skeleton skeleton-bar"></div></div>').join('') + '</div>';
         openSheet('reservationDetailSheet');
 
         try {
@@ -908,13 +908,14 @@ const App = (() => {
             return;
         }
 
+        container.innerHTML = _skeletonCustomerList();
         try {
             const res = await fetch(`/api/customers/search?q=${encodeURIComponent(q)}&sort=${s}`);
             const data = await res.json();
             if (!q) cachedCustomers = data.customers;
             renderCustomerList(container, data.customers, (c) => showCustomerDetail(c.id));
         } catch (e) {
-            container.innerHTML = '<p style="text-align:center;color:#999;padding:20px">검색 실패</p>';
+            container.innerHTML = '<div style="text-align:center;color:#999;padding:40px"><p>고객 목록을 불러올 수 없습니다</p><button class="btn-secondary" style="width:auto;margin-top:12px;padding:10px 24px" onclick="App.loadCustomerList(\'\',App.customerSort)">다시 시도</button></div>';
         }
     }
 
@@ -938,7 +939,7 @@ const App = (() => {
 
     function renderCustomerList(container, customers, onClick) {
         if (!customers.length) {
-            container.innerHTML = '<p style="text-align:center;color:#999;padding:20px">검색 결과 없음</p>';
+            container.innerHTML = '<div style="text-align:center;padding:40px 20px"><p style="color:var(--text-light);margin-bottom:12px">검색 결과 없음</p><button class="btn-primary-sm" onclick="App.showNewCustomerForm()" style="padding:10px 20px">+ 신규 고객 등록</button></div>';
             return;
         }
         container.innerHTML = customers.map(c => {
@@ -978,7 +979,7 @@ const App = (() => {
             ${isEdit ? `<input type="hidden" id="cfId" value="${c.id}">` : ''}
             <div class="form-group">
                 <label>전화번호 *</label>
-                <input type="tel" id="cfPhone" value="${esc(c.phone_display || c.phone || '')}" placeholder="010-0000-0000" inputmode="tel">
+                <input type="tel" id="cfPhone" value="${esc(c.phone_display || c.phone || '')}" placeholder="010-0000-0000" inputmode="tel" oninput="App.formatPhoneInput(this)">
             </div>
             <input type="hidden" id="cfName" value="${esc(c.name || '')}">
             <div class="form-group">
@@ -1143,7 +1144,7 @@ const App = (() => {
 
     async function showCustomerDetail(cid) {
         const content = document.getElementById('customerDetailContent');
-        content.innerHTML = '<div class="loading">불러오는 중</div>';
+        content.innerHTML = '<div style="padding:8px"><div class="skeleton" style="height:60px;margin-bottom:16px"></div><div style="display:flex;gap:10px;margin-bottom:16px">' + Array(3).fill('<div class="skeleton" style="flex:1;height:70px"></div>').join('') + '</div>' + Array(3).fill('<div class="skeleton-slot"><div class="skeleton skeleton-time"></div><div class="skeleton skeleton-bar"></div></div>').join('') + '</div>';
         openSheet('customerDetailSheet');
 
         try {
@@ -1385,6 +1386,38 @@ const App = (() => {
 
     // ==================== 유틸 ====================
 
+    function formatPhoneInput(input) {
+        let digits = input.value.replace(/\D/g, '');
+        if (digits.length > 11) digits = digits.slice(0, 11);
+        let formatted = digits;
+        if (digits.length >= 8) {
+            formatted = digits.slice(0, 3) + '-' + digits.slice(3, 7) + '-' + digits.slice(7);
+        } else if (digits.length >= 4) {
+            formatted = digits.slice(0, 3) + '-' + digits.slice(3);
+        }
+        const cursor = input.selectionStart;
+        const prevLen = input.value.length;
+        input.value = formatted;
+        const diff = formatted.length - prevLen;
+        input.setSelectionRange(cursor + diff, cursor + diff);
+    }
+
+    function _skeletonTimeline() {
+        let html = '<div style="padding:16px">';
+        for (let i = 0; i < 6; i++) {
+            html += '<div class="skeleton-slot"><div class="skeleton skeleton-time"></div><div class="skeleton skeleton-bar"></div></div>';
+        }
+        return html + '</div>';
+    }
+
+    function _skeletonCustomerList() {
+        let html = '';
+        for (let i = 0; i < 8; i++) {
+            html += '<div class="skeleton-card"><div class="skeleton skeleton-avatar"></div><div class="skeleton-lines"><div class="skeleton skeleton-line" style="width:' + (60 + Math.random()*30) + '%"></div><div class="skeleton skeleton-line"></div></div></div>';
+        }
+        return html;
+    }
+
     function generateTimeSlots() {
         const slots = [];
         const [sh, sm] = CONFIG.businessStart.split(':').map(Number);
@@ -1418,11 +1451,59 @@ const App = (() => {
     }
 
     function openSheet(id) {
-        document.getElementById(id).style.display = 'flex';
+        const overlay = document.getElementById(id);
+        overlay.style.display = 'flex';
+        const sheet = overlay.querySelector('.bottom-sheet');
+        if (sheet) _setupSheetSwipe(overlay, sheet);
     }
 
     function closeSheet(id) {
-        document.getElementById(id).style.display = 'none';
+        const overlay = document.getElementById(id);
+        const sheet = overlay.querySelector('.bottom-sheet');
+        if (sheet) {
+            sheet.style.transition = 'transform 0.2s ease';
+            sheet.style.transform = 'translateY(100%)';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                sheet.style.transform = '';
+                sheet.style.transition = '';
+            }, 200);
+        } else {
+            overlay.style.display = 'none';
+        }
+    }
+
+    function _setupSheetSwipe(overlay, sheet) {
+        let startY = 0, currentY = 0, isDragging = false;
+        const handle = sheet.querySelector('.sheet-handle');
+        if (!handle || handle._swipeSetup) return;
+        handle._swipeSetup = true;
+
+        handle.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            isDragging = true;
+            sheet.style.transition = 'none';
+        }, { passive: true });
+
+        handle.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            currentY = e.touches[0].clientY - startY;
+            if (currentY > 0) {
+                sheet.style.transform = `translateY(${currentY}px)`;
+            }
+        }, { passive: true });
+
+        handle.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            sheet.style.transition = 'transform 0.2s ease';
+            if (currentY > 100) {
+                closeSheet(overlay.id);
+            } else {
+                sheet.style.transform = '';
+            }
+            currentY = 0;
+        }, { passive: true });
     }
 
     function downloadBackup() {
@@ -1728,7 +1809,8 @@ const App = (() => {
     }
 
     return {
-        selectDate, closeTimeline, changeMonth, goToday,
+        selectDate, closeTimeline, changeMonth, goToday, loadCustomerList,
+        get customerSort() { return customerSort; },
         showView, onSlotClick, searchCustomersForSlot,
         showNewCustomerFormForSlot, showNewCustomerForm,
         onServiceChange, saveReservation,
@@ -1743,7 +1825,7 @@ const App = (() => {
         showCustomerForm, showReservationForm,
         changeCallDate, refresh, onQuickReserve, testCall,
         selectGridBtn, applyPrevService,
-        onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode,
+        onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode, formatPhoneInput,
         updateBridgeStatus,
         showImportForm, submitImport,
     };

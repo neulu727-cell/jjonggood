@@ -391,4 +391,19 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        err_msg = traceback.format_exc()
+        print(f"\n[FATAL ERROR]\n{err_msg}")
+        try:
+            root = tk.Tk()
+            root.title("오류")
+            root.geometry("400x200")
+            tk.Label(root, text=f"프로그램 오류:\n\n{e}", font=("", 11),
+                     fg="red", justify=tk.LEFT, padx=10, pady=10, wraplength=380).pack()
+            root.mainloop()
+        except Exception:
+            pass
+        input("Press Enter to exit...")

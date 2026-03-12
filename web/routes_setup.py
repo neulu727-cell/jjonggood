@@ -110,8 +110,13 @@ if not exist "%PY_EXE%" (
     exit /b 1
 )
 echo        Installing Python (tkinter included)...
+echo        This may take 1-2 minutes...
 "%PY_EXE%" /quiet TargetDir="%INSTALL_DIR%\\python" Include_launcher=0 Include_test=0 Include_doc=0 Include_pip=0 Include_tcltk=1 InstallAllUsers=0 AssociateFiles=0 Shortcuts=0
+set PY_ERR=%errorlevel%
 del "%PY_EXE%" >nul 2>&1
+if not "%PY_ERR%"=="0" (
+    echo        [WARN] Installer exit code: %PY_ERR%
+)
 if not exist "%LOCAL_PYTHON%" (
     echo        [FAIL] Python install failed.
     pause
@@ -167,11 +172,23 @@ if not exist "%INSTALL_DIR%\\adb_bridge.py" (
     pause
     exit /b 1
 )
+:: 빈 파일 체크 (다운로드 실패 시 0바이트)
+for %%A in ("%INSTALL_DIR%\\adb_bridge.py") do if %%~zA LSS 100 (
+    echo        [FAIL] adb_bridge.py is empty or corrupt.
+    echo        Server may be unreachable: {server_url}
+    pause
+    exit /b 1
+)
 echo        OK
 
 :: === 4. .env ===
 echo [4/6] Config...
 powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '{server_url}/setup/bridge.env' -OutFile '%INSTALL_DIR%\\.env'"
+if not exist "%INSTALL_DIR%\\.env" (
+    echo        [FAIL] .env download failed.
+    pause
+    exit /b 1
+)
 echo        OK - server: {server_url}
 echo.
 
@@ -214,7 +231,19 @@ echo ============================================
 echo.
 
 cd /d "%INSTALL_DIR%"
+echo.
+echo   Starting adb_bridge.py...
+echo   (If it closes immediately, check for errors below)
+echo.
 "%LOCAL_PYTHON%" adb_bridge.py
+echo.
+echo ============================================
+echo   Program exited. (exit code: %errorlevel%)
+echo ============================================
+echo   If you see errors above, please check:
+echo   - .env file exists with RENDER_URL and TASKER_API_KEY
+echo   - adb_bridge.py was downloaded correctly
+echo.
 pause
 '''
 

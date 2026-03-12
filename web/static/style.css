@@ -36,6 +36,26 @@ html, body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* === 접근성: 포커스 인디케이터 === */
+:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* === 모션 접근성 === */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
 /* === 앱 레이아웃 === */
 #app {
     display: flex; flex-direction: column;
@@ -593,6 +613,36 @@ html, body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* === 스켈레톤 로딩 === */
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+.skeleton {
+    background: linear-gradient(90deg, var(--border) 25%, #e8e8e8 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+}
+.skeleton-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 0; border-bottom: 1px solid var(--border);
+}
+.skeleton-avatar {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+}
+.skeleton-lines { flex: 1; }
+.skeleton-line {
+    height: 12px; border-radius: 6px; margin-bottom: 8px;
+}
+.skeleton-line:last-child { margin-bottom: 0; width: 60%; }
+.skeleton-slot {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.skeleton-time { width: 52px; height: 16px; border-radius: 4px; }
+.skeleton-bar { flex: 1; height: 14px; border-radius: 4px; }
+
 /* === 토스트 - Toss style === */
 .toast {
     position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
@@ -772,7 +822,7 @@ html, body {
         flex: 1; min-height: 0;
     }
     .tl-col {
-        flex: 1; display: flex; flex-direction: column; gap: 3px;
+        flex: 1; display: flex; flex-direction: column; gap: 4px;
     }
     .tl-slot {
         border-radius: 6px; padding: 0 8px;
@@ -782,15 +832,17 @@ html, body {
         transition: all var(--transition);
     }
     .tl-slot.tl-empty {
-        background: #F0FDF4; border: 1px solid #BBF7D0;
+        background: #F8F9FA; border: 1px dashed #D1D5DB;
     }
     .tl-slot.tl-empty .tl-time {
-        font-weight: 700; color: #16A34A; min-width: 42px;
+        font-weight: 700; color: #9CA3AF; min-width: 42px;
     }
     .tl-slot.tl-empty .tl-hint {
-        color: #86EFAC; font-size: 13px;
+        color: #6B7280; font-size: 13px;
     }
-    .tl-slot.tl-empty:hover { background: #DCFCE7; transform: translateY(-1px); }
+    .tl-slot.tl-empty:hover { background: var(--primary-light); border-color: var(--primary-badge); transform: translateY(-1px); }
+    .tl-slot.tl-empty:hover .tl-time { color: var(--primary); }
+    .tl-slot.tl-empty:hover .tl-hint { color: var(--primary); }
     .tl-slot.tl-booked {
         border-width: 2px; border-style: solid;
     }
