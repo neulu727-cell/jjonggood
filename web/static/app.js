@@ -233,7 +233,10 @@ const App = (() => {
                     const breedText = r.breed ? `(${r.breed})` : '';
                     const amtText = r.amount ? `${r.amount.toLocaleString()}원` : '';
                     const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
+                    const weightText = r.weight ? `${r.weight}kg` : '';
+                    const petMeta = [breedText, weightText, r.age || ''].filter(Boolean).join(' · ');
                     const memoText = r.customer_memo ? `<div class="res-memo">${esc(r.customer_memo)}</div>` : '';
+                    const notesText = r.notes ? `<div class="res-request">${esc(r.notes)}</div>` : '';
                     html += `
                         <div class="res-card" onclick="App.showReservationDetail(${r.id})">
                             <div class="res-time-col">
@@ -243,9 +246,10 @@ const App = (() => {
                             <div class="res-info">
                                 <div class="res-pet">
                                     ${esc(r.pet_name)}
-                                    <span class="breed">${esc(breedText)}</span>
+                                    <span class="breed">${esc(petMeta)}</span>
                                 </div>
                                 <div class="res-service">${esc(r.service)}${furText}${amtText ? ' · ' + amtText : ''}</div>
+                                ${notesText}
                                 ${memoText}
                             </div>
                             ${isPast ? '' : `<span class="res-status ${statusCls}">${statusText}</span>`}
@@ -307,7 +311,9 @@ const App = (() => {
 
                     const sc = STATUS_COLORS[r.status] || STATUS_COLORS.confirmed;
                     const height = span * 48 - 2;
-                    const petInfo = r.breed ? `${esc(r.pet_name)}(${esc(r.breed)})` : esc(r.pet_name);
+                    const weightTag = r.weight ? `${r.weight}kg` : '';
+                    const petParts = [r.breed, weightTag].filter(Boolean).join('/');
+                    const petInfo = petParts ? `${esc(r.pet_name)}(${esc(petParts)})` : esc(r.pet_name);
 
                     if (span === 1) {
                         html += `<div class="tl-slot tl-booked" style="height:${height}px;background:${sc.bg};border-color:${sc.border};color:${sc.text}" onclick="App.showReservationDetail(${r.id})">
@@ -331,6 +337,7 @@ const App = (() => {
                             html += `<div class="tl-row"><span class="tl-time">${ts}~${endStr}</span> <span class="tl-info">${petInfo}</span></div>`;
                             html += `<div class="tl-row"><span class="tl-detail">${esc(r.service)}${fur}${amtText}</span></div>`;
                             const memoParts = [];
+                            if (r.notes) memoParts.push(r.notes);
                             if (r.customer_memo) memoParts.push(r.customer_memo);
                             if (r.request) memoParts.push(r.request);
                             if (memoParts.length) html += `<div class="tl-row"><span class="tl-memo">${esc(memoParts.join(' / '))}</span></div>`;
@@ -665,6 +672,9 @@ const App = (() => {
                         <span class="label">보호자</span>
                         <span class="value">${esc(r.customer_name)} ${esc(r.customer_phone)}</span>
                     </div>
+                    ${r.weight ? `<div class="detail-row"><span class="label">몸무게</span><span class="value">${r.weight}kg</span></div>` : ''}
+                    ${r.age ? `<div class="detail-row"><span class="label">나이</span><span class="value">${esc(r.age)}</span></div>` : ''}
+                    ${r.notes ? `<div class="detail-row"><span class="label">특이사항</span><span class="value" style="color:var(--red)">${esc(r.notes)}</span></div>` : ''}
                     <div class="detail-row">
                         <span class="label">날짜/시간</span>
                         <span class="value">${r.date} ${formatTime(r.time)}~${formatTime(r.end_time)}</span>
