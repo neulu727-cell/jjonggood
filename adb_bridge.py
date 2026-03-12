@@ -322,24 +322,32 @@ def polling_loop(gui, adb_cmd, render_url, api_key):
         time.sleep(POLL_INTERVAL)
 
 
-def backup_loop(gui, render_url, api_key):
-    while gui.running:
-        gui.update_ui(gui.set_backup_status, "\ubc31\uc5c5 \uc911...")
-        ok, msg = run_backup(render_url, api_key)
-        if ok:
-            gui.update_ui(gui.set_backup_status, f"\uc644\ub8cc {msg}")
-            ts = time.strftime("%H:%M:%S")
-            gui.update_ui(gui.add_log, f"[{ts}] DB \ubc31\uc5c5 \uc644\ub8cc")
-        else:
-            gui.update_ui(gui.set_backup_status, f"\uc2e4\ud328: {msg}")
-            ts = time.strftime("%H:%M:%S")
-            gui.update_ui(gui.add_log, f"[{ts}] DB \ubc31\uc5c5 \uc2e4\ud328: {msg}")
+def _do_backup(gui, render_url, api_key):
+    """백업 1회 실행"""
+    gui.update_ui(gui.set_backup_status, "\ubc31\uc5c5 \uc911...")
+    ok, msg = run_backup(render_url, api_key)
+    if ok:
+        gui.update_ui(gui.set_backup_status, f"\uc644\ub8cc {msg}")
+        ts = time.strftime("%H:%M:%S")
+        gui.update_ui(gui.add_log, f"[{ts}] DB \ubc31\uc5c5 \uc644\ub8cc")
+    else:
+        gui.update_ui(gui.set_backup_status, f"\uc2e4\ud328: {msg}")
+        ts = time.strftime("%H:%M:%S")
+        gui.update_ui(gui.add_log, f"[{ts}] DB \ubc31\uc5c5 \uc2e4\ud328: {msg}")
 
+
+def backup_loop(gui, render_url, api_key):
+    # 시작 시 즉시 1회 백업
+    _do_backup(gui, render_url, api_key)
+
+    while gui.running:
         # 1시간 대기 (10초 단위로 체크하여 종료 시 빠르게 반응)
         for _ in range(BACKUP_INTERVAL // 10):
             if not gui.running:
                 return
             time.sleep(10)
+
+        _do_backup(gui, render_url, api_key)
 
 
 def main():
