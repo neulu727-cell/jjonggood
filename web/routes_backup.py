@@ -11,9 +11,12 @@ backup_bp = Blueprint("backup", __name__)
 @backup_bp.route("/api/backup")
 def download_backup():
     from web.app import get_db, require_auth
-    from flask import session, jsonify
+    from web import config
+    from flask import session, jsonify, request
 
-    if not session.get("authenticated"):
+    # 세션 인증 또는 API 키 인증
+    api_key = request.args.get("key", "")
+    if not session.get("authenticated") and api_key != config.TASKER_API_KEY:
         return jsonify({"error": "unauthorized"}), 401
 
     db = get_db()

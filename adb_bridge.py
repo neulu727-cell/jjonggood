@@ -1,11 +1,11 @@
 """
-ADB Bridge - Phone call detection & web notification (GUI)
+ADB Bridge - Phone call detection & DB backup (GUI)
 
 Runs on shop PC with phone connected via USB:
 - Detects incoming calls via ADB
 - Sends phone number to web app API
-- Browser shows notification popup
-- Shows connection status in a small GUI window
+- Auto-backup DB every 1 hour
+- Shows status in a small GUI window
 
 Usage:
     python adb_bridge.py
@@ -13,6 +13,7 @@ Usage:
 Environment (.env file):
     RENDER_URL=https://your-app.onrender.com
     TASKER_API_KEY=your_secret_key
+    DATABASE_URL=postgresql://user:pass@host:port/dbname
 """
 
 import os
@@ -37,6 +38,8 @@ if sys.platform == "win32":
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 POLL_INTERVAL = 1.5
 HEARTBEAT_INTERVAL = 60
+BACKUP_INTERVAL = 3600  # 1시간
+BACKUP_DIR = os.path.join(BASE_DIR, "backup")
 MAX_LOG_LINES = 3
 
 
@@ -68,7 +71,6 @@ def find_adb():
 
 
 def restart_adb_server(adb_cmd):
-    """ADB 서버 재시작 (kill -> start)"""
     try:
         subprocess.run([adb_cmd, "kill-server"], capture_output=True, timeout=5)
         time.sleep(1)
@@ -101,7 +103,6 @@ def send_to_web(render_url, api_key, phone_number):
     data = urllib.parse.urlencode({"phone": phone_number}).encode()
     req = urllib.request.Request(url, data=data, method="POST")
     req.add_header("Content-Type", "application/x-www-form-urlencoded")
-
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             return resp.status == 200
@@ -114,7 +115,6 @@ def send_heartbeat(render_url, api_key, status, device=""):
     data = urllib.parse.urlencode({"status": status, "device": device}).encode()
     req = urllib.request.Request(url, data=data, method="POST")
     req.add_header("Content-Type", "application/x-www-form-urlencoded")
-
     try:
         with urllib.request.urlopen(req, timeout=10):
             pass
@@ -122,25 +122,50 @@ def send_heartbeat(render_url, api_key, status, device=""):
         pass
 
 
+# === DB Backup ===
+
+def run_backup(render_url, api_key):
+    """서버 API로 DB 백업 다운로드. (성공여부, 메시지) 반환"""
+    from datetime import datetime
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+
+    now = datetime.now()
+    filename = f"backup_{now.strftime('%Y%m%d_%H%M%S')}.json"
+    filepath = os.path.join(BACKUP_DIR, filename)
+
+    url = f"{render_url}/api/backup?key={urllib.parse.quote(api_key, safe='')}"
+
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = resp.read()
+            with open(filepath, "wb") as f:
+                f.write(data)
+            size = len(data)
+            return True, f"{now.strftime('%H:%M')} ({size:,}B)"
+    except Exception as e:
+        return False, str(e)[:40]
+
+
+# === GUI ===
+
 class ADBBridgeGUI:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("\U0001f4f1 \ud734\ub300\ud3f0 \uc5f0\uacb0 \ubaa8\ub2c8\ud130")
-        self.root.geometry("300x180")
+        self.root.title("\U0001f4f1 \uac00\uac8c \ubaa8\ub2c8\ud130")
+        self.root.geometry("300x210")
         self.root.resizable(False, False)
         self.root.attributes("-topmost", True)
 
-        # State
         self.connected = False
         self.server_ok = True
-        self.last_receive_time = ""
         self.log_lines = []
         self.running = True
 
         self._build_ui()
 
     def _build_ui(self):
-        # Status area (top half)
+        # Status area
         self.status_frame = tk.Frame(self.root, height=70)
         self.status_frame.pack(fill=tk.X)
         self.status_frame.pack_propagate(False)
@@ -154,7 +179,7 @@ class ADBBridgeGUI:
         )
         self.status_label.pack(fill=tk.BOTH, expand=True)
 
-        # Info area (middle)
+        # Info area
         info_frame = tk.Frame(self.root, padx=8, pady=4)
         info_frame.pack(fill=tk.X)
 
@@ -168,30 +193,27 @@ class ADBBridgeGUI:
         )
         self.server_label.pack(fill=tk.X)
 
-        # Log area (bottom)
+        self.backup_label = tk.Label(
+            info_frame, text="\ubc31\uc5c5: \ub300\uae30 \uc911...", anchor="w", font=("", 9)
+        )
+        self.backup_label.pack(fill=tk.X)
+
+        # Log area
         log_frame = tk.Frame(self.root, padx=8, pady=2)
         log_frame.pack(fill=tk.BOTH, expand=True)
 
         self.log_label = tk.Label(
-            log_frame,
-            text="",
-            anchor="nw",
-            justify=tk.LEFT,
-            font=("", 8),
-            fg="#555555",
+            log_frame, text="", anchor="nw", justify=tk.LEFT,
+            font=("", 8), fg="#555555",
         )
         self.log_label.pack(fill=tk.BOTH, expand=True)
 
     def set_connected(self, connected):
         self.connected = connected
         if connected:
-            self.status_label.config(
-                text="\U0001f7e2 \uc5f0\uacb0\ub428", bg="#2e7d32"
-            )
+            self.status_label.config(text="\U0001f7e2 \uc5f0\uacb0\ub428", bg="#2e7d32")
         else:
-            self.status_label.config(
-                text="\U0001f534 \uc5f0\uacb0 \uc548\ub428", bg="#c62828"
-            )
+            self.status_label.config(text="\U0001f534 \uc5f0\uacb0 \uc548\ub428", bg="#c62828")
 
     def set_server_status(self, ok):
         self.server_ok = ok
@@ -199,8 +221,10 @@ class ADBBridgeGUI:
             text="\uc11c\ubc84: \uc815\uc0c1" if ok else "\uc11c\ubc84: \uc751\ub2f5 \uc5c6\uc74c"
         )
 
+    def set_backup_status(self, text):
+        self.backup_label.config(text=f"\ubc31\uc5c5: {text}")
+
     def set_last_receive(self, time_str):
-        self.last_receive_time = time_str
         self.time_label.config(text=f"\ub9c8\uc9c0\ub9c9 \uc218\uc2e0: {time_str}")
 
     def add_log(self, msg):
@@ -210,7 +234,6 @@ class ADBBridgeGUI:
         self.log_label.config(text="\n".join(self.log_lines))
 
     def update_ui(self, func, *args):
-        """Thread-safe UI update via root.after()"""
         if self.running:
             self.root.after(0, func, *args)
 
@@ -222,6 +245,8 @@ class ADBBridgeGUI:
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.mainloop()
 
+
+# === Threads ===
 
 def polling_loop(gui, adb_cmd, render_url, api_key):
     previous_state = 0
@@ -242,10 +267,8 @@ def polling_loop(gui, adb_cmd, render_url, api_key):
                 last_device = device
                 last_adb_ok = now
 
-            # Update connection status
             gui.update_ui(gui.set_connected, connected)
 
-            # Heartbeat
             if now - last_heartbeat > HEARTBEAT_INTERVAL:
                 if (now - last_adb_ok) < 30:
                     send_heartbeat(render_url, api_key, "ok", last_device)
@@ -275,23 +298,15 @@ def polling_loop(gui, adb_cmd, render_url, api_key):
 
                 if state_match:
                     current_state = int(state_match.group(1))
-
                     if current_state == 1 and previous_state != 1:
                         if number_match:
                             phone = number_match.group(1)
                             if phone and phone != "0":
                                 ts = time.strftime("%H:%M:%S")
                                 gui.update_ui(gui.set_last_receive, ts)
-                                gui.update_ui(
-                                    gui.add_log,
-                                    f"[{ts}] \uc218\uc2e0: {phone}",
-                                )
+                                gui.update_ui(gui.add_log, f"[{ts}] \uc218\uc2e0: {phone}")
                                 ok = send_to_web(render_url, api_key, phone)
-                                if ok:
-                                    gui.update_ui(gui.set_server_status, True)
-                                else:
-                                    gui.update_ui(gui.set_server_status, False)
-
+                                gui.update_ui(gui.set_server_status, ok)
                     previous_state = current_state
 
         except subprocess.TimeoutExpired:
@@ -303,6 +318,26 @@ def polling_loop(gui, adb_cmd, render_url, api_key):
         time.sleep(POLL_INTERVAL)
 
 
+def backup_loop(gui, render_url, api_key):
+    while gui.running:
+        gui.update_ui(gui.set_backup_status, "\ubc31\uc5c5 \uc911...")
+        ok, msg = run_backup(render_url, api_key)
+        if ok:
+            gui.update_ui(gui.set_backup_status, f"\uc644\ub8cc {msg}")
+            ts = time.strftime("%H:%M:%S")
+            gui.update_ui(gui.add_log, f"[{ts}] DB \ubc31\uc5c5 \uc644\ub8cc")
+        else:
+            gui.update_ui(gui.set_backup_status, f"\uc2e4\ud328: {msg}")
+            ts = time.strftime("%H:%M:%S")
+            gui.update_ui(gui.add_log, f"[{ts}] DB \ubc31\uc5c5 \uc2e4\ud328: {msg}")
+
+        # 1시간 대기 (10초 단위로 체크하여 종료 시 빠르게 반응)
+        for _ in range(BACKUP_INTERVAL // 10):
+            if not gui.running:
+                return
+            time.sleep(10)
+
+
 def main():
     load_env()
 
@@ -310,7 +345,6 @@ def main():
     api_key = os.environ.get("TASKER_API_KEY", "")
 
     if not render_url or not api_key:
-        # Show error in GUI
         root = tk.Tk()
         root.title("\uc624\ub958")
         root.geometry("300x100")
@@ -332,24 +366,26 @@ def main():
         tk.Label(
             root,
             text="ADB\ub97c \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.\nplatform-tools \ud3f4\ub354\ub97c \ud655\uc778\ud558\uc138\uc694.",
-            font=("", 11),
-            fg="red",
-            justify=tk.LEFT,
-            padx=10,
-            pady=10,
+            font=("", 11), fg="red", justify=tk.LEFT, padx=10, pady=10,
         ).pack()
         root.mainloop()
         sys.exit(1)
 
     gui = ADBBridgeGUI()
 
-    # Start polling in daemon thread
-    thread = threading.Thread(
+    # ADB polling thread
+    threading.Thread(
         target=polling_loop,
         args=(gui, adb_cmd, render_url, api_key),
         daemon=True,
-    )
-    thread.start()
+    ).start()
+
+    # DB backup thread
+    threading.Thread(
+        target=backup_loop,
+        args=(gui, render_url, api_key),
+        daemon=True,
+    ).start()
 
     gui.run()
 
