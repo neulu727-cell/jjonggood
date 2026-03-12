@@ -942,12 +942,21 @@ const App = (() => {
             container.innerHTML = '<div style="text-align:center;padding:40px 20px"><p style="color:var(--text-light);margin-bottom:12px">검색 결과 없음</p><button class="btn-primary-sm" onclick="App.showNewCustomerForm()" style="padding:10px 20px">+ 신규 고객 등록</button></div>';
             return;
         }
+
+        // 같은 전화번호 펫 수 카운트 (뱃지용)
+        const phoneCounts = {};
+        for (const c of customers) {
+            if (c.phone) phoneCounts[c.phone] = (phoneCounts[c.phone] || 0) + 1;
+        }
+
         container.innerHTML = customers.map(c => {
             const initial = (c.pet_name || '?')[0];
             const meta = [];
             if (c.phone_display) meta.push(c.phone_display);
             if (c.last_visit) meta.push(`마지막 방문: ${c.last_visit}`);
             if (c.visit_count) meta.push(`${c.visit_count}회 방문`);
+            const siblingBadge = (phoneCounts[c.phone] || 0) > 1
+                ? `<span class="sibling-badge">+${phoneCounts[c.phone] - 1}</span>` : '';
             return `
                 <div class="customer-card" onclick='(${onClick.toString()})(${JSON.stringify(c)})'>
                     <div class="customer-avatar">${esc(initial)}</div>
@@ -955,6 +964,7 @@ const App = (() => {
                         <div class="customer-name">
                             ${esc(c.pet_name)}
                             <span class="breed">${esc(c.breed || '')}</span>
+                            ${siblingBadge}
                         </div>
                         <div class="customer-meta">${esc(meta.join(' | '))}</div>
                     </div>
@@ -1182,10 +1192,24 @@ const App = (() => {
                 ? Math.floor((Date.now() - new Date(c.last_visit + 'T00:00:00')) / 86400000)
                 : null;
 
+            // 펫 스위처 (siblings가 있을 때)
+            const siblings = c.siblings || [];
+            let petSwitcherHtml = '';
+            if (siblings.length > 0) {
+                const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed }, ...siblings];
+                petSwitcherHtml = '<div class="pet-switcher">' +
+                    allPets.map(p =>
+                        `<button class="pet-pill${p.id === c.id ? ' active' : ''}" onclick="App.showCustomerDetail(${p.id})">${esc(p.pet_name)}<span class="breed">${esc(p.breed)}</span></button>`
+                    ).join('') +
+                    `<button class="pet-pill pet-pill-add" onclick="App.addSiblingPet('${esc(c.phone)}', '${esc(c.name || '')}')">+ 추가</button>` +
+                    '</div>';
+            }
+
             content.innerHTML = `
                 <div class="detail-section" style="text-align:center;padding:16px">
                     <div style="font-size:18px;font-weight:bold;margin-bottom:4px">${esc(c.pet_name)} <span style="font-weight:normal;color:var(--text-light)">${esc(c.breed)}</span></div>
                     <div style="color:var(--text-light);font-size:13px">${esc(c.name || '')} · <a href="tel:${c.phone}" style="color:var(--primary)">${esc(c.phone_display)}</a></div>
+                    ${petSwitcherHtml}
                 </div>
 
                 <div class="stat-cards">
@@ -1219,6 +1243,15 @@ const App = (() => {
         } catch (e) {
             content.innerHTML = '<p style="text-align:center;color:#999;padding:20px">불러오기 실패</p>';
         }
+    }
+
+    function addSiblingPet(phone, name) {
+        closeSheet('customerDetailSheet');
+        showCustomerForm({ phone: phone, phone_display: phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'), name: name }, (newCustomer) => {
+            if (newCustomer && newCustomer.id) {
+                showCustomerDetail(newCustomer.id);
+            }
+        });
     }
 
     async function showCustomerForm_edit(cid) {
@@ -1290,6 +1323,24 @@ const App = (() => {
                         return `<div class="call-recent-item"><span>${esc(r.date)}</span><span>${esc(r.service)}${amt}</span><span class="call-recent-status ${r.status}">${st}</span></div>`;
                     }).join('') + '</div>';
             }
+
+            // 멀티펫: pets 배열이 2마리 이상이면 펫별 버튼 표시
+            const pets = data.pets || [];
+            let actionsHtml;
+            if (pets.length > 1) {
+                actionsHtml = '<div class="call-pet-buttons">' +
+                    pets.map(p =>
+                        `<button class="call-btn-reserve call-btn-pet" onclick="App.reserveFromCall(${p.id})">${esc(p.pet_name)} (${esc(p.breed)}) 예약</button>`
+                    ).join('') +
+                    '</div>' +
+                    '<div class="call-actions"><button class="call-btn-dismiss" onclick="App.closeCallPopup()">닫기</button></div>';
+            } else {
+                actionsHtml = `<div class="call-actions">
+                    <button class="call-btn-reserve" onclick="App.reserveFromCall(${data.customer_id})">예약하기</button>
+                    <button class="call-btn-dismiss" onclick="App.closeCallPopup()">닫기</button>
+                </div>`;
+            }
+
             content.innerHTML = `
                 <div class="call-info-existing">
                     <div class="call-phone">${esc(data.phone_display)}</div>
@@ -1297,10 +1348,7 @@ const App = (() => {
                     ${meta ? `<div class="call-customer">${esc(meta)}</div>` : ''}
                     ${recentHtml}
                 </div>
-                <div class="call-actions">
-                    <button class="call-btn-reserve" onclick="App.reserveFromCall(${data.customer_id})">예약하기</button>
-                    <button class="call-btn-dismiss" onclick="App.closeCallPopup()">닫기</button>
-                </div>
+                ${actionsHtml}
             `;
         } else {
             content.innerHTML = `
@@ -1647,6 +1695,7 @@ const App = (() => {
                     visit_count: c.visit_count || 0,
                     last_visit: c.last_visit || '',
                     recent_reservations: c.recent_reservations || [],
+                    pets: data.pets || [],
                 });
             } else {
                 showCallPopup(unknownPopup);
@@ -1817,7 +1866,7 @@ const App = (() => {
         showReservationDetail, showEditReservation,
         updateReservation, changeStatus,
         searchCustomers, setCustomerSort, showCustomerDetail,
-        showCustomerForm_edit,
+        showCustomerForm_edit, addSiblingPet,
         saveCustomer, deleteCustomer, onBreedInput, onBreedKeydown, selectBreed,
         toggleCallHistory, showCallPopup, closeCallPopup,
         reserveFromCall, registerFromCall, downloadBackup,

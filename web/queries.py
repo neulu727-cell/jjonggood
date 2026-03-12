@@ -78,6 +78,19 @@ def get_customer_by_id(db: DatabaseManager, customer_id: int) -> Optional[Custom
     return Customer(**dict(row))
 
 
+def get_siblings(db: DatabaseManager, phone: str, exclude_id: int = None) -> list:
+    """같은 전화번호의 다른 반려동물 목록"""
+    if exclude_id:
+        rows = db.fetch_all(
+            "SELECT id, pet_name, breed FROM customers WHERE phone = ? AND id != ? ORDER BY id",
+            (phone, exclude_id))
+    else:
+        rows = db.fetch_all(
+            "SELECT id, pet_name, breed FROM customers WHERE phone = ? ORDER BY id",
+            (phone,))
+    return [dict(r) for r in rows]
+
+
 def get_customer_detail(db: DatabaseManager, customer_id: int) -> Optional[dict]:
     """고객 정보 + 통계 + 최근 예약을 단일 쿼리 2개로 조회 (기존 4쿼리 → 2쿼리)"""
     row = db.fetch_one("""

@@ -131,6 +131,8 @@ def get_customer(cid):
         "amount": r.amount, "duration": r.duration,
     } for r in reservations]
 
+    siblings = queries.get_siblings(db, d.get("phone", ""), exclude_id=cid)
+
     return jsonify({
         "id": d["id"], "name": d.get("name", ""), "phone": d.get("phone", ""),
         "phone_display": format_phone_display(d.get("phone", "")),
@@ -140,6 +142,7 @@ def get_customer(cid):
         "last_visit": d["last_visit"],
         "stats": d["stats"],
         "reservations": res_list,
+        "siblings": siblings,
     })
 
 
@@ -210,6 +213,8 @@ def find_by_phone():
         LIMIT 3
     """, tuple(customer_ids))
 
+    pets = [{"id": cu.id, "pet_name": cu.pet_name, "breed": cu.breed} for cu in customers]
+
     return jsonify({
         "customer": {
             "id": c.id, "name": c.name, "phone": c.phone,
@@ -223,5 +228,6 @@ def find_by_phone():
                 "date": r["date"], "service": r["service_type"],
                 "amount": r["amount"], "status": r["status"],
             } for r in recent_rows],
-        }
+        },
+        "pets": pets,
     })

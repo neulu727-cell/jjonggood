@@ -48,6 +48,7 @@ def incoming_call():
     queries.add_call_history(db, phone, customer_id, pet_name)
 
     # SSE로 브라우저에 알림 전송
+    pets = [{"id": c.id, "pet_name": c.pet_name, "breed": c.breed} for c in customers]
     event_data = {
         "phone": phone,
         "phone_display": format_phone_display(phone),
@@ -56,6 +57,7 @@ def incoming_call():
         "customer_name": customer.name if customer else "",
         "pet_name": pet_name,
         "breed": ", ".join(c.breed for c in customers) if customers else "",
+        "pets": pets,
     }
     if customer:
         # 단일 쿼리로 모든 고객의 통계 합산
