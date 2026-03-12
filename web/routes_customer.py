@@ -13,10 +13,12 @@ customer_bp = Blueprint("customer", __name__)
 def search_customers():
     db = get_db()
     keyword = request.args.get("q", "").strip()
-    if not keyword:
-        return jsonify({"customers": []})
+    sort = request.args.get("sort", "name")  # "name" or "recent"
 
-    customers = queries.search_customers(db, keyword)
+    if keyword:
+        customers = queries.search_customers(db, keyword)
+    else:
+        customers = queries.get_all_customers(db)
     result = []
     for c in customers:
         last_visit = queries.get_last_visit_date(db, c.id)
@@ -36,6 +38,12 @@ def search_customers():
             "visit_count": stats["count"],
             "total_sales": stats["total"],
         })
+
+    if sort == "recent":
+        result.sort(key=lambda x: x["last_visit"] or "", reverse=True)
+    else:
+        result.sort(key=lambda x: (x["pet_name"] or "").lower())
+
     return jsonify({"customers": result})
 
 

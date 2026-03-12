@@ -61,6 +61,7 @@ const App = (() => {
             }
             custView.style.display = 'flex';
             document.getElementById('customerSearchInput').focus();
+            loadCustomerList('', customerSort);
         }
     }
 
@@ -705,12 +706,11 @@ const App = (() => {
                         <button class="btn-status green" onclick="App.changeStatus(${rid},'completed')">미용 완료</button>
                         <button class="btn-status red" onclick="App.changeStatus(${rid},'cancelled')">예약 취소</button>
                         <button class="btn-status yellow" onclick="App.changeStatus(${rid},'no_show')">노쇼 처리</button>
-                    ` : r.status === 'completed' ? `
-                        <button class="btn-status gray" onclick="App.changeStatus(${rid},'confirmed')">되돌리기 (예약중)</button>
                     ` : ''}
                 </div>
 
                 <button class="btn-secondary" onclick="App.showCustomerDetail(${r.customer_id})">고객 상세 보기</button>
+                ${r.status === 'completed' ? `<div style="text-align:center;margin-top:8px"><a href="#" style="color:#999;font-size:12px" onclick="event.preventDefault();App.changeStatus(${rid},'confirmed')">되돌리기 (예약중)</a></div>` : ''}
             `;
         } catch (e) {
             content.innerHTML = '<p style="text-align:center;color:#999;padding:20px">불러오기 실패</p>';
@@ -884,22 +884,33 @@ const App = (() => {
 
     // ==================== 고객 관리 ====================
 
-    async function searchCustomers(keyword) {
+    let customerSort = 'name';
+
+    async function loadCustomerList(keyword, sort) {
         const container = document.getElementById('customerSearchResults');
-        if (!keyword.trim()) {
-            container.innerHTML = '<p style="text-align:center;color:#999;padding:40px">이름, 전화번호, 반려동물 이름으로 검색</p>';
-            return;
+        const q = (keyword || '').trim();
+        const s = sort || customerSort;
+        try {
+            const res = await fetch(`/api/customers/search?q=${encodeURIComponent(q)}&sort=${s}`);
+            const data = await res.json();
+            renderCustomerList(container, data.customers, (c) => showCustomerDetail(c.id));
+        } catch (e) {
+            container.innerHTML = '<p style="text-align:center;color:#999;padding:20px">검색 실패</p>';
         }
+    }
+
+    async function searchCustomers(keyword) {
         clearTimeout(searchTimer);
-        searchTimer = setTimeout(async () => {
-            try {
-                const res = await fetch(`/api/customers/search?q=${encodeURIComponent(keyword)}`);
-                const data = await res.json();
-                renderCustomerList(container, data.customers, (c) => showCustomerDetail(c.id));
-            } catch (e) {
-                container.innerHTML = '<p style="text-align:center;color:#999;padding:20px">검색 실패</p>';
-            }
-        }, 300);
+        searchTimer = setTimeout(() => loadCustomerList(keyword, customerSort), 300);
+    }
+
+    function setCustomerSort(sort) {
+        customerSort = sort;
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.sort === sort);
+        });
+        const keyword = document.getElementById('customerSearchInput').value;
+        loadCustomerList(keyword, sort);
     }
 
     function renderCustomerList(container, customers, onClick) {
@@ -1139,31 +1150,22 @@ const App = (() => {
                 historyHtml = '<p style="text-align:center;color:var(--text-light);padding:24px">예약 이력 없음</p>';
             }
 
+            const firstVisit = c.reservations && c.reservations.length
+                ? c.reservations[c.reservations.length - 1].date : null;
+            const daysSinceLast = c.last_visit
+                ? Math.floor((Date.now() - new Date(c.last_visit + 'T00:00:00')) / 86400000)
+                : null;
+
             content.innerHTML = `
-                <div class="detail-section">
-                    <div class="detail-row">
-                        <span class="label">반려동물</span>
-                        <span class="value">${esc(c.pet_name)} (${esc(c.breed)})</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="label">보호자</span>
-                        <span class="value">${esc(c.name || '-')}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="label">전화</span>
-                        <span class="value"><a href="tel:${c.phone}" style="color:var(--primary)">${esc(c.phone_display)}</a></span>
-                    </div>
-                    ${c.weight ? `<div class="detail-row"><span class="label">몸무게</span><span class="value">${c.weight}kg</span></div>` : ''}
-                    ${c.age ? `<div class="detail-row"><span class="label">나이</span><span class="value">${esc(c.age)}</span></div>` : ''}
-                    ${c.notes ? `<div class="detail-row"><span class="label">특이사항</span><span class="value">${esc(c.notes)}</span></div>` : ''}
-                    ${c.memo ? `<div class="detail-row"><span class="label">메모</span><span class="value">${esc(c.memo)}</span></div>` : ''}
-                    ${c.last_visit ? `<div class="detail-row"><span class="label">마지막 방문</span><span class="value">${c.last_visit}</span></div>` : ''}
+                <div class="detail-section" style="text-align:center;padding:16px">
+                    <div style="font-size:18px;font-weight:bold;margin-bottom:4px">${esc(c.pet_name)} <span style="font-weight:normal;color:var(--text-light)">${esc(c.breed)}</span></div>
+                    <div style="color:var(--text-light);font-size:13px">${esc(c.name || '')} · <a href="tel:${c.phone}" style="color:var(--primary)">${esc(c.phone_display)}</a></div>
                 </div>
 
                 <div class="stat-cards">
                     <div class="stat-card">
                         <div class="num">${stats.count}</div>
-                        <div class="label">방문 횟수</div>
+                        <div class="label">총 방문</div>
                     </div>
                     <div class="stat-card">
                         <div class="num">${stats.total ? stats.total.toLocaleString() : 0}</div>
@@ -1173,6 +1175,12 @@ const App = (() => {
                         <div class="num">${stats.avg ? stats.avg.toLocaleString() : 0}</div>
                         <div class="label">평균 단가</div>
                     </div>
+                </div>
+
+                <div class="detail-section">
+                    ${firstVisit ? `<div class="detail-row"><span class="label">첫 방문</span><span class="value">${firstVisit}</span></div>` : ''}
+                    ${c.last_visit ? `<div class="detail-row"><span class="label">마지막 방문</span><span class="value">${c.last_visit}${daysSinceLast !== null ? ` (${daysSinceLast}일 전)` : ''}</span></div>` : ''}
+                    ${stats.count ? `<div class="detail-row"><span class="label">방문 주기</span><span class="value">${firstVisit && c.last_visit && stats.count > 1 ? Math.round((new Date(c.last_visit+'T00:00:00') - new Date(firstVisit+'T00:00:00')) / 86400000 / (stats.count - 1)) + '일' : '-'}</span></div>` : ''}
                 </div>
 
                 <div class="detail-section">
@@ -1701,7 +1709,7 @@ const App = (() => {
         onServiceChange, saveReservation,
         showReservationDetail, showEditReservation,
         updateReservation, changeStatus,
-        searchCustomers, showCustomerDetail,
+        searchCustomers, setCustomerSort, showCustomerDetail,
         showCustomerForm_edit,
         saveCustomer, deleteCustomer, onBreedInput, onBreedKeydown, selectBreed,
         toggleCallHistory, showCallPopup, closeCallPopup,

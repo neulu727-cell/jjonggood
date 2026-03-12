@@ -418,6 +418,20 @@ html, body {
     font-size: 14px; outline: none; color: var(--text);
 }
 
+.customer-sort-bar {
+    display: flex; gap: 6px; padding: 8px 16px 4px;
+}
+.sort-btn {
+    padding: 4px 12px; border: 1px solid #ddd; border-radius: 14px;
+    background: #fff; color: #666; font-size: 12px; cursor: pointer;
+    transition: all 0.15s;
+}
+.sort-btn.active {
+    background: #4a90d9; color: #fff; border-color: #4a90d9;
+}
+.sort-btn:hover:not(.active) {
+    background: #f0f0f0;
+}
 .customer-list {
     flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
     padding: 0 16px;

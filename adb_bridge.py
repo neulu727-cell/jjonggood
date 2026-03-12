@@ -1,10 +1,11 @@
 """
-ADB Bridge - Phone call detection & web notification
+ADB Bridge - Phone call detection & web notification (GUI)
 
 Runs on shop PC with phone connected via USB:
 - Detects incoming calls via ADB
 - Sends phone number to web app API
 - Browser shows notification popup
+- Shows connection status in a small GUI window
 
 Usage:
     python adb_bridge.py
@@ -18,9 +19,11 @@ import os
 import re
 import sys
 import time
+import threading
 import subprocess
 import urllib.request
 import urllib.parse
+import tkinter as tk
 
 # Force UTF-8 stdout for Windows embedded Python
 if sys.platform == "win32":
@@ -34,6 +37,7 @@ if sys.platform == "win32":
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 POLL_INTERVAL = 1.5
 HEARTBEAT_INTERVAL = 60
+MAX_LOG_LINES = 3
 
 
 def load_env():
@@ -64,15 +68,14 @@ def find_adb():
 
 
 def restart_adb_server(adb_cmd):
-    """ADB 서버 재시작 (kill → start)"""
+    """ADB 서버 재시작 (kill -> start)"""
     try:
         subprocess.run([adb_cmd, "kill-server"], capture_output=True, timeout=5)
         time.sleep(1)
         subprocess.run([adb_cmd, "start-server"], capture_output=True, timeout=10)
         time.sleep(1)
-        print(f"[{time.strftime('%H:%M:%S')}] ADB 서버 재시작 완료")
-    except Exception as e:
-        print(f"[{time.strftime('%H:%M:%S')}] ADB 서버 재시작 실패: {e}")
+    except Exception:
+        pass
 
 
 def check_adb(adb_cmd, auto_restart=True):
@@ -82,15 +85,12 @@ def check_adb(adb_cmd, auto_restart=True):
         for line in lines[1:]:
             if "\tdevice" in line:
                 return True, line.split("\t")[0]
-        # 디바이스 없으면 서버 재시작 후 재시도 (1회)
         if auto_restart:
-            print(f"[{time.strftime('%H:%M:%S')}] 디바이스 미감지 → ADB 서버 재시작 시도")
             restart_adb_server(adb_cmd)
             return check_adb(adb_cmd, auto_restart=False)
         return False, ""
     except (FileNotFoundError, subprocess.TimeoutExpired):
         if auto_restart:
-            print(f"[{time.strftime('%H:%M:%S')}] ADB 연결 오류 → 서버 재시작 시도")
             restart_adb_server(adb_cmd)
             return check_adb(adb_cmd, auto_restart=False)
         return False, ""
@@ -104,12 +104,9 @@ def send_to_web(render_url, api_key, phone_number):
 
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            if resp.status == 200:
-                print("  -> Notify OK")
-            else:
-                print(f"  -> Notify: {resp.status}")
-    except Exception as e:
-        print(f"  -> Notify FAIL: {e}")
+            return resp.status == 200
+    except Exception:
+        return False
 
 
 def send_heartbeat(render_url, api_key, status, device=""):
@@ -119,50 +116,124 @@ def send_heartbeat(render_url, api_key, status, device=""):
     req.add_header("Content-Type", "application/x-www-form-urlencoded")
 
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10):
             pass
     except Exception:
         pass
 
 
-def main():
-    load_env()
+class ADBBridgeGUI:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("\U0001f4f1 \ud734\ub300\ud3f0 \uc5f0\uacb0 \ubaa8\ub2c8\ud130")
+        self.root.geometry("300x180")
+        self.root.resizable(False, False)
+        self.root.attributes("-topmost", True)
 
-    render_url = os.environ.get("RENDER_URL", "").rstrip("/")
-    api_key = os.environ.get("TASKER_API_KEY", "")
+        # State
+        self.connected = False
+        self.server_ok = True
+        self.last_receive_time = ""
+        self.log_lines = []
+        self.running = True
 
-    if not render_url:
-        print("[ERROR] RENDER_URL not set. Check .env file.")
-        sys.exit(1)
+        self._build_ui()
 
-    if not api_key:
-        print("[ERROR] TASKER_API_KEY not set. Check .env file.")
-        sys.exit(1)
+    def _build_ui(self):
+        # Status area (top half)
+        self.status_frame = tk.Frame(self.root, height=70)
+        self.status_frame.pack(fill=tk.X)
+        self.status_frame.pack_propagate(False)
 
-    adb_cmd = find_adb()
-    if not adb_cmd:
-        print("[ERROR] ADB not found. Check platform-tools folder.")
-        sys.exit(1)
+        self.status_label = tk.Label(
+            self.status_frame,
+            text="\u26aa \uc2dc\uc791 \uc911...",
+            font=("", 20, "bold"),
+            fg="white",
+            bg="#888888",
+        )
+        self.status_label.pack(fill=tk.BOTH, expand=True)
 
-    print("=" * 50)
-    print("  ADB Bridge - Phone Call Monitor")
-    print(f"  ADB: {adb_cmd}")
-    print(f"  Server: {render_url}")
-    print(f"  Poll: {POLL_INTERVAL}s")
-    print("  Exit: Ctrl+C")
-    print("=" * 50)
+        # Info area (middle)
+        info_frame = tk.Frame(self.root, padx=8, pady=4)
+        info_frame.pack(fill=tk.X)
 
+        self.time_label = tk.Label(
+            info_frame, text="\ub9c8\uc9c0\ub9c9 \uc218\uc2e0: -", anchor="w", font=("", 9)
+        )
+        self.time_label.pack(fill=tk.X)
+
+        self.server_label = tk.Label(
+            info_frame, text="\uc11c\ubc84: \ud655\uc778 \uc911...", anchor="w", font=("", 9)
+        )
+        self.server_label.pack(fill=tk.X)
+
+        # Log area (bottom)
+        log_frame = tk.Frame(self.root, padx=8, pady=2)
+        log_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.log_label = tk.Label(
+            log_frame,
+            text="",
+            anchor="nw",
+            justify=tk.LEFT,
+            font=("", 8),
+            fg="#555555",
+        )
+        self.log_label.pack(fill=tk.BOTH, expand=True)
+
+    def set_connected(self, connected):
+        self.connected = connected
+        if connected:
+            self.status_label.config(
+                text="\U0001f7e2 \uc5f0\uacb0\ub428", bg="#2e7d32"
+            )
+        else:
+            self.status_label.config(
+                text="\U0001f534 \uc5f0\uacb0 \uc548\ub428", bg="#c62828"
+            )
+
+    def set_server_status(self, ok):
+        self.server_ok = ok
+        self.server_label.config(
+            text="\uc11c\ubc84: \uc815\uc0c1" if ok else "\uc11c\ubc84: \uc751\ub2f5 \uc5c6\uc74c"
+        )
+
+    def set_last_receive(self, time_str):
+        self.last_receive_time = time_str
+        self.time_label.config(text=f"\ub9c8\uc9c0\ub9c9 \uc218\uc2e0: {time_str}")
+
+    def add_log(self, msg):
+        self.log_lines.append(msg)
+        if len(self.log_lines) > MAX_LOG_LINES:
+            self.log_lines = self.log_lines[-MAX_LOG_LINES:]
+        self.log_label.config(text="\n".join(self.log_lines))
+
+    def update_ui(self, func, *args):
+        """Thread-safe UI update via root.after()"""
+        if self.running:
+            self.root.after(0, func, *args)
+
+    def on_close(self):
+        self.running = False
+        self.root.destroy()
+
+    def run(self):
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.root.mainloop()
+
+
+def polling_loop(gui, adb_cmd, render_url, api_key):
     previous_state = 0
     last_heartbeat = 0
-    last_device = ""       # 마지막으로 확인된 기기 ID
-    last_adb_ok = 0        # 마지막으로 ADB 성공한 시간
-    last_restart_attempt = 0  # 마지막 ADB 서버 재시작 시도 시간
+    last_device = ""
+    last_adb_ok = 0
+    last_restart_attempt = 0
 
-    while True:
+    while gui.running:
         try:
             now = time.time()
 
-            # 최근 60초 내 재시작 시도했으면 자동 재시작 건너뜀
             allow_restart = (now - last_restart_attempt) > 60
             connected, device = check_adb(adb_cmd, auto_restart=allow_restart)
             if allow_restart and not connected:
@@ -171,15 +242,21 @@ def main():
                 last_device = device
                 last_adb_ok = now
 
-            # 하트비트 (60초마다)
+            # Update connection status
+            gui.update_ui(gui.set_connected, connected)
+
+            # Heartbeat
             if now - last_heartbeat > HEARTBEAT_INTERVAL:
-                # 최근 30초 내 ADB 성공했으면 "ok"로 간주
                 if (now - last_adb_ok) < 30:
                     send_heartbeat(render_url, api_key, "ok", last_device)
-                    print(f"[{time.strftime('%H:%M:%S')}] heartbeat (device: {last_device})")
+                    gui.update_ui(gui.set_server_status, True)
+                    ts = time.strftime("%H:%M:%S")
+                    gui.update_ui(gui.add_log, f"[{ts}] heartbeat OK")
                 else:
                     send_heartbeat(render_url, api_key, "no_device")
-                    print(f"[{time.strftime('%H:%M:%S')}] heartbeat (no device - retrying)")
+                    gui.update_ui(gui.set_server_status, True)
+                    ts = time.strftime("%H:%M:%S")
+                    gui.update_ui(gui.add_log, f"[{ts}] heartbeat (\ub514\ubc14\uc774\uc2a4 \uc5c6\uc74c)")
                 last_heartbeat = now
 
             if not connected:
@@ -191,7 +268,7 @@ def main():
                 capture_output=True, text=True, timeout=5,
             )
             if result.returncode == 0:
-                last_adb_ok = time.time()  # dumpsys 성공 = ADB 정상
+                last_adb_ok = time.time()
                 output = result.stdout
                 state_match = re.search(r"mCallState=(\d+)", output)
                 number_match = re.search(r"mCallIncomingNumber=([\d+\-]+)", output)
@@ -204,20 +281,77 @@ def main():
                             phone = number_match.group(1)
                             if phone and phone != "0":
                                 ts = time.strftime("%H:%M:%S")
-                                print(f"\n[{ts}] INCOMING CALL: {phone}")
-                                send_to_web(render_url, api_key, phone)
+                                gui.update_ui(gui.set_last_receive, ts)
+                                gui.update_ui(
+                                    gui.add_log,
+                                    f"[{ts}] \uc218\uc2e0: {phone}",
+                                )
+                                ok = send_to_web(render_url, api_key, phone)
+                                if ok:
+                                    gui.update_ui(gui.set_server_status, True)
+                                else:
+                                    gui.update_ui(gui.set_server_status, False)
 
                     previous_state = current_state
 
         except subprocess.TimeoutExpired:
             pass
-        except KeyboardInterrupt:
-            print("\nStopped.")
-            break
         except Exception as e:
-            print(f"[ERROR] {e}")
+            ts = time.strftime("%H:%M:%S")
+            gui.update_ui(gui.add_log, f"[{ts}] \uc624\ub958: {e}")
 
         time.sleep(POLL_INTERVAL)
+
+
+def main():
+    load_env()
+
+    render_url = os.environ.get("RENDER_URL", "").rstrip("/")
+    api_key = os.environ.get("TASKER_API_KEY", "")
+
+    if not render_url or not api_key:
+        # Show error in GUI
+        root = tk.Tk()
+        root.title("\uc624\ub958")
+        root.geometry("300x100")
+        msg = ""
+        if not render_url:
+            msg += "RENDER_URL \ubbf8\uc124\uc815\n"
+        if not api_key:
+            msg += "TASKER_API_KEY \ubbf8\uc124\uc815\n"
+        msg += "\n.env \ud30c\uc77c\uc744 \ud655\uc778\ud558\uc138\uc694."
+        tk.Label(root, text=msg, font=("", 11), fg="red", justify=tk.LEFT, padx=10, pady=10).pack()
+        root.mainloop()
+        sys.exit(1)
+
+    adb_cmd = find_adb()
+    if not adb_cmd:
+        root = tk.Tk()
+        root.title("\uc624\ub958")
+        root.geometry("300x80")
+        tk.Label(
+            root,
+            text="ADB\ub97c \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.\nplatform-tools \ud3f4\ub354\ub97c \ud655\uc778\ud558\uc138\uc694.",
+            font=("", 11),
+            fg="red",
+            justify=tk.LEFT,
+            padx=10,
+            pady=10,
+        ).pack()
+        root.mainloop()
+        sys.exit(1)
+
+    gui = ADBBridgeGUI()
+
+    # Start polling in daemon thread
+    thread = threading.Thread(
+        target=polling_loop,
+        args=(gui, adb_cmd, render_url, api_key),
+        daemon=True,
+    )
+    thread.start()
+
+    gui.run()
 
 
 if __name__ == "__main__":
