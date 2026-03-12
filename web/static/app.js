@@ -1001,45 +1001,73 @@ const App = (() => {
         const c = customer || {};
         const breedValue = c.breed || '';
 
-        document.getElementById('customerFormContent').innerHTML = `
-            ${isEdit ? `<input type="hidden" id="cfId" value="${c.id}">` : ''}
-            <div class="form-group">
-                <label>전화번호 *</label>
-                <input type="tel" id="cfPhone" value="${esc(c.phone_display || c.phone || '')}" placeholder="010-0000-0000" inputmode="tel" oninput="App.formatPhoneInput(this)">
-            </div>
-            <input type="hidden" id="cfName" value="${esc(c.name || '')}">
-            <div class="form-group">
-                <label>반려동물 이름 *</label>
-                <input type="text" id="cfPetName" value="${esc(c.pet_name || '')}" placeholder="반려동물 이름">
-            </div>
-            <div class="form-group" style="position:relative">
-                <label>견종 *</label>
-                <input type="text" id="cfBreed" value="${esc(breedValue)}" placeholder="견종" autocomplete="off"
-                       oninput="App.onBreedInput(this.value)" onfocus="App.onBreedInput(this.value)"
-                       onkeydown="App.onBreedKeydown(event)">
-                <div class="breed-suggestions" id="breedSuggestions" style="display:none"></div>
-            </div>
-            <div class="form-row">
+        let formHtml;
+        if (isEdit) {
+            // 수정 폼: 기존 필드 유지
+            formHtml = `
+                <input type="hidden" id="cfId" value="${c.id}">
+                <div class="form-group">
+                    <label>전화번호 *</label>
+                    <input type="tel" id="cfPhone" value="${esc(c.phone_display || c.phone || '')}" placeholder="010-0000-0000" inputmode="tel" oninput="App.formatPhoneInput(this)">
+                </div>
+                <input type="hidden" id="cfName" value="${esc(c.name || '')}">
+                <div class="form-group">
+                    <label>반려동물 이름 *</label>
+                    <input type="text" id="cfPetName" value="${esc(c.pet_name || '')}" placeholder="반려동물 이름">
+                </div>
+                <div class="form-group" style="position:relative">
+                    <label>견종 *</label>
+                    <input type="text" id="cfBreed" value="${esc(breedValue)}" placeholder="견종" autocomplete="off"
+                           oninput="App.onBreedInput(this.value)" onfocus="App.onBreedInput(this.value)"
+                           onkeydown="App.onBreedKeydown(event)">
+                    <div class="breed-suggestions" id="breedSuggestions" style="display:none"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>몸무게 (kg)</label>
+                        <input type="number" id="cfWeight" value="${c.weight || ''}" step="0.1" placeholder="예: 3.5">
+                    </div>
+                    <div class="form-group">
+                        <label>나이</label>
+                        <input type="text" id="cfAge" value="${esc(c.age || '')}" placeholder="예: 3살">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>특이사항</label>
+                    <textarea id="cfNotes" rows="2" placeholder="알러지, 주의사항 등">${esc(c.notes || '')}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>메모</label>
+                    <textarea id="cfMemo" rows="2">${esc(c.memo || '')}</textarea>
+                </div>
+                <button class="btn-primary" onclick="App.saveCustomer(true, '${typeof onSaved === 'function' ? 'callback' : ''}')">${'수정 저장'}</button>
+                <button class="btn-danger" onclick="App.deleteCustomer(${c.id})">삭제</button>
+            `;
+        } else {
+            // 신규 폼: 4개 필드로 간소화
+            formHtml = `
+                <div class="form-group">
+                    <label>전화번호 *</label>
+                    <input type="tel" id="cfPhone" value="${esc(c.phone_display || c.phone || '')}" placeholder="010-0000-0000" inputmode="tel" oninput="App.formatPhoneInput(this)">
+                </div>
+                <input type="hidden" id="cfName" value="${esc(c.name || '')}">
+                <div class="form-group">
+                    <label>이름 견종 *</label>
+                    <input type="text" id="cfPetBreed" value="${esc(c.pet_name ? (c.pet_name + (c.breed ? ' ' + c.breed : '')) : '')}" placeholder="예: 루미 말티푸" autocomplete="off">
+                </div>
                 <div class="form-group">
                     <label>몸무게 (kg)</label>
                     <input type="number" id="cfWeight" value="${c.weight || ''}" step="0.1" placeholder="예: 3.5">
                 </div>
                 <div class="form-group">
-                    <label>나이</label>
-                    <input type="text" id="cfAge" value="${esc(c.age || '')}" placeholder="예: 3살">
+                    <label>메모</label>
+                    <textarea id="cfMemo" rows="2" placeholder="알러지, 주의사항 등">${esc(c.notes || c.memo || '')}</textarea>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>특이사항</label>
-                <textarea id="cfNotes" rows="2" placeholder="알러지, 주의사항 등">${esc(c.notes || '')}</textarea>
-            </div>
-            <div class="form-group">
-                <label>메모</label>
-                <textarea id="cfMemo" rows="2">${esc(c.memo || '')}</textarea>
-            </div>
-            <button class="btn-primary" onclick="App.saveCustomer(${isEdit}, '${typeof onSaved === 'function' ? 'callback' : ''}')">${isEdit ? '수정 저장' : '등록'}</button>
-            ${isEdit ? `<button class="btn-danger" onclick="App.deleteCustomer(${c.id})">삭제</button>` : ''}
-        `;
+                <button class="btn-primary" onclick="App.saveCustomer(false, '${typeof onSaved === 'function' ? 'callback' : ''}')">${'등록'}</button>
+            `;
+        }
+
+        document.getElementById('customerFormContent').innerHTML = formHtml;
 
         // onSaved 콜백 저장
         window._customerFormCallback = onSaved || null;
@@ -1102,17 +1130,61 @@ const App = (() => {
         }
     }
 
+    function _parsePetBreed(input) {
+        const val = (input || '').trim();
+        if (!val) return { pet_name: '', breed: '' };
+
+        // CONFIG.breeds를 길이 긴 순으로 정렬하여 매칭
+        const sortedBreeds = [...CONFIG.breeds].sort((a, b) => b.length - a.length);
+        for (const breed of sortedBreeds) {
+            if (val.length > breed.length && val.endsWith(breed)) {
+                const petPart = val.slice(0, val.length - breed.length).trim();
+                if (petPart) return { pet_name: petPart, breed: breed };
+            }
+            // 공백 구분자로도 체크
+            const suffix = ' ' + breed;
+            if (val.endsWith(suffix)) {
+                const petPart = val.slice(0, val.length - suffix.length).trim();
+                if (petPart) return { pet_name: petPart, breed: breed };
+            }
+        }
+
+        // 매칭 안 되면 마지막 공백 기준 분리
+        const lastSpace = val.lastIndexOf(' ');
+        if (lastSpace > 0) {
+            return { pet_name: val.slice(0, lastSpace).trim(), breed: val.slice(lastSpace + 1).trim() };
+        }
+
+        // 공백 없으면 전체가 이름
+        return { pet_name: val, breed: '' };
+    }
+
     async function saveCustomer(isEdit) {
-        const data = {
-            phone: document.getElementById('cfPhone').value,
-            name: document.getElementById('cfName').value,
-            pet_name: document.getElementById('cfPetName').value,
-            breed: document.getElementById('cfBreed').value,
-            weight: document.getElementById('cfWeight').value || null,
-            age: document.getElementById('cfAge').value,
-            notes: document.getElementById('cfNotes').value,
-            memo: document.getElementById('cfMemo').value,
-        };
+        let data;
+        if (isEdit) {
+            data = {
+                phone: document.getElementById('cfPhone').value,
+                name: document.getElementById('cfName').value,
+                pet_name: document.getElementById('cfPetName').value,
+                breed: document.getElementById('cfBreed').value,
+                weight: document.getElementById('cfWeight').value || null,
+                age: document.getElementById('cfAge').value,
+                notes: document.getElementById('cfNotes').value,
+                memo: document.getElementById('cfMemo').value,
+            };
+        } else {
+            const parsed = _parsePetBreed(document.getElementById('cfPetBreed').value);
+            data = {
+                phone: document.getElementById('cfPhone').value,
+                name: document.getElementById('cfName').value,
+                pet_name: parsed.pet_name,
+                breed: parsed.breed,
+                weight: document.getElementById('cfWeight').value || null,
+                age: '',
+                notes: '',
+                memo: document.getElementById('cfMemo').value,
+            };
+        }
 
         try {
             let url = '/api/customer';

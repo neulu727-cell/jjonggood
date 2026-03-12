@@ -93,8 +93,7 @@ def create_customer():
         return jsonify({"error": "유효한 전화번호를 입력하세요"}), 400
     if not pet_name:
         return jsonify({"error": "반려동물 이름을 입력하세요"}), 400
-    if not breed:
-        return jsonify({"error": "견종을 입력하세요"}), 400
+    # breed는 선택사항 (간소화 폼에서 빈값 허용)
 
     # 기존 고객 확인 (같은 전화번호 + 같은 반려동물 이름)
     existing_list = queries.find_customers_by_phone(db, phone)
