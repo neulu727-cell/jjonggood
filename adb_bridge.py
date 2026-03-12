@@ -63,17 +63,36 @@ def find_adb():
         return None
 
 
-def check_adb(adb_cmd):
+def restart_adb_server(adb_cmd):
+    """ADB 서버 재시작 (kill → start)"""
+    try:
+        subprocess.run([adb_cmd, "kill-server"], capture_output=True, timeout=5)
+        time.sleep(1)
+        subprocess.run([adb_cmd, "start-server"], capture_output=True, timeout=10)
+        time.sleep(1)
+        print(f"[{time.strftime('%H:%M:%S')}] ADB 서버 재시작 완료")
+    except Exception as e:
+        print(f"[{time.strftime('%H:%M:%S')}] ADB 서버 재시작 실패: {e}")
+
+
+def check_adb(adb_cmd, auto_restart=True):
     try:
         r = subprocess.run([adb_cmd, "devices"], capture_output=True, text=True, timeout=5)
         lines = r.stdout.strip().split("\n")
         for line in lines[1:]:
             if "\tdevice" in line:
                 return True, line.split("\t")[0]
+        # 디바이스 없으면 서버 재시작 후 재시도 (1회)
+        if auto_restart:
+            print(f"[{time.strftime('%H:%M:%S')}] 디바이스 미감지 → ADB 서버 재시작 시도")
+            restart_adb_server(adb_cmd)
+            return check_adb(adb_cmd, auto_restart=False)
         return False, ""
-    except FileNotFoundError:
-        return False, ""
-    except subprocess.TimeoutExpired:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        if auto_restart:
+            print(f"[{time.strftime('%H:%M:%S')}] ADB 연결 오류 → 서버 재시작 시도")
+            restart_adb_server(adb_cmd)
+            return check_adb(adb_cmd, auto_restart=False)
         return False, ""
 
 
@@ -137,12 +156,17 @@ def main():
     last_heartbeat = 0
     last_device = ""       # 마지막으로 확인된 기기 ID
     last_adb_ok = 0        # 마지막으로 ADB 성공한 시간
+    last_restart_attempt = 0  # 마지막 ADB 서버 재시작 시도 시간
 
     while True:
         try:
             now = time.time()
 
-            connected, device = check_adb(adb_cmd)
+            # 최근 60초 내 재시작 시도했으면 자동 재시작 건너뜀
+            allow_restart = (now - last_restart_attempt) > 60
+            connected, device = check_adb(adb_cmd, auto_restart=allow_restart)
+            if allow_restart and not connected:
+                last_restart_attempt = now
             if connected:
                 last_device = device
                 last_adb_ok = now
