@@ -1,5 +1,6 @@
 """예약 CRUD API"""
 
+import re
 from flask import Blueprint, jsonify, request
 from web.app import get_db, require_auth
 from web import queries
@@ -20,17 +21,38 @@ def create_reservation():
         if not data.get(field):
             return jsonify({"error": f"{field} required"}), 400
 
+    # 날짜 형식 검증 (YYYY-MM-DD)
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", str(data["date"])):
+        return jsonify({"error": "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)"}), 400
+
+    # 시간 형식 검증 (HH:MM)
+    if not re.match(r"^\d{1,2}:\d{2}$", str(data["time"])):
+        return jsonify({"error": "시간 형식이 올바르지 않습니다 (HH:MM)"}), 400
+
+    # 숫자 필드 안전 변환
+    try:
+        customer_id = int(data["customer_id"])
+        duration = int(data.get("duration", 60))
+        amount = int(data.get("amount", 0))
+        quoted_amount = int(data.get("quoted_amount", 0))
+    except (ValueError, TypeError):
+        return jsonify({"error": "숫자 필드 값이 올바르지 않습니다"}), 400
+
+    # customer_id 존재 확인
+    if not queries.get_customer_by_id(db, customer_id):
+        return jsonify({"error": "존재하지 않는 고객입니다"}), 404
+
     rid = queries.create_reservation(
         db,
-        customer_id=int(data["customer_id"]),
+        customer_id=customer_id,
         date=data["date"],
         time=data["time"],
         service_type=data["service_type"],
-        duration=int(data.get("duration", 60)),
+        duration=duration,
         request=data.get("request", ""),
-        amount=int(data.get("amount", 0)),
+        amount=amount,
         fur_length=data.get("fur_length", ""),
-        quoted_amount=int(data.get("quoted_amount", 0)),
+        quoted_amount=quoted_amount,
         payment_method=data.get("payment_method", ""),
     )
     return jsonify({"ok": True, "id": rid})

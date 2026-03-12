@@ -130,96 +130,95 @@ def import_data():
 
     db = get_db()
     errors = []
-
-    # 1. 기존 데이터 전체 삭제
-    queries.clear_all_data(db)
-
-    # 2. 파싱
-    phone_to_id = {}  # 전화번호 → customer_id
+    phone_to_id = {}
     customers_count = 0
     reservations_count = 0
 
-    lines = text.strip().split("\n")
-    for i, line in enumerate(lines[1:], start=2):  # 헤더 건너뜀
-        line = line.strip()
-        if not line:
-            continue
-        cols = line.split("\t")
-        if len(cols) < 2:
-            errors.append(f"{i}행: 컬럼 부족")
-            continue
+    # 트랜잭션으로 감싸기: 실패 시 ROLLBACK → 기존 데이터 보존
+    conn = db.get_conn()
+    try:
+        with conn.cursor() as cur:
+            # 1. 기존 데이터 전체 삭제
+            for table in ("reservation_edits", "groomer_memos", "call_history", "reservations", "customers"):
+                cur.execute(f"DELETE FROM {table}")
 
-        # 고객 정보 (앞 5개 컬럼)
-        phone = re.sub(r"[^0-9]", "", cols[0].strip())
-        if not phone:
-            errors.append(f"{i}행: 전화번호 없음")
-            continue
-        # 엑셀에서 앞자리 0이 잘린 경우 복원 (10자리 → 010...)
-        if len(phone) == 10 and not phone.startswith("0"):
-            phone = "0" + phone
+            # 2. 파싱 & 삽입
+            lines = text.strip().split("\n")
+            for i, line in enumerate(lines[1:], start=2):
+                line = line.strip()
+                if not line:
+                    continue
+                cols = line.split("\t")
+                if len(cols) < 2:
+                    errors.append(f"{i}행: 컬럼 부족")
+                    continue
 
-        pet_name = cols[1].strip() if len(cols) > 1 else ""
-        breed = cols[2].strip() if len(cols) > 2 else ""
-        weight = _safe_float(cols[3] if len(cols) > 3 else "")
-        age = cols[4].strip() if len(cols) > 4 else ""
-        memo = cols[5].strip() if len(cols) > 5 else ""
+                phone = re.sub(r"[^0-9]", "", cols[0].strip())
+                if not phone:
+                    errors.append(f"{i}행: 전화번호 없음")
+                    continue
+                if len(phone) == 10 and not phone.startswith("0"):
+                    phone = "0" + phone
 
-        # 같은 전화번호+반려동물 첫 등장 시 고객 등록
-        key = (phone, pet_name)
-        if key not in phone_to_id:
-            try:
-                cid = queries.create_customer(
-                    db, name="", phone=phone, pet_name=pet_name,
-                    breed=breed, weight=weight, age=age, memo=memo
-                )
-                phone_to_id[key] = cid
-                customers_count += 1
-            except Exception as e:
-                errors.append(f"{i}행: 고객 등록 실패 - {e}")
-                continue
+                pet_name = cols[1].strip() if len(cols) > 1 else ""
+                breed = cols[2].strip() if len(cols) > 2 else ""
+                weight = _safe_float(cols[3] if len(cols) > 3 else "")
+                age = cols[4].strip() if len(cols) > 4 else ""
+                memo = cols[5].strip() if len(cols) > 5 else ""
 
-        customer_id = phone_to_id[key]
+                key = (phone, pet_name)
+                if key not in phone_to_id:
+                    try:
+                        cur.execute(
+                            """INSERT INTO customers (name, phone, pet_name, breed, weight, age, memo)
+                               VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
+                            ("", phone, pet_name, breed, weight, age, memo))
+                        phone_to_id[key] = cur.fetchone()[0]
+                        customers_count += 1
+                    except Exception as e:
+                        errors.append(f"{i}행: 고객 등록 실패 - {e}")
+                        continue
 
-        # 예약 정보 — 날짜가 있을 때만
-        date_raw = cols[6].strip() if len(cols) > 6 else ""
-        if not date_raw:
-            continue  # 고객만 등록, 예약 없음
+                customer_id = phone_to_id[key]
 
-        try:
-            date_str = _parse_date(date_raw)
-        except ValueError as e:
-            errors.append(f"{i}행: {e}")
-            continue
+                date_raw = cols[6].strip() if len(cols) > 6 else ""
+                if not date_raw:
+                    continue
 
-        time_str = cols[7].strip() if len(cols) > 7 else "10:00"
-        duration = _safe_int(cols[8] if len(cols) > 8 else "", 60)
-        service = cols[9].strip() if len(cols) > 9 else "전체미용"
-        fur_length = cols[10].strip() if len(cols) > 10 else ""
-        quoted_amount = _safe_int(cols[11] if len(cols) > 11 else "", 0)
-        amount = _safe_int(cols[12] if len(cols) > 12 else "", 0)
-        payment_method = cols[13].strip() if len(cols) > 13 else ""
-        status_raw = cols[14].strip() if len(cols) > 14 else "예약"
-        status = STATUS_MAP.get(status_raw, "confirmed")
+                try:
+                    date_str = _parse_date(date_raw)
+                except ValueError as e:
+                    errors.append(f"{i}행: {e}")
+                    continue
 
-        try:
-            rid = queries.create_reservation(
-                db,
-                customer_id=customer_id,
-                date=date_str,
-                time=time_str,
-                service_type=service,
-                duration=duration,
-                request="",
-                amount=amount,
-                quoted_amount=quoted_amount,
-                payment_method=payment_method,
-                fur_length=fur_length,
-            )
-            if status != "confirmed":
-                queries.update_reservation_status(db, rid, status)
-            reservations_count += 1
-        except Exception as e:
-            errors.append(f"{i}행: 예약 등록 실패 - {e}")
+                time_str = cols[7].strip() if len(cols) > 7 else "10:00"
+                duration = _safe_int(cols[8] if len(cols) > 8 else "", 60)
+                service = cols[9].strip() if len(cols) > 9 else "전체미용"
+                fur_length = cols[10].strip() if len(cols) > 10 else ""
+                quoted_amount = _safe_int(cols[11] if len(cols) > 11 else "", 0)
+                amount = _safe_int(cols[12] if len(cols) > 12 else "", 0)
+                payment_method = cols[13].strip() if len(cols) > 13 else ""
+                status_raw = cols[14].strip() if len(cols) > 14 else "예약"
+                status = STATUS_MAP.get(status_raw, "confirmed")
+
+                try:
+                    cur.execute(
+                        """INSERT INTO reservations
+                           (customer_id, date, time, service_type, duration, request,
+                            amount, quoted_amount, payment_method, fur_length, status)
+                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
+                        (customer_id, date_str, time_str, service, duration, "",
+                         amount, quoted_amount, payment_method, fur_length, status))
+                    reservations_count += 1
+                except Exception as e:
+                    errors.append(f"{i}행: 예약 등록 실패 - {e}")
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": f"임포트 실패 (데이터 복원됨): {e}"}), 500
+    finally:
+        db.put_conn(conn)
 
     return jsonify({
         "ok": True,

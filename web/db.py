@@ -112,6 +112,28 @@ class DatabaseManager:
         finally:
             self._put_conn(conn)
 
+    def execute_no_commit(self, conn, query: str, params: tuple = ()):
+        """트랜잭션 내 쓰기 작업 (commit 안 함). conn은 transaction()에서 받은 것."""
+        query = self._convert_query(query)
+        with conn.cursor() as cur:
+            if query.strip().upper().startswith("INSERT") and "RETURNING" not in query.upper():
+                query = query.rstrip().rstrip(';') + " RETURNING id"
+            cur.execute(query, params)
+            lastrowid = None
+            if cur.description:
+                row = cur.fetchone()
+                if row:
+                    lastrowid = row[0]
+            return CursorResult(lastrowid=lastrowid, rowcount=cur.rowcount)
+
+    def get_conn(self):
+        """트랜잭션용 커넥션 획득"""
+        return self._get_conn()
+
+    def put_conn(self, conn):
+        """트랜잭션용 커넥션 반환"""
+        self._put_conn(conn)
+
     def fetch_one(self, query: str, params: tuple = ()):
         """단일 행 조회. dict 반환 또는 None."""
         query = self._convert_query(query)
@@ -206,6 +228,7 @@ class DatabaseManager:
 
                     CREATE INDEX IF NOT EXISTS idx_reservations_date ON reservations(date);
                     CREATE INDEX IF NOT EXISTS idx_reservations_customer ON reservations(customer_id);
+                    CREATE INDEX IF NOT EXISTS idx_reservations_date_customer ON reservations(date, customer_id);
                     CREATE INDEX IF NOT EXISTS idx_call_history_date ON call_history(created_at);
                     CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
                     CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_phone_pet ON customers(phone, pet_name);

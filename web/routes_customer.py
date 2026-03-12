@@ -8,6 +8,16 @@ from web.utils.phone_formatter import normalize_phone, format_phone_display
 customer_bp = Blueprint("customer", __name__)
 
 
+def _safe_float(val):
+    """안전한 float 변환. 빈값이면 None, 변환 불가시 None."""
+    if not val and val != 0:
+        return None
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return None
+
+
 @customer_bp.route("/api/customers/search")
 @require_auth
 def search_customers():
@@ -15,32 +25,30 @@ def search_customers():
     keyword = request.args.get("q", "").strip()
     sort = request.args.get("sort", "name")  # "name" or "recent"
 
-    order = "last_visit DESC NULLS LAST" if sort == "recent" else "LOWER(c.pet_name)"
+    SORT_OPTIONS = {
+        "recent": "last_visit DESC NULLS LAST",
+        "name": "LOWER(c.pet_name)",
+    }
+    order = SORT_OPTIONS.get(sort, SORT_OPTIONS["name"])
+
+    base_query = """
+        SELECT c.*,
+               MAX(CASE WHEN r.status='completed' THEN r.date END) AS last_visit,
+               COUNT(CASE WHEN r.status='completed' AND r.amount>0 THEN 1 END) AS visit_count,
+               COALESCE(SUM(CASE WHEN r.status='completed' AND r.amount>0 THEN r.amount END),0) AS total_sales
+        FROM customers c
+        LEFT JOIN reservations r ON r.customer_id = c.id
+    """
 
     if keyword:
         like = f"%{keyword}%"
-        rows = db.fetch_all(f"""
-            SELECT c.*,
-                   MAX(CASE WHEN r.status='completed' THEN r.date END) AS last_visit,
-                   COUNT(CASE WHEN r.status='completed' AND r.amount>0 THEN 1 END) AS visit_count,
-                   COALESCE(SUM(CASE WHEN r.status='completed' AND r.amount>0 THEN r.amount END),0) AS total_sales
-            FROM customers c
-            LEFT JOIN reservations r ON r.customer_id = c.id
-            WHERE c.name ILIKE ? OR c.phone ILIKE ? OR c.pet_name ILIKE ?
-            GROUP BY c.id
-            ORDER BY {order}
-        """, (like, like, like))
+        rows = db.fetch_all(
+            base_query + " WHERE c.name ILIKE ? OR c.phone ILIKE ? OR c.pet_name ILIKE ?"
+            " GROUP BY c.id ORDER BY " + order,
+            (like, like, like))
     else:
-        rows = db.fetch_all(f"""
-            SELECT c.*,
-                   MAX(CASE WHEN r.status='completed' THEN r.date END) AS last_visit,
-                   COUNT(CASE WHEN r.status='completed' AND r.amount>0 THEN 1 END) AS visit_count,
-                   COALESCE(SUM(CASE WHEN r.status='completed' AND r.amount>0 THEN r.amount END),0) AS total_sales
-            FROM customers c
-            LEFT JOIN reservations r ON r.customer_id = c.id
-            GROUP BY c.id
-            ORDER BY {order}
-        """)
+        rows = db.fetch_all(
+            base_query + " GROUP BY c.id ORDER BY " + order)
 
     result = []
     for row in rows:
@@ -100,7 +108,7 @@ def create_customer():
         phone=phone,
         pet_name=pet_name,
         breed=breed,
-        weight=float(data["weight"]) if data.get("weight") else None,
+        weight=_safe_float(data.get("weight")),
         age=data.get("age", ""),
         notes=data.get("notes", ""),
         memo=data.get("memo", ""),
@@ -155,7 +163,7 @@ def update_customer(cid):
     if "phone" in data:
         fields["phone"] = normalize_phone(data["phone"])
     if "weight" in data:
-        fields["weight"] = float(data["weight"]) if data["weight"] else None
+        fields["weight"] = _safe_float(data["weight"])
 
     queries.update_customer(db, cid, **fields)
     return jsonify({"ok": True})
@@ -180,18 +188,33 @@ def find_by_phone():
     if not customers:
         return jsonify({"customer": None})
     c = customers[0]
-    # 모든 반려동물 통계 합산
-    total_count = 0
-    last_visit = None
-    all_recent = []
-    for cu in customers:
-        s = queries.get_customer_sales_stats(db, cu.id)
-        total_count += s["count"]
-        lv = queries.get_last_visit_date(db, cu.id)
-        if lv and (not last_visit or lv > last_visit):
-            last_visit = lv
-        all_recent.extend(queries.get_customer_reservations(db, cu.id)[:3])
-    all_recent.sort(key=lambda r: r.date, reverse=True)
+    customer_ids = [cu.id for cu in customers]
+
+    # 단일 쿼리로 모든 고객의 통계를 한번에 조회
+    placeholders = ",".join("?" for _ in customer_ids)
+    stats_row = db.fetch_one(f"""
+        SELECT COUNT(*) as cnt,
+               MAX(CASE WHEN status='completed' THEN date END) as last_visit
+        FROM reservations
+        WHERE customer_id IN ({placeholders}) AND status = 'completed' AND amount > 0
+    """, tuple(customer_ids))
+
+    total_count = stats_row["cnt"] if stats_row else 0
+    last_visit = stats_row["last_visit"] if stats_row else None
+    if last_visit and hasattr(last_visit, 'strftime'):
+        last_visit = last_visit.strftime("%Y-%m-%d")
+    elif last_visit:
+        last_visit = str(last_visit)
+
+    # 최근 예약 3건도 단일 쿼리
+    recent_rows = db.fetch_all(f"""
+        SELECT date, service_type, amount, status
+        FROM reservations
+        WHERE customer_id IN ({placeholders})
+        ORDER BY date DESC, time DESC
+        LIMIT 3
+    """, tuple(customer_ids))
+
     return jsonify({
         "customer": {
             "id": c.id, "name": c.name, "phone": c.phone,
@@ -202,8 +225,8 @@ def find_by_phone():
             "visit_count": total_count,
             "last_visit": last_visit,
             "recent_reservations": [{
-                "date": r.date, "service": r.service_type,
-                "amount": r.amount, "status": r.status,
-            } for r in all_recent[:3]],
+                "date": r["date"], "service": r["service_type"],
+                "amount": r["amount"], "status": r["status"],
+            } for r in recent_rows],
         }
     })

@@ -43,10 +43,15 @@ def require_auth(f):
 
 
 def create_app():
-    # 강한 비밀번호 강제: 환경변수 미설정 또는 "0000"이면 시작 거부
+    # 필수 환경변수 검증
+    if not config.DATABASE_URL:
+        print("ERROR: DATABASE_URL 환경변수를 설정하세요.")
+        sys.exit(1)
     if config.VIEWER_PASSWORD in ("0000", ""):
         print("ERROR: VIEWER_PASSWORD 환경변수를 안전한 비밀번호로 설정하세요. (기본값 '0000' 사용 불가)")
         sys.exit(1)
+    if config.SECRET_KEY == "dev-secret-change-me":
+        print("WARNING: SECRET_KEY가 기본값입니다. 프로덕션에서는 반드시 변경하세요.")
 
     app = Flask(__name__,
                 template_folder=os.path.join(os.path.dirname(__file__), "templates"),
@@ -74,7 +79,12 @@ def create_app():
 
     @app.route("/health")
     def health():
-        return "OK"
+        try:
+            d = get_db()
+            d.fetch_one("SELECT 1")
+            return jsonify({"status": "ok", "db": "connected"}), 200
+        except Exception as e:
+            return jsonify({"status": "error", "db": str(e)}), 503
 
     @app.route("/")
     def index():
@@ -103,6 +113,12 @@ def create_app():
             "business_end": config.BUSINESS_HOURS_END,
             "slot_interval": config.TIME_SLOT_INTERVAL,
         })
+
+    @app.after_request
+    def add_cache_headers(response):
+        if request.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "public, max-age=3600"
+        return response
 
     # 앱 시작 시 DB 미리 연결 (Render 부팅 중에 연결해서 첫 요청 지연 방지)
     with app.app_context():
