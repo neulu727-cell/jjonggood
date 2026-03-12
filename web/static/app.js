@@ -904,7 +904,7 @@ const App = (() => {
 
         // 검색어 없고 캐시 있으면 서버 요청 없이 정렬만
         if (!q && cachedCustomers) {
-            renderCustomerList(container, sortCustomers(cachedCustomers, s), (c) => showCustomerDetail(c.id));
+            renderCustomerList(container, sortCustomers(cachedCustomers, s), (c) => App.showCustomerDetail(c.id));
             return;
         }
 
@@ -913,7 +913,7 @@ const App = (() => {
             const res = await fetch(`/api/customers/search?q=${encodeURIComponent(q)}&sort=${s}`);
             const data = await res.json();
             if (!q) cachedCustomers = data.customers;
-            renderCustomerList(container, data.customers, (c) => showCustomerDetail(c.id));
+            renderCustomerList(container, data.customers, (c) => App.showCustomerDetail(c.id));
         } catch (e) {
             container.innerHTML = '<div style="text-align:center;color:#999;padding:40px"><p>고객 목록을 불러올 수 없습니다</p><button class="btn-secondary" style="width:auto;margin-top:12px;padding:10px 24px" onclick="App.loadCustomerList(\'\',App.customerSort)">다시 시도</button></div>';
         }
