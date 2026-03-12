@@ -885,14 +885,33 @@ const App = (() => {
     // ==================== 고객 관리 ====================
 
     let customerSort = 'name';
+    let cachedCustomers = null;
+
+    function sortCustomers(customers, sort) {
+        const arr = [...customers];
+        if (sort === 'recent') {
+            arr.sort((a, b) => (b.last_visit || '').localeCompare(a.last_visit || ''));
+        } else {
+            arr.sort((a, b) => (a.pet_name || '').localeCompare(b.pet_name || '', 'ko'));
+        }
+        return arr;
+    }
 
     async function loadCustomerList(keyword, sort) {
         const container = document.getElementById('customerSearchResults');
         const q = (keyword || '').trim();
         const s = sort || customerSort;
+
+        // 검색어 없고 캐시 있으면 서버 요청 없이 정렬만
+        if (!q && cachedCustomers) {
+            renderCustomerList(container, sortCustomers(cachedCustomers, s), (c) => showCustomerDetail(c.id));
+            return;
+        }
+
         try {
             const res = await fetch(`/api/customers/search?q=${encodeURIComponent(q)}&sort=${s}`);
             const data = await res.json();
+            if (!q) cachedCustomers = data.customers;
             renderCustomerList(container, data.customers, (c) => showCustomerDetail(c.id));
         } catch (e) {
             container.innerHTML = '<p style="text-align:center;color:#999;padding:20px">검색 실패</p>';
@@ -1084,6 +1103,7 @@ const App = (() => {
             const result = await res.json();
 
             if (result.ok || result.id) {
+                cachedCustomers = null;
                 closeSheet('customerFormSheet');
                 toast(isEdit ? '수정되었습니다' : '등록되었습니다');
 
@@ -1111,6 +1131,7 @@ const App = (() => {
             const res = await fetch(`/api/customer/${cid}`, { method: 'DELETE' });
             const result = await res.json();
             if (result.ok) {
+                cachedCustomers = null;
                 closeSheet('customerFormSheet');
                 closeSheet('customerDetailSheet');
                 toast('삭제되었습니다');

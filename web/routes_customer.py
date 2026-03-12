@@ -15,34 +15,56 @@ def search_customers():
     keyword = request.args.get("q", "").strip()
     sort = request.args.get("sort", "name")  # "name" or "recent"
 
-    if keyword:
-        customers = queries.search_customers(db, keyword)
-    else:
-        customers = queries.get_all_customers(db)
-    result = []
-    for c in customers:
-        last_visit = queries.get_last_visit_date(db, c.id)
-        stats = queries.get_customer_sales_stats(db, c.id)
-        result.append({
-            "id": c.id,
-            "name": c.name,
-            "phone": c.phone,
-            "phone_display": format_phone_display(c.phone),
-            "pet_name": c.pet_name,
-            "breed": c.breed,
-            "weight": c.weight,
-            "age": c.age,
-            "notes": c.notes,
-            "memo": c.memo,
-            "last_visit": last_visit,
-            "visit_count": stats["count"],
-            "total_sales": stats["total"],
-        })
+    order = "last_visit DESC NULLS LAST" if sort == "recent" else "LOWER(c.pet_name)"
 
-    if sort == "recent":
-        result.sort(key=lambda x: x["last_visit"] or "", reverse=True)
+    if keyword:
+        like = f"%{keyword}%"
+        rows = db.fetch_all(f"""
+            SELECT c.*,
+                   MAX(CASE WHEN r.status='completed' THEN r.date END) AS last_visit,
+                   COUNT(CASE WHEN r.status='completed' AND r.amount>0 THEN 1 END) AS visit_count,
+                   COALESCE(SUM(CASE WHEN r.status='completed' AND r.amount>0 THEN r.amount END),0) AS total_sales
+            FROM customers c
+            LEFT JOIN reservations r ON r.customer_id = c.id
+            WHERE c.name ILIKE ? OR c.phone ILIKE ? OR c.pet_name ILIKE ?
+            GROUP BY c.id
+            ORDER BY {order}
+        """, (like, like, like))
     else:
-        result.sort(key=lambda x: (x["pet_name"] or "").lower())
+        rows = db.fetch_all(f"""
+            SELECT c.*,
+                   MAX(CASE WHEN r.status='completed' THEN r.date END) AS last_visit,
+                   COUNT(CASE WHEN r.status='completed' AND r.amount>0 THEN 1 END) AS visit_count,
+                   COALESCE(SUM(CASE WHEN r.status='completed' AND r.amount>0 THEN r.amount END),0) AS total_sales
+            FROM customers c
+            LEFT JOIN reservations r ON r.customer_id = c.id
+            GROUP BY c.id
+            ORDER BY {order}
+        """)
+
+    result = []
+    for row in rows:
+        d = dict(row)
+        lv = d.get("last_visit")
+        if lv and hasattr(lv, 'strftime'):
+            lv = lv.strftime("%Y-%m-%d")
+        elif lv:
+            lv = str(lv)
+        result.append({
+            "id": d["id"],
+            "name": d.get("name", ""),
+            "phone": d.get("phone", ""),
+            "phone_display": format_phone_display(d.get("phone", "")),
+            "pet_name": d.get("pet_name", ""),
+            "breed": d.get("breed", ""),
+            "weight": d.get("weight"),
+            "age": d.get("age"),
+            "notes": d.get("notes", ""),
+            "memo": d.get("memo", ""),
+            "last_visit": lv,
+            "visit_count": d.get("visit_count", 0),
+            "total_sales": int(d.get("total_sales", 0)),
+        })
 
     return jsonify({"customers": result})
 
