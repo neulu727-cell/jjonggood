@@ -949,7 +949,7 @@ const App = (() => {
             if (c.phone) phoneCounts[c.phone] = (phoneCounts[c.phone] || 0) + 1;
         }
 
-        container.innerHTML = customers.map(c => {
+        container.innerHTML = customers.map((c, i) => {
             const initial = (c.pet_name || '?')[0];
             const meta = [];
             if (c.phone_display) meta.push(c.phone_display);
@@ -958,7 +958,7 @@ const App = (() => {
             const siblingBadge = (phoneCounts[c.phone] || 0) > 1
                 ? `<span class="sibling-badge">+${phoneCounts[c.phone] - 1}</span>` : '';
             return `
-                <div class="customer-card" onclick='(${onClick.toString()})(${JSON.stringify(c)})'>
+                <div class="customer-card" data-idx="${i}">
                     <div class="customer-avatar">${esc(initial)}</div>
                     <div class="customer-info">
                         <div class="customer-name">
@@ -971,6 +971,12 @@ const App = (() => {
                 </div>
             `;
         }).join('');
+
+        // 이벤트 위임으로 클릭 처리
+        container.onclick = (e) => {
+            const card = e.target.closest('.customer-card[data-idx]');
+            if (card) onClick(customers[parseInt(card.dataset.idx)]);
+        };
     }
 
     function showNewCustomerForm(callback) {
