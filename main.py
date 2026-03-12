@@ -42,10 +42,19 @@ def main():
         ip = get_local_ip()
         print(f"  Tasker URL: http://{ip}:{config.TASKER_SERVER_PORT}/incoming-call")
 
-    # 4. 앱 실행
+    # 4. 콘솔 창 숨기기 (GUI 활성화 후)
+    if sys.platform == "win32":
+        try:
+            hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+            if hwnd:
+                ctypes.windll.user32.ShowWindow(hwnd, 0)  # SW_HIDE
+        except Exception:
+            pass
+
+    # 5. 앱 실행
     app.mainloop()
 
-    # 5. 종료
+    # 6. 종료
     detector.stop()
     db.close()
     print("  앱 종료.")
