@@ -186,20 +186,25 @@ echo.
 :: === 5. Startup ===
 echo [5/6] Startup registration...
 set STARTUP_DIR=%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup
-set VBS_PATH=%INSTALL_DIR%\\start_bridge.vbs
 
-echo Set WshShell = CreateObject("WScript.Shell")> "%VBS_PATH%"
-echo WshShell.Run "cmd /c cd /d %INSTALL_DIR% ^&^& ""%LOCAL_PYTHON%"" adb_bridge.py", 0, False>> "%VBS_PATH%"
+:: 기존 VBS 방식 제거
+if exist "%STARTUP_DIR%\\jjonggood_bridge.vbs" del "%STARTUP_DIR%\\jjonggood_bridge.vbs"
 
-copy "%VBS_PATH%" "%STARTUP_DIR%\\jjonggood_bridge.vbs" >nul 2>&1
+:: 시작프로그램 bat (GUI 창이 보이도록 직접 실행)
+echo @echo off> "%STARTUP_DIR%\\jjonggood_monitor.bat"
+echo cd /d "%INSTALL_DIR%">> "%STARTUP_DIR%\\jjonggood_monitor.bat"
+echo start "" "%LOCAL_PYTHON%" adb_bridge.py>> "%STARTUP_DIR%\\jjonggood_monitor.bat"
 echo        OK
 
-:: run_bridge.bat
+:: run_bridge.bat (수동 실행용)
 echo @echo off> "%INSTALL_DIR%\\run_bridge.bat"
-echo title JJongGood ADB Bridge>> "%INSTALL_DIR%\\run_bridge.bat"
+echo title JJongGood Monitor>> "%INSTALL_DIR%\\run_bridge.bat"
 echo cd /d "%INSTALL_DIR%">> "%INSTALL_DIR%\\run_bridge.bat"
 echo "%LOCAL_PYTHON%" adb_bridge.py>> "%INSTALL_DIR%\\run_bridge.bat"
 echo pause>> "%INSTALL_DIR%\\run_bridge.bat"
+
+:: backup 폴더 생성
+if not exist "%INSTALL_DIR%\\backup" mkdir "%INSTALL_DIR%\\backup"
 echo.
 
 :: === 6. Run ===
@@ -359,6 +364,7 @@ code {
             <li><span class="check">&#10003;</span> ADB 없으면 자동 다운로드</li>
             <li><span class="check">&#10003;</span> API 키 자동 설정</li>
             <li><span class="check">&#10003;</span> 시작프로그램 자동 등록</li>
+            <li><span class="check">&#10003;</span> DB 자동 백업 (1시간마다)</li>
             <li><span class="check">&#10003;</span> 설치 완료 후 바로 실행</li>
         </ul>
     </div>
@@ -375,10 +381,10 @@ code {
         <h2>설치 후 구조</h2>
         <pre style="background:#F8F9FB; padding:14px; border-radius:10px; font-size:13px; line-height:1.8; overflow-x:auto; color:#4E5968">
 %USERPROFILE%\\jjonggood-bridge\\
-  adb_bridge.py      &larr; 메인 프로그램
+  adb_bridge.py      &larr; 메인 프로그램 (GUI)
   .env               &larr; 서버 URL + API 키 (자동 생성)
   run_bridge.bat     &larr; 수동 실행용
-  start_bridge.vbs   &larr; 시작프로그램 (숨김 실행)
+  backup\\            &larr; DB 자동 백업 (1시간마다)
   python\\            &larr; Python (자동 설치)
   platform-tools\\    &larr; ADB (자동 설치)</pre>
     </div>
@@ -388,7 +394,7 @@ code {
         <p style="font-size:14px; line-height:1.7; color:#4E5968; margin-bottom:10px">
             <strong>시작프로그램 제거:</strong>
             <code>Win+R</code> &rarr; <code>shell:startup</code> &rarr;
-            <code>jjonggood_bridge.vbs</code> 삭제
+            <code>jjonggood_monitor.bat</code> 삭제
         </p>
         <p style="font-size:14px; line-height:1.7; color:#4E5968">
             <strong>완전 삭제:</strong>
