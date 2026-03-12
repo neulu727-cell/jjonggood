@@ -83,7 +83,7 @@ if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 echo   Install: %INSTALL_DIR%
 echo.
 
-:: === 1. Python ===
+:: === 1. Python (tkinter 포함 필요) ===
 echo [1/6] Python...
 set LOCAL_PYTHON=%INSTALL_DIR%\\python\\python.exe
 
@@ -92,32 +92,32 @@ if exist "%LOCAL_PYTHON%" (
     goto :python_ok
 )
 
-python --version >nul 2>&1
+:: 시스템 Python에 tkinter 있는지 확인
+python -c "import tkinter" >nul 2>&1
 if not errorlevel 1 (
     echo        OK - system python
     set LOCAL_PYTHON=python
     goto :python_ok
 )
 
-echo        Downloading Python...
-set PY_URL=https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip
-set PY_ZIP=%INSTALL_DIR%\\python_embed.zip
-powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%PY_URL%' -OutFile '%PY_ZIP%'"
-if not exist "%PY_ZIP%" (
+echo        Downloading Python (installer)...
+set PY_URL=https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
+set PY_EXE=%INSTALL_DIR%\\python_installer.exe
+powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%PY_URL%' -OutFile '%PY_EXE%'"
+if not exist "%PY_EXE%" (
     echo        [FAIL] Python download failed.
     pause
     exit /b 1
 )
-echo        Extracting...
-if not exist "%INSTALL_DIR%\\python" mkdir "%INSTALL_DIR%\\python"
-powershell -Command "$ProgressPreference='SilentlyContinue'; Expand-Archive -Path '%PY_ZIP%' -DestinationPath '%INSTALL_DIR%\\python' -Force"
-del "%PY_ZIP%" >nul 2>&1
+echo        Installing Python (tkinter included)...
+"%PY_EXE%" /quiet TargetDir="%INSTALL_DIR%\\python" Include_launcher=0 Include_test=0 Include_doc=0 Include_pip=0 Include_tcltk=1 InstallAllUsers=0 AssociateFiles=0 Shortcuts=0
+del "%PY_EXE%" >nul 2>&1
 if not exist "%LOCAL_PYTHON%" (
     echo        [FAIL] Python install failed.
     pause
     exit /b 1
 )
-echo        OK - python installed
+echo        OK - python installed (with tkinter)
 
 :python_ok
 echo.
