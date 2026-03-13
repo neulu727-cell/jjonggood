@@ -661,7 +661,11 @@ const App = (() => {
                         <span class="value">${esc(r.service_type)} (${r.duration}분)</span>
                     </div>
                     ${r.fur_length ? `<div class="detail-row"><span class="label">털 길이</span><span class="value">${esc(r.fur_length)}</span></div>` : ''}
-                    ${r.customer_memo ? `<div class="detail-row"><span class="label">고객 메모</span><span class="value" style="color:#F59E0B">${esc(r.customer_memo)}</span></div>` : ''}
+                    <div class="form-group" style="margin:8px 0">
+                        <label style="font-size:12px;color:var(--text-light);margin-bottom:4px">${esc(r.pet_name)} 메모</label>
+                        <textarea id="quickMemo" rows="2" style="font-size:14px" placeholder="메모 입력">${esc(r.customer_memo || '')}</textarea>
+                        <button class="btn-primary" style="margin-top:6px;padding:8px 0;font-size:13px" onclick="App.saveQuickMemo(${r.customer_id}, ${rid})">메모 저장</button>
+                    </div>
                     <div class="detail-row">
                         <span class="label">금액</span>
                         <span class="value">${amountText}</span>
@@ -696,6 +700,27 @@ const App = (() => {
             `;
         } catch (e) {
             content.innerHTML = '<p style="text-align:center;color:#999;padding:20px">불러오기 실패</p>';
+        }
+    }
+
+    async function saveQuickMemo(customerId, rid) {
+        const memo = document.getElementById('quickMemo').value;
+        try {
+            const res = await fetch(`/api/customer/${customerId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memo }),
+            });
+            const result = await res.json();
+            if (result.ok) {
+                toast('메모 저장됨');
+                cachedCustomers = null;
+                showReservationDetail(rid);
+            } else {
+                toast(result.error || '저장 실패');
+            }
+        } catch (e) {
+            toast('저장 실패');
         }
     }
 
@@ -1899,7 +1924,7 @@ const App = (() => {
         toggleCallHistory, showCallPopup, closeCallPopup,
         reserveFromCall, registerFromCall, downloadBackup,
         openSheet, closeSheet,
-        showCustomerForm, showReservationForm,
+        showCustomerForm, showReservationForm, saveQuickMemo,
         changeCallDate, refresh, onQuickReserve, testCall,
         selectGridBtn, applyPrevService,
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode, formatPhoneInput,
