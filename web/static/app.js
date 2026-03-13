@@ -14,6 +14,8 @@ const App = (() => {
     let bookingMode = null; // { customer: {...} } or null
     // 이동모드: 기존 예약의 날짜/시간 변경
     let moveMode = null; // { reservationId, petName } or null
+    // 통합 상세: 현재 열려 있는 activeRes ID (메모 저장 후 복원용)
+    let _unifiedActiveResId = null;
 
     function isPC() { return window.innerWidth >= 900; }
 
@@ -675,6 +677,7 @@ const App = (() => {
     }
 
     function renderUnifiedDetail(c, activeRes) {
+        _unifiedActiveResId = activeRes ? activeRes.id : null;
         const content = document.getElementById('unifiedDetailContent');
         const siblings = c.siblings || [];
         const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, weight: c.weight, memo: c.memo || '' }, ...siblings.map(s => ({...s, memo: s.memo || ''}))];
@@ -685,7 +688,7 @@ const App = (() => {
             const w = p.weight ? ' · ' + p.weight + 'kg' : '';
             return `<span class="ud-pet-name">${esc(p.pet_name)}</span><span class="ud-pet-info">${esc(p.breed)}${w}</span>`;
         }).join('<span class="ud-pet-divider">/</span>');
-        const addBtnHtml = hasSiblings || true ? `<button class="pet-pill pet-pill-add" style="font-size:12px;padding:2px 8px;margin-left:4px;vertical-align:middle" data-phone="${esc(c.phone)}" data-name="${esc(c.name || '')}" onclick="App.addSiblingPet(this.dataset.phone, this.dataset.name)">+</button>` : '';
+        const addBtnHtml = `<button class="pet-pill pet-pill-add" style="font-size:12px;padding:2px 8px;margin-left:4px;vertical-align:middle" data-phone="${esc(c.phone)}" data-name="${esc(c.name || '')}" onclick="App.addSiblingPet(this.dataset.phone, this.dataset.name)">+</button>`;
 
         // 모든 예약 이력 합치기
         const siblingRes = c.sibling_reservations || {};
@@ -791,15 +794,15 @@ const App = (() => {
                 <div class="ud-header-main">
                     ${petsHeaderHtml}${addBtnHtml}
                     <span class="ud-pet-divider">|</span>
-                    <span class="ud-pet-owner">${esc(c.name||'')}</span>
+                    ${c.name ? `<span class="ud-pet-owner">${esc(c.name)}</span>` : ''}
                     <a href="tel:${c.phone}" class="ud-pet-phone">${esc(c.phone_display)}</a>
-                    <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})">수정</button>
+                    <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})" aria-label="고객 정보 수정">수정</button>
                 </div>
             </div>
             <div class="unified-grid">
                 <div>
                     <div class="ud-stats">
-                        <strong>${totalCount}</strong>회 방문 · 매출 <strong>${salesText}</strong>
+                        <strong>${allReservations.length}</strong>건 이력${totalCount ? ` · 완료 <strong>${totalCount}</strong>건` : ''} · 매출 <strong>${salesText}</strong>
                         ${visitLine ? `<br>${visitLine}` : ''}
                     </div>
                     <div class="ud-memo">
@@ -821,6 +824,28 @@ const App = (() => {
         `;
     }
 
+    // 통합 상세 새로고침 (activeRes 유지)
+    async function _reloadUnifiedDetail(customerId) {
+        try {
+            const cRes = await fetch(`/api/customer/${customerId}`);
+            if (!cRes.ok) throw new Error('reload failed');
+            const c = await cRes.json();
+            let activeRes = null;
+            if (_unifiedActiveResId) {
+                const allRes = c.reservations || [];
+                const sibRes = c.sibling_reservations || {};
+                activeRes = allRes.find(r => r.id === _unifiedActiveResId);
+                if (!activeRes) {
+                    for (const sId of Object.keys(sibRes)) {
+                        activeRes = (sibRes[sId] || []).find(r => r.id === _unifiedActiveResId);
+                        if (activeRes) break;
+                    }
+                }
+            }
+            renderUnifiedDetail(c, activeRes || null);
+        } catch (e) { /* 무시 — 이미 toast 표시됨 */ }
+    }
+
     function toggleHistoryAccordion(rid) {
         const el = document.getElementById('acc_' + rid);
         if (!el) return;
@@ -835,6 +860,7 @@ const App = (() => {
 
         try {
             const cres = await fetch(`/api/customer/${customerId}`);
+            if (!cres.ok) throw new Error('fetch failed');
             const cdata = await cres.json();
             const existing = (cdata.memo || '').trim();
             const memo = existing ? existing + ', ' + newMemo : newMemo;
@@ -848,7 +874,7 @@ const App = (() => {
             if (result.ok) {
                 toast('메모 추가됨');
                 cachedCustomers = null;
-                showCustomerDetail(customerId);
+                _reloadUnifiedDetail(customerId);
             } else {
                 toast(result.error || '저장 실패');
             }
@@ -1390,7 +1416,7 @@ const App = (() => {
             if (result.ok) {
                 toast('메모 저장됨');
                 cachedCustomers = null;
-                showCustomerDetail(mainCid);
+                _reloadUnifiedDetail(mainCid);
             } else {
                 toast(result.error || '저장 실패');
             }
@@ -1402,8 +1428,10 @@ const App = (() => {
     function addSiblingPet(phone, name) {
         closeSheet('unifiedDetailSheet');
         showCustomerForm({ phone: phone, phone_display: phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'), name: name }, (newCustomer) => {
+            // 형제펫 추가 후 새 펫의 상세로 진입 (통합 페이지에서 전체 가족 보임)
             if (newCustomer && newCustomer.id) {
-                showCustomerDetail(newCustomer.id);
+                _reloadUnifiedDetail(newCustomer.id);
+                openSheet('unifiedDetailSheet');
             }
         });
     }
