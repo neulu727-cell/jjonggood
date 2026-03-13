@@ -1250,7 +1250,7 @@ const App = (() => {
                     const timeStr = r.time ? ' ' + formatTime(r.time) : '';
                     const amt = r.amount ? r.amount.toLocaleString() + '원' : '';
                     return `
-                        <div class="history-card" onclick="App.showReservationDetail(${r.id}); App.closeSheet('customerDetailSheet')">
+                        <div class="history-card" onclick="App.showReservationDetail(${r.id})">
                             <span class="res-status ${r.status}" style="min-width:36px;text-align:center">${statusLabel}</span>
                             <div class="history-card-body">
                                 <div class="history-card-date">${dateStr}${timeStr}</div>
