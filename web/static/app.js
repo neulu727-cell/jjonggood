@@ -641,8 +641,9 @@ const App = (() => {
 
             // 형제 펫 정보
             const siblings = r.siblings || [];
+            const allPetNames = [r.pet_name, ...siblings.map(s => s.pet_name)];
             const siblingTag = siblings.length > 0
-                ? ` <span style="font-size:10px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:1px 6px;border-radius:4px">${siblings.map(s => s.pet_name).join(', ')}도 함께</span>`
+                ? ` <span style="font-size:11px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:2px 8px;border-radius:4px">${allPetNames.map(n => esc(n)).join('/')}</span>`
                 : '';
 
             content.innerHTML = `
