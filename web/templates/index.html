@@ -130,15 +130,15 @@
     </div>
 </div>
 
-<!-- 예약 상세 바텀시트 -->
-<div class="bottom-sheet-overlay" id="reservationDetailSheet" style="display:none;z-index:110">
+<!-- 통합 상세 시트 (예약+고객) -->
+<div class="bottom-sheet-overlay" id="unifiedDetailSheet" style="display:none;z-index:110">
     <div class="bottom-sheet wide-sheet">
-        <div class="sheet-handle" onclick="App.closeSheet('reservationDetailSheet')"></div>
+        <div class="sheet-handle" onclick="App.closeSheet('unifiedDetailSheet')"></div>
         <div class="sheet-header">
-            <h3>예약 상세</h3>
-            <button class="sheet-close" onclick="App.closeSheet('reservationDetailSheet')" aria-label="닫기">&times;</button>
+            <h3 id="unifiedDetailTitle">상세</h3>
+            <button class="sheet-close" onclick="App.closeSheet('unifiedDetailSheet')" aria-label="닫기">&times;</button>
         </div>
-        <div class="sheet-body" id="reservationDetailContent">
+        <div class="sheet-body" id="unifiedDetailContent">
         </div>
     </div>
 </div>
@@ -175,18 +175,6 @@
     </div>
 </div>
 
-<!-- 고객 상세 바텀시트 -->
-<div class="bottom-sheet-overlay" id="customerDetailSheet" style="display:none;z-index:120">
-    <div class="bottom-sheet wide-sheet">
-        <div class="sheet-handle" onclick="App.closeSheet('customerDetailSheet')"></div>
-        <div class="sheet-header">
-            <h3>고객 상세</h3>
-            <button class="sheet-close" onclick="App.closeSheet('customerDetailSheet')" aria-label="닫기">&times;</button>
-        </div>
-        <div class="sheet-body" id="customerDetailContent">
-        </div>
-    </div>
-</div>
 
 <!-- 전화 알림 팝업 -->
 <div class="call-popup" id="callPopup" style="display:none">

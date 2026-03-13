@@ -123,16 +123,24 @@ def get_customer(cid):
     if not d:
         return jsonify({"error": "not found"}), 404
 
+    def _res_dict(r):
+        sh, sm = (int(x) for x in (r.time or "00:00").split(":"))
+        em = sh * 60 + sm + (r.duration or 0)
+        eh, emm = divmod(em, 60)
+        return {
+            "id": r.id, "date": r.date, "time": r.time,
+            "end_time": f"{eh:02d}:{emm:02d}",
+            "service_type": r.service_type, "status": r.status,
+            "amount": r.amount, "duration": r.duration,
+            "payment_method": r.payment_method or "",
+            "request": r.request or "", "groomer_memo": r.groomer_memo or "",
+            "fur_length": r.fur_length or "",
+            "pet_name": r.pet_name or "",
+        }
+
     # 현재 펫 예약 이력
     reservations = queries.get_customer_reservations(db, cid)
-    res_list = [{
-        "id": r.id, "date": r.date, "time": r.time,
-        "service_type": r.service_type, "status": r.status,
-        "amount": r.amount, "duration": r.duration,
-        "request": r.request or "", "groomer_memo": r.groomer_memo or "",
-        "fur_length": r.fur_length or "",
-        "pet_name": r.pet_name or "",
-    } for r in reservations]
+    res_list = [_res_dict(r) for r in reservations]
 
     siblings = queries.get_siblings(db, d.get("phone", ""), exclude_id=cid)
 
@@ -140,14 +148,7 @@ def get_customer(cid):
     sibling_reservations = {}
     for s in siblings:
         s_res = queries.get_customer_reservations(db, s["id"])
-        sibling_reservations[s["id"]] = [{
-            "id": r.id, "date": r.date, "time": r.time,
-            "service_type": r.service_type, "status": r.status,
-            "amount": r.amount, "duration": r.duration,
-            "request": r.request or "", "groomer_memo": r.groomer_memo or "",
-            "fur_length": r.fur_length or "",
-            "pet_name": r.pet_name or "",
-        } for r in s_res]
+        sibling_reservations[s["id"]] = [_res_dict(r) for r in s_res]
 
     return jsonify({
         "id": d["id"], "name": d.get("name", ""), "phone": d.get("phone", ""),
