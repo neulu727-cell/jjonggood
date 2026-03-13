@@ -231,7 +231,6 @@ const App = (() => {
                     const weightText = r.weight ? `${r.weight}kg` : '';
                     const petMeta = [breedText, weightText].filter(Boolean).join(' · ');
                     const memoText = r.customer_memo ? `<div class="res-memo">${esc(r.customer_memo)}</div>` : '';
-                    const notesText = r.notes ? `<div class="res-request">${esc(r.notes)}</div>` : '';
                     html += `
                         <div class="res-card" onclick="App.showReservationDetail(${r.id})">
                             <div class="res-time-col">
@@ -244,7 +243,6 @@ const App = (() => {
                                     <span class="breed">${esc(petMeta)}</span>
                                 </div>
                                 <div class="res-service">${esc(r.service)}${furText}${amtText ? ' · ' + amtText : ''}</div>
-                                ${notesText}
                                 ${memoText}
                             </div>
                             ${isPast ? '' : `<span class="res-status ${statusCls}">${statusText}</span>`}
@@ -332,7 +330,6 @@ const App = (() => {
                             html += `<div class="tl-row"><span class="tl-time">${ts}~${endStr}</span> <span class="tl-info">${petInfo}</span></div>`;
                             html += `<div class="tl-row"><span class="tl-detail">${esc(r.service)}${fur}${amtText}</span></div>`;
                             const memoParts = [];
-                            if (r.notes) memoParts.push(r.notes);
                             if (r.customer_memo) memoParts.push(r.customer_memo);
                             if (r.request) memoParts.push(r.request);
                             if (memoParts.length) html += `<div class="tl-row"><span class="tl-memo">${esc(memoParts.join(' / '))}</span></div>`;
@@ -639,53 +636,58 @@ const App = (() => {
 
             const resMemo = [r.request, r.groomer_memo].filter(Boolean).join(' / ');
 
+            // 전화번호 포맷
+            const phoneDisplay = r.customer_phone.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
+
             content.innerHTML = `
                 <div class="res-detail-grid">
-                    <div class="detail-section">
-                        <div class="detail-row">
-                            <span class="label">반려동물</span>
-                            <span class="value">${esc(r.pet_name)} (${esc(r.breed)})${r.weight ? ' · ' + r.weight + 'kg' : ''}</span>
+                    <div>
+                        <div class="detail-section" style="padding:10px 12px;margin-bottom:8px">
+                            <div class="detail-row" style="padding:4px 0">
+                                <span class="label">반려동물</span>
+                                <span class="value">${esc(r.pet_name)} (${esc(r.breed)})${r.weight ? ' · ' + r.weight + 'kg' : ''}</span>
+                            </div>
+                            <div class="detail-row" style="padding:4px 0">
+                                <span class="label">보호자</span>
+                                <span class="value">${esc(r.customer_name)} ${phoneDisplay}</span>
+                            </div>
+                            <div class="detail-row" style="padding:4px 0">
+                                <span class="label">일시</span>
+                                <span class="value">${r.date} ${formatTime(r.time)}~${formatTime(r.end_time)}</span>
+                            </div>
+                            <div class="detail-row" style="padding:4px 0">
+                                <span class="label">서비스</span>
+                                <span class="value">${esc(r.service_type)} ${r.duration}분${r.fur_length ? ' / ' + esc(r.fur_length) : ''}</span>
+                            </div>
+                            <div class="detail-row" style="padding:4px 0">
+                                <span class="label">금액</span>
+                                <span class="value">${amountText}${r.payment_method ? ' (' + esc(r.payment_method) + ')' : ''}</span>
+                            </div>
+                            <div class="detail-row" style="padding:4px 0">
+                                <span class="label">상태</span>
+                                <span class="value"><span class="res-status ${r.status}">${statusText}</span>${r.completed_at ? ' ' + r.completed_at.substring(11, 16) : ''}</span>
+                            </div>
+                            ${resMemo ? `<div class="detail-row" style="padding:4px 0"><span class="label">메모</span><span class="value" style="max-width:220px;word-break:break-all">${esc(resMemo)}</span></div>` : ''}
                         </div>
-                        <div class="detail-row">
-                            <span class="label">보호자</span>
-                            <span class="value">${esc(r.customer_name)} ${esc(r.customer_phone)}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">일시</span>
-                            <span class="value">${r.date} ${formatTime(r.time)}~${formatTime(r.end_time)}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">서비스</span>
-                            <span class="value">${esc(r.service_type)} ${r.duration}분${r.fur_length ? ' / ' + esc(r.fur_length) : ''}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">금액</span>
-                            <span class="value">${amountText}${r.payment_method ? ' (' + esc(r.payment_method) + ')' : ''}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">상태</span>
-                            <span class="value"><span class="res-status ${r.status}">${statusText}</span>${r.completed_at ? ' ' + r.completed_at.substring(11, 16) : ''}</span>
-                        </div>
-                        ${resMemo ? `<div class="detail-row"><span class="label">메모</span><span class="value" style="max-width:220px;word-break:break-all">${esc(resMemo)}</span></div>` : ''}
-                        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-                            <button class="btn-secondary" style="flex:1;margin:0;padding:8px 0;font-size:13px;min-width:0" onclick="App.showEditReservation(${rid})">예약 수정</button>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap">
+                            <button class="btn-secondary" style="flex:1;margin:0;padding:7px 0;font-size:13px;min-width:0" onclick="App.showEditReservation(${rid})">예약 수정</button>
                             ${r.status === 'confirmed' ? `
-                                <button class="btn-status yellow" style="flex:1;margin:0;padding:8px 0;font-size:13px;min-width:0" onclick="App.enterMoveMode(${rid},'${esc(r.pet_name)}')">날짜 변경</button>
-                                <button class="btn-status green" style="flex:1;margin:0;padding:8px 0;font-size:13px;min-width:0" onclick="App.changeStatus(${rid},'completed')">완료</button>
+                                <button class="btn-status yellow" style="flex:1;margin:0;padding:7px 0;font-size:13px;min-width:0" onclick="App.enterMoveMode(${rid},'${esc(r.pet_name)}')">날짜 변경</button>
+                                <button class="btn-status green" style="flex:1;margin:0;padding:7px 0;font-size:13px;min-width:0" onclick="App.changeStatus(${rid},'completed')">완료</button>
                             ` : ''}
                         </div>
-                        <div style="display:flex;gap:6px;margin-top:6px">
-                            <button class="btn-secondary" style="flex:1;margin:0;padding:8px 0;font-size:13px;min-width:0" onclick="App.showCustomerDetail(${r.customer_id})">고객 상세</button>
-                            ${r.status === 'completed' ? `<a href="#" style="flex:1;text-align:center;color:#999;font-size:12px;line-height:34px" onclick="event.preventDefault();App.changeStatus(${rid},'confirmed')">되돌리기</a>` : ''}
+                        <div style="display:flex;gap:6px;margin-top:4px">
+                            <button class="btn-secondary" style="flex:1;margin:0;padding:7px 0;font-size:13px;min-width:0" onclick="App.showCustomerDetail(${r.customer_id})">고객 상세</button>
+                            ${r.status === 'completed' ? `<a href="#" style="flex:1;text-align:center;color:#999;font-size:12px;line-height:32px" onclick="event.preventDefault();App.changeStatus(${rid},'confirmed')">되돌리기</a>` : ''}
                         </div>
                     </div>
 
-                    <div class="detail-section">
-                        <label style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;display:block">${esc(r.pet_name)} 메모</label>
-                        ${r.customer_memo ? `<div style="font-size:13px;color:var(--text);background:#fff;border:1px solid var(--border);padding:8px 10px;border-radius:var(--radius-sm);margin-bottom:8px;white-space:pre-wrap;max-height:120px;overflow-y:auto">${esc(r.customer_memo)}</div>` : `<div style="font-size:12px;color:var(--text-light);margin-bottom:8px">메모 없음</div>`}
-                        <div style="display:flex;gap:6px;align-items:stretch">
-                            <textarea id="quickMemo" rows="1" style="font-size:13px;flex:1;min-height:36px;resize:vertical" placeholder="메모 추가 입력"></textarea>
-                            <button class="btn-primary" style="padding:0 14px;font-size:13px;white-space:nowrap;margin:0;flex-shrink:0" onclick="App.saveQuickMemo(${r.customer_id}, ${rid})">추가</button>
+                    <div>
+                        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">${esc(r.pet_name)} 메모</div>
+                        ${r.customer_memo ? `<div style="font-size:12px;color:var(--text);background:#FAFBFC;border:1px solid var(--border);padding:6px 10px;border-radius:8px;margin-bottom:6px;white-space:pre-wrap;max-height:150px;overflow-y:auto;line-height:1.5">${esc(r.customer_memo)}</div>` : `<div style="font-size:12px;color:var(--text-light);margin-bottom:6px">메모 없음</div>`}
+                        <div style="display:flex;gap:6px;align-items:flex-end">
+                            <textarea id="quickMemo" rows="2" style="flex:1;min-height:44px;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;outline:none;transition:border-color 0.2s,box-shadow 0.2s" placeholder="메모 추가 입력" onfocus="this.style.borderColor='var(--primary)';this.style.boxShadow='0 0 0 3px rgba(79,70,229,0.1)'" onblur="this.style.borderColor='var(--border-strong)';this.style.boxShadow='none'"></textarea>
+                            <button class="btn-primary" style="padding:8px 14px;font-size:13px;white-space:nowrap;margin:0;flex-shrink:0;border-radius:8px" onclick="App.saveQuickMemo(${r.customer_id}, ${rid})">추가</button>
                         </div>
                     </div>
                 </div>
@@ -1028,7 +1030,7 @@ const App = (() => {
                 </div>
                 <div class="form-group">
                     <label>메모</label>
-                    <textarea id="cfMemo" rows="2" placeholder="알러지, 주의사항 등">${esc([c.notes, c.memo].filter(Boolean).join(' / '))}</textarea>
+                    <textarea id="cfMemo" rows="2" placeholder="알러지, 주의사항 등">${esc(c.memo || '')}</textarea>
                 </div>
                 <button class="btn-primary" onclick="App.saveCustomer(true, '${typeof onSaved === 'function' ? 'callback' : ''}')">${'수정 저장'}</button>
                 <button class="btn-danger" onclick="App.deleteCustomer(${c.id})">삭제</button>
@@ -1051,7 +1053,7 @@ const App = (() => {
                 </div>
                 <div class="form-group">
                     <label>메모</label>
-                    <textarea id="cfMemo" rows="2" placeholder="알러지, 주의사항 등">${esc(c.notes || c.memo || '')}</textarea>
+                    <textarea id="cfMemo" rows="2" placeholder="알러지, 주의사항 등">${esc(c.memo || '')}</textarea>
                 </div>
                 <button class="btn-primary" onclick="App.saveCustomer(false, '${typeof onSaved === 'function' ? 'callback' : ''}')">${'등록'}</button>
             `;
@@ -1296,43 +1298,51 @@ const App = (() => {
                     return `<div style="display:flex;gap:6px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border)"><span style="color:var(--primary);white-space:nowrap;flex-shrink:0;font-weight:600">${esc(c.pet_name)}</span><span style="color:var(--text-light);white-space:nowrap;flex-shrink:0">${dateShort}</span><span style="color:var(--text)">${esc(memo)}</span></div>`;
                 }).join('');
 
+            // 방문 주기 계산
+            const cycleDays = (stats.count > 1 && firstVisit && c.last_visit)
+                ? Math.round((new Date(c.last_visit+'T00:00:00') - new Date(firstVisit+'T00:00:00')) / 86400000 / (stats.count - 1))
+                : null;
+
+            // 방문 정보 한 줄로 합침
+            const visitParts = [];
+            if (firstVisit) visitParts.push(`첫 ${firstVisit}`);
+            if (c.last_visit) visitParts.push(`최근 ${c.last_visit}${daysSinceLast !== null ? `(${daysSinceLast}일전)` : ''}`);
+            if (cycleDays) visitParts.push(`주기 ${cycleDays}일`);
+
+            // 메모 HTML (현재 펫 + siblings)
+            const petMemos = allPets.filter(p => p.memo);
+            const memoHtml = petMemos.length
+                ? petMemos.map(p =>
+                    `<div style="margin-bottom:4px"><span style="font-size:11px;font-weight:600;color:var(--primary)">${esc(p.pet_name)}</span><div style="font-size:12px;color:var(--text);background:#fff;border:1px solid var(--border);padding:4px 8px;border-radius:6px;margin-top:1px;white-space:pre-wrap;line-height:1.5">${esc(p.memo)}</div></div>`
+                ).join('')
+                : '<span style="color:var(--text-light);font-size:12px">메모 없음</span>';
+
             content.innerHTML = `
-                <div class="detail-section" style="text-align:center;padding:12px">
-                    <div style="font-size:17px;font-weight:bold;margin-bottom:3px">${esc(c.pet_name)} <span style="font-weight:normal;color:var(--text-light)">${esc(c.breed)}</span></div>
-                    <div style="color:var(--text-light);font-size:13px">${esc(c.name || '')} · <a href="tel:${c.phone}" style="color:var(--primary)">${esc(c.phone_display)}</a></div>
+                <div style="text-align:center;padding:8px 12px 4px">
+                    <div style="font-size:16px;font-weight:bold">${esc(c.pet_name)} <span style="font-weight:normal;color:var(--text-light);font-size:14px">${esc(c.breed)}</span></div>
+                    <div style="color:var(--text-light);font-size:12px;margin-top:2px">${esc(c.name || '')} · <a href="tel:${c.phone}" style="color:var(--primary)">${esc(c.phone_display)}</a></div>
                     ${petSwitcherHtml}
                 </div>
 
-                <div class="res-detail-grid">
+                <div class="res-detail-grid" style="margin-top:8px">
                     <div>
-                        <div class="stat-cards" style="margin-bottom:12px">
-                            <div class="stat-card"><div class="num">${stats.count}</div><div class="label">방문</div></div>
-                            <div class="stat-card"><div class="num">${stats.total ? stats.total.toLocaleString() : 0}</div><div class="label">매출</div></div>
-                            <div class="stat-card"><div class="num">${stats.avg ? stats.avg.toLocaleString() : 0}</div><div class="label">평균</div></div>
+                        <div style="display:flex;gap:6px;margin-bottom:8px">
+                            <div style="flex:1;text-align:center;background:var(--primary-light);border-radius:8px;padding:8px 4px"><div style="font-size:18px;font-weight:700;color:var(--primary)">${stats.count}</div><div style="font-size:10px;color:var(--text-light)">방문</div></div>
+                            <div style="flex:1;text-align:center;background:var(--primary-light);border-radius:8px;padding:8px 4px"><div style="font-size:18px;font-weight:700;color:var(--primary)">${stats.total ? stats.total.toLocaleString() : 0}</div><div style="font-size:10px;color:var(--text-light)">매출</div></div>
+                            <div style="flex:1;text-align:center;background:var(--primary-light);border-radius:8px;padding:8px 4px"><div style="font-size:18px;font-weight:700;color:var(--primary)">${stats.avg ? stats.avg.toLocaleString() : 0}</div><div style="font-size:10px;color:var(--text-light)">평균</div></div>
                         </div>
-                        <div class="detail-section" style="padding:10px;margin-bottom:10px">
-                            ${firstVisit ? `<div class="detail-row"><span class="label">첫 방문</span><span class="value">${firstVisit}</span></div>` : ''}
-                            ${c.last_visit ? `<div class="detail-row"><span class="label">최근</span><span class="value">${c.last_visit}${daysSinceLast !== null ? ` (${daysSinceLast}일 전)` : ''}</span></div>` : ''}
-                            ${stats.count > 1 ? `<div class="detail-row"><span class="label">주기</span><span class="value">${firstVisit && c.last_visit ? Math.round((new Date(c.last_visit+'T00:00:00') - new Date(firstVisit+'T00:00:00')) / 86400000 / (stats.count - 1)) + '일' : '-'}</span></div>` : ''}
+                        ${visitParts.length ? `<div style="font-size:11px;color:var(--text-light);margin-bottom:8px;padding:0 2px">${visitParts.join(' · ')}</div>` : ''}
+                        <div style="background:#FAFBFC;border-radius:8px;padding:8px 10px;margin-bottom:8px">
+                            <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">메모</div>
+                            ${memoHtml}
+                            ${resMemoSummary ? `<div style="margin-top:6px;border-top:1px solid var(--border);padding-top:4px"><span style="font-size:10px;font-weight:600;color:var(--text-light)">예약 메모</span>${resMemoSummary}</div>` : ''}
                         </div>
-                        <div class="detail-section" style="padding:10px;margin-bottom:10px">
-                            <h4 style="margin-bottom:6px">메모</h4>
-                            ${allPets.filter(p => p.memo).length ? allPets.filter(p => p.memo).map(p =>
-                                `<div style="margin-bottom:6px">
-                                    <span style="font-size:11px;font-weight:600;color:var(--primary)">${esc(p.pet_name)}</span>
-                                    <div style="font-size:12px;color:var(--text);background:#fff;border:1px solid var(--border);padding:6px 8px;border-radius:var(--radius-sm);margin-top:2px;white-space:pre-wrap">${esc(p.memo)}</div>
-                                </div>`
-                            ).join('') : '<p style="color:var(--text-light);font-size:12px;margin:0">메모 없음</p>'}
-                            ${resMemoSummary ? `<div style="margin-top:8px"><span style="font-size:11px;font-weight:600;color:var(--text-secondary)">최근 예약 메모</span>${resMemoSummary}</div>` : ''}
-                        </div>
-                        <button class="btn-secondary" style="padding:8px 0;font-size:13px" onclick="App.showCustomerForm_edit(${cid})">정보 수정</button>
+                        <button class="btn-secondary" style="padding:6px 0;font-size:13px" onclick="App.showCustomerForm_edit(${cid})">정보 수정</button>
                     </div>
 
-                    <div>
-                        <div class="detail-section" style="padding:10px;margin-bottom:0;max-height:400px;overflow-y:auto">
-                            <h4 style="margin-bottom:6px">예약 이력 (${(c.reservations||[]).length}건)</h4>
-                            ${historyHtml}
-                        </div>
+                    <div style="max-height:calc(80vh - 120px);overflow-y:auto">
+                        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">예약 이력 (${(c.reservations||[]).length}건)</div>
+                        ${historyHtml}
                     </div>
                 </div>
             `;

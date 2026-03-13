@@ -292,6 +292,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     box-shadow: var(--shadow-lg);
 }
 .bottom-sheet.tall { max-height: 85vh; }
+.bottom-sheet.wide-sheet { max-height: 90vh; }
 /* 모바일: 예약 폼/상세 1열 */
 .res-form-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
 .res-form-grid .form-group { margin-bottom: 12px; }
