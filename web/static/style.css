@@ -339,6 +339,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     background: var(--border); color: var(--text-secondary);
 }
 .form-group textarea { resize: vertical; min-height: 60px; }
+/* 상세 화면 내 독립 textarea */
+textarea#quickMemo {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm); font-size: 13px; outline: none;
+    font-family: inherit; color: var(--text); background: #fff;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    resize: vertical;
+}
+textarea#quickMemo:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
 .form-row { display: flex; gap: 10px; }
 .form-row .form-group { flex: 1; }
 
@@ -936,9 +948,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     .res-form-grid .form-group { margin-bottom: 12px; }
     .res-form-grid .res-form-full { grid-column: 1 / -1; }
     .res-detail-grid {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px;
+        display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start;
     }
-    .res-detail-grid .detail-section { margin-bottom: 0; }
+    .res-detail-grid .detail-section { margin-bottom: 0; padding: 12px; }
+    .res-detail-grid .detail-row { padding: 5px 0; font-size: 13px; }
 
     /* PC 고객 뷰 패널 */
     .view-panel {

@@ -644,51 +644,51 @@ const App = (() => {
                     <div class="detail-section">
                         <div class="detail-row">
                             <span class="label">반려동물</span>
-                            <span class="value">${esc(r.pet_name)} (${esc(r.breed)})</span>
+                            <span class="value">${esc(r.pet_name)} (${esc(r.breed)})${r.weight ? ' · ' + r.weight + 'kg' : ''}</span>
                         </div>
                         <div class="detail-row">
                             <span class="label">보호자</span>
                             <span class="value">${esc(r.customer_name)} ${esc(r.customer_phone)}</span>
                         </div>
-                        ${r.weight ? `<div class="detail-row"><span class="label">몸무게</span><span class="value">${r.weight}kg</span></div>` : ''}
                         <div class="detail-row">
-                            <span class="label">날짜/시간</span>
+                            <span class="label">일시</span>
                             <span class="value">${r.date} ${formatTime(r.time)}~${formatTime(r.end_time)}</span>
                         </div>
                         <div class="detail-row">
                             <span class="label">서비스</span>
-                            <span class="value">${esc(r.service_type)} (${r.duration}분)${r.fur_length ? ' / ' + esc(r.fur_length) : ''}</span>
+                            <span class="value">${esc(r.service_type)} ${r.duration}분${r.fur_length ? ' / ' + esc(r.fur_length) : ''}</span>
                         </div>
                         <div class="detail-row">
                             <span class="label">금액</span>
-                            <span class="value">${amountText}</span>
+                            <span class="value">${amountText}${r.payment_method ? ' (' + esc(r.payment_method) + ')' : ''}</span>
                         </div>
-                        ${r.payment_method ? `<div class="detail-row"><span class="label">결제방법</span><span class="value">${esc(r.payment_method)}</span></div>` : ''}
                         <div class="detail-row">
                             <span class="label">상태</span>
-                            <span class="value"><span class="res-status ${r.status}">${statusText}</span></span>
+                            <span class="value"><span class="res-status ${r.status}">${statusText}</span>${r.completed_at ? ' ' + r.completed_at.substring(11, 16) : ''}</span>
                         </div>
-                        ${r.completed_at ? `<div class="detail-row"><span class="label">완료</span><span class="value">${r.completed_at.substring(11, 16)}</span></div>` : ''}
-                        ${resMemo ? `<div class="detail-row"><span class="label">메모</span><span class="value">${esc(resMemo)}</span></div>` : ''}
+                        ${resMemo ? `<div class="detail-row"><span class="label">메모</span><span class="value" style="max-width:220px;word-break:break-all">${esc(resMemo)}</span></div>` : ''}
+                        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+                            <button class="btn-secondary" style="flex:1;margin:0;padding:8px 0;font-size:13px;min-width:0" onclick="App.showEditReservation(${rid})">예약 수정</button>
+                            ${r.status === 'confirmed' ? `
+                                <button class="btn-status yellow" style="flex:1;margin:0;padding:8px 0;font-size:13px;min-width:0" onclick="App.enterMoveMode(${rid},'${esc(r.pet_name)}')">날짜 변경</button>
+                                <button class="btn-status green" style="flex:1;margin:0;padding:8px 0;font-size:13px;min-width:0" onclick="App.changeStatus(${rid},'completed')">완료</button>
+                            ` : ''}
+                        </div>
+                        <div style="display:flex;gap:6px;margin-top:6px">
+                            <button class="btn-secondary" style="flex:1;margin:0;padding:8px 0;font-size:13px;min-width:0" onclick="App.showCustomerDetail(${r.customer_id})">고객 상세</button>
+                            ${r.status === 'completed' ? `<a href="#" style="flex:1;text-align:center;color:#999;font-size:12px;line-height:34px" onclick="event.preventDefault();App.changeStatus(${rid},'confirmed')">되돌리기</a>` : ''}
+                        </div>
                     </div>
 
                     <div class="detail-section">
                         <label style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;display:block">${esc(r.pet_name)} 메모</label>
-                        ${r.customer_memo ? `<div style="font-size:13px;color:var(--text);background:var(--bg);padding:8px 10px;border-radius:var(--radius-sm);margin-bottom:8px;white-space:pre-wrap">${esc(r.customer_memo)}</div>` : ''}
-                        <textarea id="quickMemo" rows="2" style="font-size:14px" placeholder="메모 추가 입력"></textarea>
-                        <button class="btn-primary" style="margin-top:6px;padding:8px 0;font-size:13px" onclick="App.saveQuickMemo(${r.customer_id}, ${rid})">메모 추가</button>
+                        ${r.customer_memo ? `<div style="font-size:13px;color:var(--text);background:#fff;border:1px solid var(--border);padding:8px 10px;border-radius:var(--radius-sm);margin-bottom:8px;white-space:pre-wrap;max-height:120px;overflow-y:auto">${esc(r.customer_memo)}</div>` : `<div style="font-size:12px;color:var(--text-light);margin-bottom:8px">메모 없음</div>`}
+                        <div style="display:flex;gap:6px;align-items:stretch">
+                            <textarea id="quickMemo" rows="1" style="font-size:13px;flex:1;min-height:36px;resize:vertical" placeholder="메모 추가 입력"></textarea>
+                            <button class="btn-primary" style="padding:0 14px;font-size:13px;white-space:nowrap;margin:0;flex-shrink:0" onclick="App.saveQuickMemo(${r.customer_id}, ${rid})">추가</button>
+                        </div>
                     </div>
                 </div>
-
-                <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-                    <button class="btn-secondary" style="flex:1;margin:0;min-width:0" onclick="App.showEditReservation(${rid})">예약 수정</button>
-                    ${r.status === 'confirmed' ? `
-                        <button class="btn-status yellow" style="flex:1;margin:0;min-width:0" onclick="App.enterMoveMode(${rid},'${esc(r.pet_name)}')">예약 변경</button>
-                        <button class="btn-status green" style="flex:1;margin:0;min-width:0" onclick="App.changeStatus(${rid},'completed')">미용 완료</button>
-                    ` : ''}
-                    <button class="btn-secondary" style="flex:1;margin:0;min-width:0" onclick="App.showCustomerDetail(${r.customer_id})">고객 상세</button>
-                </div>
-                ${r.status === 'completed' ? `<div style="text-align:center;margin-top:8px"><a href="#" style="color:#999;font-size:12px" onclick="event.preventDefault();App.changeStatus(${rid},'confirmed')">되돌리기 (예약중)</a></div>` : ''}
             `;
         } catch (e) {
             content.innerHTML = '<p style="text-align:center;color:#999;padding:20px">불러오기 실패</p>';
