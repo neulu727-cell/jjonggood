@@ -676,20 +676,16 @@ const App = (() => {
 
     function renderUnifiedDetail(c, activeRes) {
         const content = document.getElementById('unifiedDetailContent');
-        const stats = c.stats || { count: 0, total: 0, avg: 0 };
         const siblings = c.siblings || [];
-        const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, memo: c.memo || '' }, ...siblings.map(s => ({...s, memo: s.memo || ''}))];
+        const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, weight: c.weight, memo: c.memo || '' }, ...siblings.map(s => ({...s, memo: s.memo || ''}))];
+        const hasSiblings = siblings.length > 0;
 
-        // 펫 스위처 (형제 있을 때만)
-        let petSwitcherHtml = '';
-        if (siblings.length > 0) {
-            petSwitcherHtml = '<div class="pet-switcher">' +
-                allPets.map(p =>
-                    `<button class="pet-pill${p.id === c.id ? ' active' : ''}" onclick="App.showCustomerDetail(${p.id})">${esc(p.pet_name)}<span class="breed">${esc(p.breed)}</span></button>`
-                ).join('') +
-                `<button class="pet-pill pet-pill-add" data-phone="${esc(c.phone)}" data-name="${esc(c.name || '')}" onclick="App.addSiblingPet(this.dataset.phone, this.dataset.name)">+</button>` +
-                '</div>';
-        }
+        // 헤더: 모든 펫을 한 줄에 나열
+        let petsHeaderHtml = allPets.map((p, i) => {
+            const w = p.weight ? ' · ' + p.weight + 'kg' : '';
+            return `<span class="ud-pet-name">${esc(p.pet_name)}</span><span class="ud-pet-info">${esc(p.breed)}${w}</span>`;
+        }).join('<span class="ud-pet-divider">/</span>');
+        const addBtnHtml = hasSiblings || true ? `<button class="pet-pill pet-pill-add" style="font-size:12px;padding:2px 8px;margin-left:4px;vertical-align:middle" data-phone="${esc(c.phone)}" data-name="${esc(c.name || '')}" onclick="App.addSiblingPet(this.dataset.phone, this.dataset.name)">+</button>` : '';
 
         // 모든 예약 이력 합치기
         const siblingRes = c.sibling_reservations || {};
@@ -699,20 +695,22 @@ const App = (() => {
             allReservations = allReservations.concat(sRes.map(r => ({...r, _pet: s.pet_name})));
         }
         allReservations.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
-        const hasSiblings = siblings.length > 0;
 
-        // 방문 정보 (인라인 텍스트)
+        // 통계: 전체 예약 기준으로 합산
+        const completedRes = allReservations.filter(r => r.status === 'completed');
+        const totalCount = completedRes.length;
+        const totalSales = completedRes.reduce((sum, r) => sum + (r.amount || 0), 0);
         const firstVisit = allReservations.length ? allReservations[allReservations.length - 1].date : null;
-        const daysSinceLast = c.last_visit ? Math.floor((Date.now() - new Date(c.last_visit + 'T00:00:00')) / 86400000) : null;
-        const cycleDays = (stats.count > 1 && firstVisit && c.last_visit)
-            ? Math.round((new Date(c.last_visit+'T00:00:00') - new Date(firstVisit+'T00:00:00')) / 86400000 / (stats.count - 1)) : null;
+        const lastVisit = allReservations.length ? allReservations[0].date : null;
+        const daysSinceLast = lastVisit ? Math.floor((Date.now() - new Date(lastVisit + 'T00:00:00')) / 86400000) : null;
+        const cycleDays = (totalCount > 1 && firstVisit && lastVisit)
+            ? Math.round((new Date(lastVisit+'T00:00:00') - new Date(firstVisit+'T00:00:00')) / 86400000 / (totalCount - 1)) : null;
 
-        // 통계 인라인
-        const salesText = stats.total ? stats.total.toLocaleString() + '원' : '0원';
+        const salesText = totalSales ? totalSales.toLocaleString() + '원' : '0원';
         let visitLine = '';
         const vp = [];
         if (firstVisit) vp.push(`첫 ${firstVisit.substring(5)}`);
-        if (c.last_visit) vp.push(`최근 ${c.last_visit.substring(5)}${daysSinceLast !== null ? `(${daysSinceLast}일전)` : ''}`);
+        if (lastVisit) vp.push(`최근 ${lastVisit.substring(5)}${daysSinceLast !== null ? `(${daysSinceLast}일전)` : ''}`);
         if (cycleDays) vp.push(`주기 ${cycleDays}일`);
         if (vp.length) visitLine = vp.join(' · ');
 
@@ -726,10 +724,11 @@ const App = (() => {
             const dow = WEEKDAYS_KR[d.getDay()];
             const payText = r.payment_method ? ` ${esc(r.payment_method)}` : '';
             const hlLabel = r.status === 'completed' ? '최근 미용' : r.status === 'cancelled' ? '취소된 예약' : r.status === 'no_show' ? '노쇼 예약' : '예약 정보';
+            const hlPetTag = hasSiblings && r.pet_name ? `<span style="font-size:11px;font-weight:600;color:var(--primary);margin-right:4px">${esc(r.pet_name)}</span>` : '';
             highlightHtml = `
                 <div class="ud-highlight">
                     <div class="ud-hl-label">${hlLabel}</div>
-                    <div class="ud-hl-main">${r.date.substring(5).replace('-','.')}(${dow}) ${formatTime(r.time)}~${formatTime(r.end_time)} · <span class="res-status ${r.status}">${statusText}</span></div>
+                    <div class="ud-hl-main">${hlPetTag}${r.date.substring(5).replace('-','.')}(${dow}) ${formatTime(r.time)}~${formatTime(r.end_time)} · <span class="res-status ${r.status}">${statusText}</span></div>
                     <div class="ud-hl-sub">${esc(r.service_type)} ${r.duration}분${r.fur_length ? ' / '+esc(r.fur_length) : ''} · ${amtText}${payText}</div>
                     <div class="ud-hl-actions">
                         <button class="btn-secondary" onclick="App.showEditReservation(${r.id})">수정</button>
@@ -817,19 +816,17 @@ const App = (() => {
         content.innerHTML = `
             <div class="ud-header-bar">
                 <div class="ud-header-main">
-                    <span class="ud-pet-name">${esc(c.pet_name)}</span>
-                    <span class="ud-pet-info">${esc(c.breed)}${c.weight ? ' · '+c.weight+'kg' : ''}</span>
+                    ${petsHeaderHtml}${addBtnHtml}
                     <span class="ud-pet-divider">|</span>
                     <span class="ud-pet-owner">${esc(c.name||'')}</span>
                     <a href="tel:${c.phone}" class="ud-pet-phone">${esc(c.phone_display)}</a>
                     <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})">수정</button>
                 </div>
-                ${petSwitcherHtml}
             </div>
             <div class="unified-grid">
                 <div>
                     <div class="ud-stats">
-                        <strong>${stats.count}</strong>회 방문 · 매출 <strong>${salesText}</strong>
+                        <strong>${totalCount}</strong>회 방문 · 매출 <strong>${salesText}</strong>
                         ${visitLine ? `<br>${visitLine}` : ''}
                     </div>
                     ${highlightHtml}

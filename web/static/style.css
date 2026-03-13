@@ -994,7 +994,6 @@ textarea#quickMemo:focus {
 .ud-header-bar .ud-edit-link {
     margin-left: auto;
 }
-.ud-header-bar .pet-switcher { margin-top: 4px; }
 
 /* 인라인 통계 - 박스 없이 텍스트 */
 .ud-stats {
