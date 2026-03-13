@@ -213,6 +213,7 @@ const App = (() => {
     }
 
     function renderTimelineList(slots, booked, bookedIsStart) {
+        const isPast = selectedDate < fmtDate(new Date());
         let html = '<div class="timeline-list">';
         const rendered = new Set();
         for (const slot of slots) {
