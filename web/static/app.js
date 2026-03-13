@@ -677,7 +677,7 @@ const App = (() => {
                             ` : ''}
                         </div>
                         <div style="display:flex;gap:6px;margin-top:4px">
-                            <button class="btn-secondary" style="flex:1;margin:0;padding:7px 0;font-size:13px;min-width:0" onclick="App.closeSheet('reservationDetailSheet');App.showCustomerDetail(${r.customer_id})">고객 상세</button>
+                            <button class="btn-secondary" style="flex:1;margin:0;padding:7px 0;font-size:13px;min-width:0" onclick="App.showCustomerDetail(${r.customer_id})">고객 상세</button>
                             ${r.status === 'completed' ? `<a href="#" style="flex:1;text-align:center;color:#999;font-size:12px;line-height:32px" onclick="event.preventDefault();App.changeStatus(${rid},'confirmed')">되돌리기</a>` : ''}
                         </div>
                     </div>
