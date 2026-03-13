@@ -234,7 +234,7 @@ const App = (() => {
                     const amtText = r.amount ? `${r.amount.toLocaleString()}원` : '';
                     const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
                     const weightText = r.weight ? `${r.weight}kg` : '';
-                    const petMeta = [breedText, weightText, r.age || ''].filter(Boolean).join(' · ');
+                    const petMeta = [breedText, weightText].filter(Boolean).join(' · ');
                     const memoText = r.customer_memo ? `<div class="res-memo">${esc(r.customer_memo)}</div>` : '';
                     const notesText = r.notes ? `<div class="res-request">${esc(r.notes)}</div>` : '';
                     html += `
@@ -515,12 +515,7 @@ const App = (() => {
                 <div class="btn-grid">${durGrid}</div>
             </div>
             <div class="form-group">
-                <label>상담금액 <span class="sub-label" id="quotedPriceLabel">${svc0[2].toLocaleString()}원</span></label>
-                <div class="btn-grid">${priceGrid.replace(/data-field="resAmount"/g, 'data-field="resQuotedAmount"')}</div>
-                <input type="hidden" id="resQuotedAmount" value="${svc0[2]}">
-            </div>
-            <div class="form-group">
-                <label>결제금액 <span class="sub-label" id="priceLabel">${svc0[2].toLocaleString()}원</span></label>
+                <label>금액 <span class="sub-label" id="priceLabel">${svc0[2].toLocaleString()}원</span></label>
                 <div class="btn-grid">${priceGrid}</div>
             </div>
             <div class="form-group">
@@ -553,22 +548,16 @@ const App = (() => {
             const prefix = field.startsWith('edit') ? 'editRes' : 'res';
             document.getElementById(prefix + 'Duration').value = btn.dataset.dur;
             document.getElementById(prefix + 'Amount').value = btn.dataset.price;
-            const quotedEl = document.getElementById(prefix + 'QuotedAmount');
-            if (quotedEl) quotedEl.value = btn.dataset.price;
             const dur = parseInt(btn.dataset.dur);
             const price = parseInt(btn.dataset.price);
             document.querySelectorAll('[data-field="'+prefix+'Duration"]').forEach(b =>
                 b.classList.toggle('active', parseInt(b.dataset.value) === dur));
             document.querySelectorAll('[data-field="'+prefix+'Amount"]').forEach(b =>
                 b.classList.toggle('active', parseInt(b.dataset.value) === price));
-            document.querySelectorAll('[data-field="'+prefix+'QuotedAmount"]').forEach(b =>
-                b.classList.toggle('active', parseInt(b.dataset.value) === price));
             const durLabel = document.getElementById('durLabel');
             const priceLabel = document.getElementById('priceLabel');
-            const quotedPriceLabel = document.getElementById('quotedPriceLabel');
             if (durLabel) durLabel.textContent = dur + '분';
             if (priceLabel) priceLabel.textContent = price.toLocaleString() + '원';
-            if (quotedPriceLabel) quotedPriceLabel.textContent = price.toLocaleString() + '원';
             return;
         }
         if (field === 'resDuration' || field === 'editResDuration') {
@@ -578,10 +567,6 @@ const App = (() => {
         if (field === 'resAmount' || field === 'editResAmount') {
             const priceLabel = document.getElementById('priceLabel');
             if (priceLabel) priceLabel.textContent = parseInt(btn.dataset.value).toLocaleString() + '원';
-        }
-        if (field === 'resQuotedAmount' || field === 'editResQuotedAmount') {
-            const quotedPriceLabel = document.getElementById('quotedPriceLabel');
-            if (quotedPriceLabel) quotedPriceLabel.textContent = parseInt(btn.dataset.value).toLocaleString() + '원';
         }
     }
 
@@ -621,7 +606,7 @@ const App = (() => {
             service_type: document.getElementById('resService').value,
             duration: parseInt(document.getElementById('resDuration').value) || 60,
             amount: parseInt(document.getElementById('resAmount').value) || 0,
-            quoted_amount: parseInt((document.getElementById('resQuotedAmount') || {}).value) || 0,
+            quoted_amount: parseInt(document.getElementById('resAmount').value) || 0,
             payment_method: (document.getElementById('resPaymentMethod') || {}).value || '',
             fur_length: document.getElementById('resFurLength').value,
             request: document.getElementById('resRequest').value.trim(),
@@ -659,7 +644,6 @@ const App = (() => {
             const r = await res.json();
 
             const statusText = STATUS_LABEL[r.status] || r.status;
-            const quotedText = r.quoted_amount ? `${r.quoted_amount.toLocaleString()}원` : '-';
             const amountText = r.amount ? `${r.amount.toLocaleString()}원` : '-';
 
             content.innerHTML = `
@@ -673,8 +657,6 @@ const App = (() => {
                         <span class="value">${esc(r.customer_name)} ${esc(r.customer_phone)}</span>
                     </div>
                     ${r.weight ? `<div class="detail-row"><span class="label">몸무게</span><span class="value">${r.weight}kg</span></div>` : ''}
-                    ${r.age ? `<div class="detail-row"><span class="label">나이</span><span class="value">${esc(r.age)}</span></div>` : ''}
-                    ${r.notes ? `<div class="detail-row"><span class="label">특이사항</span><span class="value" style="color:var(--red)">${esc(r.notes)}</span></div>` : ''}
                     <div class="detail-row">
                         <span class="label">날짜/시간</span>
                         <span class="value">${r.date} ${formatTime(r.time)}~${formatTime(r.end_time)}</span>
@@ -684,13 +666,9 @@ const App = (() => {
                         <span class="value">${esc(r.service_type)} (${r.duration}분)</span>
                     </div>
                     ${r.fur_length ? `<div class="detail-row"><span class="label">털 길이</span><span class="value">${esc(r.fur_length)}</span></div>` : ''}
-                    ${r.customer_memo ? `<div class="detail-row"><span class="label">메모</span><span class="value" style="color:#F59E0B">${esc(r.customer_memo)}</span></div>` : ''}
+                    ${r.customer_memo ? `<div class="detail-row"><span class="label">고객 메모</span><span class="value" style="color:#F59E0B">${esc(r.customer_memo)}</span></div>` : ''}
                     <div class="detail-row">
-                        <span class="label">상담금액</span>
-                        <span class="value">${quotedText}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="label">결제금액</span>
+                        <span class="label">금액</span>
                         <span class="value">${amountText}</span>
                     </div>
                     ${r.payment_method ? `<div class="detail-row"><span class="label">결제방법</span><span class="value">${esc(r.payment_method)}</span></div>` : ''}
@@ -699,8 +677,7 @@ const App = (() => {
                         <span class="value"><span class="res-status ${r.status}">${statusText}</span></span>
                     </div>
                     ${r.completed_at ? `<div class="detail-row"><span class="label">완료 시간</span><span class="value">${r.completed_at.substring(11, 16)}</span></div>` : ''}
-                    ${r.request ? `<div class="detail-row"><span class="label">메모</span><span class="value">${esc(r.request)}</span></div>` : ''}
-                    ${r.groomer_memo ? `<div class="detail-row"><span class="label">미용사 메모</span><span class="value">${esc(r.groomer_memo)}</span></div>` : ''}
+                    ${(() => { const memos = [r.request, r.groomer_memo].filter(Boolean).join(' / '); return memos ? `<div class="detail-row"><span class="label">메모</span><span class="value">${esc(memos)}</span></div>` : ''; })()}
                 </div>
 
                 <div class="detail-section">
@@ -756,10 +733,6 @@ const App = (() => {
             let priceGrid = prices.map(p =>
                 `<button type="button" class="btn-grid-item${p===r.amount?' active':''}" data-field="editResAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${(p/10000)}만</button>`
             ).join('');
-            let quotedPriceGrid = prices.map(p =>
-                `<button type="button" class="btn-grid-item${p===(r.quoted_amount||0)?' active':''}" data-field="editResQuotedAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${(p/10000)}만</button>`
-            ).join('');
-
             const form = document.getElementById('reservationForm');
             document.getElementById('sheetTitle').textContent = '예약 수정';
             form.innerHTML = `
@@ -767,7 +740,6 @@ const App = (() => {
                 <input type="hidden" id="editResService" value="${esc(r.service_type)}">
                 <input type="hidden" id="editResDuration" value="${r.duration}">
                 <input type="hidden" id="editResAmount" value="${r.amount}">
-                <input type="hidden" id="editResQuotedAmount" value="${r.quoted_amount||0}">
                 <input type="hidden" id="editResFurLength" value="${esc(r.fur_length || '')}">
                 <div class="form-row">
                     <div class="form-group">
@@ -792,11 +764,7 @@ const App = (() => {
                     <div class="btn-grid">${durGrid}</div>
                 </div>
                 <div class="form-group">
-                    <label>상담금액 <span class="sub-label" id="quotedPriceLabel">${(r.quoted_amount||0).toLocaleString()}원</span></label>
-                    <div class="btn-grid">${quotedPriceGrid}</div>
-                </div>
-                <div class="form-group">
-                    <label>결제금액 <span class="sub-label" id="priceLabel">${(r.amount||0).toLocaleString()}원</span></label>
+                    <label>금액 <span class="sub-label" id="priceLabel">${(r.amount||0).toLocaleString()}원</span></label>
                     <div class="btn-grid">${priceGrid}</div>
                 </div>
                 <div class="form-group">
@@ -808,12 +776,8 @@ const App = (() => {
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>요청사항</label>
-                    <textarea id="editResRequest" rows="2">${esc(r.request)}</textarea>
-                </div>
-                <div class="form-group">
-                    <label>미용사 메모</label>
-                    <textarea id="editResGroomerMemo" rows="2">${esc(r.groomer_memo)}</textarea>
+                    <label>메모</label>
+                    <textarea id="editResRequest" rows="2">${esc([r.request, r.groomer_memo].filter(Boolean).join(' / '))}</textarea>
                 </div>
                 <button class="btn-primary" onclick="App.updateReservation()">수정 저장</button>
             `;
@@ -831,23 +795,14 @@ const App = (() => {
             service_type: document.getElementById('editResService').value,
             duration: parseInt(document.getElementById('editResDuration').value) || 60,
             amount: parseInt(document.getElementById('editResAmount').value) || 0,
-            quoted_amount: parseInt((document.getElementById('editResQuotedAmount') || {}).value) || 0,
+            quoted_amount: parseInt(document.getElementById('editResAmount').value) || 0,
             payment_method: (document.getElementById('editResPaymentMethod') || {}).value || '',
             fur_length: document.getElementById('editResFurLength').value,
             request: document.getElementById('editResRequest').value.trim(),
-            groomer_memo: document.getElementById('editResGroomerMemo').value.trim(),
+            groomer_memo: '',
         };
 
         try {
-            // 메모 별도 저장
-            if (data.groomer_memo !== undefined) {
-                await fetch(`/api/reservation/${rid}/memo`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ memo: data.groomer_memo }),
-                });
-                delete data.groomer_memo;
-            }
 
             const res = await fetch(`/api/reservation/${rid}`, {
                 method: 'PUT',
@@ -1022,23 +977,13 @@ const App = (() => {
                            onkeydown="App.onBreedKeydown(event)">
                     <div class="breed-suggestions" id="breedSuggestions" style="display:none"></div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>몸무게 (kg)</label>
-                        <input type="number" id="cfWeight" value="${c.weight || ''}" step="0.1" placeholder="예: 3.5">
-                    </div>
-                    <div class="form-group">
-                        <label>나이</label>
-                        <input type="text" id="cfAge" value="${esc(c.age || '')}" placeholder="예: 3살">
-                    </div>
-                </div>
                 <div class="form-group">
-                    <label>특이사항</label>
-                    <textarea id="cfNotes" rows="2" placeholder="알러지, 주의사항 등">${esc(c.notes || '')}</textarea>
+                    <label>몸무게 (kg)</label>
+                    <input type="number" id="cfWeight" value="${c.weight || ''}" step="0.1" placeholder="예: 3.5">
                 </div>
                 <div class="form-group">
                     <label>메모</label>
-                    <textarea id="cfMemo" rows="2">${esc(c.memo || '')}</textarea>
+                    <textarea id="cfMemo" rows="2" placeholder="알러지, 주의사항 등">${esc([c.notes, c.memo].filter(Boolean).join(' / '))}</textarea>
                 </div>
                 <button class="btn-primary" onclick="App.saveCustomer(true, '${typeof onSaved === 'function' ? 'callback' : ''}')">${'수정 저장'}</button>
                 <button class="btn-danger" onclick="App.deleteCustomer(${c.id})">삭제</button>
@@ -1168,8 +1113,8 @@ const App = (() => {
                 pet_name: document.getElementById('cfPetName').value,
                 breed: document.getElementById('cfBreed').value,
                 weight: document.getElementById('cfWeight').value || null,
-                age: document.getElementById('cfAge').value,
-                notes: document.getElementById('cfNotes').value,
+                age: '',
+                notes: '',
                 memo: document.getElementById('cfMemo').value,
             };
         } else {
