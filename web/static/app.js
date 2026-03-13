@@ -679,14 +679,14 @@ const App = (() => {
         const siblings = c.siblings || [];
         const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, memo: c.memo || '' }, ...siblings.map(s => ({...s, memo: s.memo || ''}))];
 
-        // 펫 스위처
+        // 펫 스위처 (형제 있을 때만)
         let petSwitcherHtml = '';
         if (siblings.length > 0) {
-            petSwitcherHtml = '<div class="pet-switcher" style="margin-top:6px">' +
+            petSwitcherHtml = '<div class="pet-switcher">' +
                 allPets.map(p =>
                     `<button class="pet-pill${p.id === c.id ? ' active' : ''}" onclick="App.showCustomerDetail(${p.id})">${esc(p.pet_name)}<span class="breed">${esc(p.breed)}</span></button>`
                 ).join('') +
-                `<button class="pet-pill pet-pill-add" data-phone="${esc(c.phone)}" data-name="${esc(c.name || '')}" onclick="App.addSiblingPet(this.dataset.phone, this.dataset.name)">+ 추가</button>` +
+                `<button class="pet-pill pet-pill-add" data-phone="${esc(c.phone)}" data-name="${esc(c.name || '')}" onclick="App.addSiblingPet(this.dataset.phone, this.dataset.name)">+</button>` +
                 '</div>';
         }
 
@@ -698,40 +698,41 @@ const App = (() => {
             allReservations = allReservations.concat(sRes.map(r => ({...r, _pet: s.pet_name})));
         }
         allReservations.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
-
         const hasSiblings = siblings.length > 0;
 
-        // 방문 정보
-        const firstVisit = allReservations.length
-            ? allReservations[allReservations.length - 1].date : null;
-        const daysSinceLast = c.last_visit
-            ? Math.floor((Date.now() - new Date(c.last_visit + 'T00:00:00')) / 86400000)
-            : null;
+        // 방문 정보 (인라인 텍스트)
+        const firstVisit = allReservations.length ? allReservations[allReservations.length - 1].date : null;
+        const daysSinceLast = c.last_visit ? Math.floor((Date.now() - new Date(c.last_visit + 'T00:00:00')) / 86400000) : null;
         const cycleDays = (stats.count > 1 && firstVisit && c.last_visit)
-            ? Math.round((new Date(c.last_visit+'T00:00:00') - new Date(firstVisit+'T00:00:00')) / 86400000 / (stats.count - 1))
-            : null;
-        const visitParts = [];
-        if (firstVisit) visitParts.push(`첫 ${firstVisit}`);
-        if (c.last_visit) visitParts.push(`최근 ${c.last_visit}${daysSinceLast !== null ? `(${daysSinceLast}일전)` : ''}`);
-        if (cycleDays) visitParts.push(`주기 ${cycleDays}일`);
+            ? Math.round((new Date(c.last_visit+'T00:00:00') - new Date(firstVisit+'T00:00:00')) / 86400000 / (stats.count - 1)) : null;
 
-        // 현재 예약 하이라이트
+        // 통계 인라인
+        const salesText = stats.total ? stats.total.toLocaleString() + '원' : '0원';
+        let visitLine = '';
+        const vp = [];
+        if (firstVisit) vp.push(`첫 ${firstVisit.substring(5)}`);
+        if (c.last_visit) vp.push(`최근 ${c.last_visit.substring(5)}${daysSinceLast !== null ? `(${daysSinceLast}일전)` : ''}`);
+        if (cycleDays) vp.push(`주기 ${cycleDays}일`);
+        if (vp.length) visitLine = vp.join(' · ');
+
+        // 현재 예약 하이라이트 (컴팩트)
         let highlightHtml = '';
         if (activeRes) {
             const r = activeRes;
             const statusText = STATUS_LABEL[r.status] || r.status;
-            const amountText = r.amount ? `${r.amount.toLocaleString()}원` : '-';
+            const amtText = r.amount ? r.amount.toLocaleString() + '원' : '';
+            const d = new Date(r.date + 'T00:00:00');
+            const dow = WEEKDAYS_KR[d.getDay()];
+            const payText = r.payment_method ? ` ${esc(r.payment_method)}` : '';
             highlightHtml = `
-                <div class="unified-res-highlight">
-                    <div class="hl-title">현재 예약</div>
-                    <div class="hl-row"><span class="label">일시</span><span class="value">${r.date} ${formatTime(r.time)}~${formatTime(r.end_time)}</span></div>
-                    <div class="hl-row"><span class="label">서비스</span><span class="value">${esc(r.service_type)} ${r.duration}분${r.fur_length ? ' / ' + esc(r.fur_length) : ''}</span></div>
-                    <div class="hl-row"><span class="label">금액</span><span class="value">${amountText}${r.payment_method ? ' (' + esc(r.payment_method) + ')' : ''}</span></div>
-                    <div class="hl-row"><span class="label">상태</span><span class="value"><span class="res-status ${r.status}">${statusText}</span>${r.completed_at ? ' ' + r.completed_at.substring(11, 16) : ''}</span></div>
-                    <div class="hl-actions">
-                        <button class="btn-secondary" onclick="App.showEditReservation(${r.id})">예약 수정</button>
+                <div class="ud-highlight">
+                    <div class="ud-hl-label">현재 예약</div>
+                    <div class="ud-hl-main">${r.date.substring(5).replace('-','.')}(${dow}) ${formatTime(r.time)}~${formatTime(r.end_time)} · <span class="res-status ${r.status}">${statusText}</span></div>
+                    <div class="ud-hl-sub">${esc(r.service_type)} ${r.duration}분${r.fur_length ? ' / '+esc(r.fur_length) : ''} · ${amtText}${payText}</div>
+                    <div class="ud-hl-actions">
+                        <button class="btn-secondary" onclick="App.showEditReservation(${r.id})">수정</button>
                         ${r.status === 'confirmed' ? `
-                            <button class="btn-status yellow" data-pet="${esc(r.pet_name)}" onclick="App.enterMoveMode(${r.id},this.dataset.pet)">날짜 변경</button>
+                            <button class="btn-status yellow" data-pet="${esc(r.pet_name)}" onclick="App.enterMoveMode(${r.id},this.dataset.pet)">날짜변경</button>
                             <button class="btn-status green" onclick="App.changeStatus(${r.id},'completed')">완료</button>
                         ` : ''}
                         ${r.status === 'completed' ? `<button class="btn-secondary" onclick="App.changeStatus(${r.id},'confirmed')">되돌리기</button>` : ''}
@@ -739,7 +740,7 @@ const App = (() => {
                 </div>`;
         }
 
-        // 강아지별 통합 메모
+        // 강아지별 통합 메모 (컴팩트)
         const memoHtml = allPets.map(p => {
             const petRes = (p.id === c.id) ? (c.reservations || []) : (siblingRes[p.id] || []);
             const resMemoParts = petRes
@@ -754,15 +755,15 @@ const App = (() => {
             if (resMemoParts.length) allMemoLines.push(resMemoParts.join('\n'));
             const combined = allMemoLines.join('\n───\n');
 
-            return `<div style="margin-bottom:6px">
-                <span style="font-size:11px;font-weight:600;color:var(--primary)">${esc(p.pet_name)}</span>
-                <button type="button" style="font-size:13px;color:var(--text-light);background:none;border:none;cursor:pointer;padding:4px 8px;min-width:32px;min-height:32px;vertical-align:middle" onclick="App.toggleMemoEdit(${p.id}, ${c.id})" aria-label="${esc(p.pet_name)} 메모 편집">✎</button>
-                <div id="petMemoView_${p.id}" style="font-size:14px;color:var(--text);background:#fff;border:1px solid var(--border);padding:6px 10px;border-radius:6px;margin-top:1px;white-space:pre-wrap;line-height:1.6;min-height:24px">${combined ? esc(combined) : '<span style="color:var(--text-light);font-size:12px">메모 없음</span>'}</div>
+            return `<div class="ud-memo-pet">
+                <span class="pet-label">${esc(p.pet_name)}</span>
+                <button type="button" style="font-size:12px;color:var(--text-light);background:none;border:none;cursor:pointer;padding:2px 6px;vertical-align:middle" onclick="App.toggleMemoEdit(${p.id}, ${c.id})" aria-label="${esc(p.pet_name)} 메모 편집">✎</button>
+                <div id="petMemoView_${p.id}" class="memo-text">${combined ? esc(combined) : '<span style="color:var(--text-light);font-size:11px">메모 없음</span>'}</div>
                 <div id="petMemoEdit_${p.id}" style="display:none;margin-top:1px">
-                    <textarea id="petMemoTA_${p.id}" style="width:100%;min-height:50px;padding:6px 10px;border:1.5px solid var(--primary);border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;box-sizing:border-box">${esc(p.memo)}</textarea>
-                    <div style="display:flex;gap:4px;margin-top:4px">
-                        <button class="btn-primary-sm" style="padding:4px 12px;font-size:11px" onclick="App.savePetMemo(${p.id}, ${c.id})">저장</button>
-                        <button style="padding:4px 12px;font-size:11px;background:none;border:1px solid var(--border-strong);border-radius:6px;cursor:pointer;color:var(--text-light)" onclick="App.toggleMemoEdit(${p.id}, ${c.id})">취소</button>
+                    <textarea id="petMemoTA_${p.id}" style="width:100%;min-height:40px;padding:4px 8px;border:1.5px solid var(--primary);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">${esc(p.memo)}</textarea>
+                    <div style="display:flex;gap:4px;margin-top:3px">
+                        <button class="btn-primary-sm" style="padding:3px 10px;font-size:11px" onclick="App.savePetMemo(${p.id}, ${c.id})">저장</button>
+                        <button style="padding:3px 10px;font-size:11px;background:none;border:1px solid var(--border-strong);border-radius:5px;cursor:pointer;color:var(--text-light)" onclick="App.toggleMemoEdit(${p.id}, ${c.id})">취소</button>
                     </div>
                 </div>
             </div>`;
@@ -777,29 +778,29 @@ const App = (() => {
                 const statusLabel = STATUS_LABEL[r.status] || r.status;
                 const d = new Date(r.date + 'T00:00:00');
                 const dow = WEEKDAYS_KR[d.getDay()];
-                const dateStr = `${r.date.replace(/-/g,'.')}(${dow})`;
+                const dateStr = `${r.date.substring(5).replace('-','.')}(${dow})`;
                 const timeStr = r.time ? ' ' + formatTime(r.time) : '';
                 const amt = r.amount ? r.amount.toLocaleString() + '원' : '';
                 const resMemo = [r.request, r.groomer_memo].filter(Boolean).join(' / ');
-                const petTag = hasSiblings ? `<span style="font-size:10px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:1px 6px;border-radius:4px;margin-right:4px">${esc(r._pet)}</span>` : '';
+                const petTag = hasSiblings ? `<span style="font-size:10px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:1px 5px;border-radius:3px;margin-right:3px">${esc(r._pet)}</span>` : '';
                 return `
-                    <div class="history-accordion-item" id="acc_${r.id}">
-                        <button type="button" class="history-accordion-header" onclick="App.toggleHistoryAccordion(${r.id})" aria-expanded="false" aria-controls="acc_body_${r.id}">
-                            <span class="res-status ${r.status}" style="min-width:36px;text-align:center">${statusLabel}</span>
-                            <div class="history-card-body">
-                                <div class="history-card-date">${petTag}${dateStr}${timeStr}</div>
-                                <div class="history-card-service">${esc(r.service_type)}${r.fur_length ? ' / ' + esc(r.fur_length) : ''}${amt ? ' · ' + amt : ''}</div>
+                    <div class="ud-acc-item" id="acc_${r.id}">
+                        <button type="button" class="ud-acc-header" onclick="App.toggleHistoryAccordion(${r.id})" aria-expanded="false" aria-controls="acc_body_${r.id}">
+                            <span class="res-status ${r.status}" style="min-width:32px;text-align:center;font-size:11px">${statusLabel}</span>
+                            <div style="flex:1;min-width:0">
+                                <div style="font-size:12px">${petTag}${dateStr}${timeStr}</div>
+                                <div style="font-size:11px;color:var(--text-light)">${esc(r.service_type)}${r.fur_length ? '/'+esc(r.fur_length) : ''}${amt ? ' · '+amt : ''}</div>
                             </div>
                             <span class="arrow">&#8250;</span>
                         </button>
-                        <div class="history-accordion-body" id="acc_body_${r.id}">
-                            <div class="detail-row"><span class="label">서비스</span><span class="value">${esc(r.service_type)} ${r.duration || ''}분${r.fur_length ? ' / ' + esc(r.fur_length) : ''}</span></div>
-                            <div class="detail-row"><span class="label">금액</span><span class="value">${amt || '-'}${r.payment_method ? ' (' + esc(r.payment_method) + ')' : ''}</span></div>
+                        <div class="ud-acc-body" id="acc_body_${r.id}">
+                            <div class="detail-row"><span class="label">서비스</span><span class="value">${esc(r.service_type)} ${r.duration||''}분${r.fur_length ? ' / '+esc(r.fur_length) : ''}</span></div>
+                            <div class="detail-row"><span class="label">금액</span><span class="value">${amt||'-'}${r.payment_method ? ' ('+esc(r.payment_method)+')' : ''}</span></div>
                             ${resMemo ? `<div class="detail-row"><span class="label">메모</span><span class="value">${esc(resMemo)}</span></div>` : ''}
                             <div class="acc-actions">
                                 <button class="btn-secondary" onclick="App.showEditReservation(${r.id})">수정</button>
                                 ${r.status === 'confirmed' ? `
-                                    <button class="btn-status yellow" data-pet="${esc(r._pet || c.pet_name)}" onclick="App.enterMoveMode(${r.id},this.dataset.pet)">날짜변경</button>
+                                    <button class="btn-status yellow" data-pet="${esc(r._pet||c.pet_name)}" onclick="App.enterMoveMode(${r.id},this.dataset.pet)">날짜변경</button>
                                     <button class="btn-status green" onclick="App.changeStatus(${r.id},'completed')">완료</button>
                                 ` : ''}
                                 ${r.status === 'completed' ? `<button class="btn-secondary" onclick="App.changeStatus(${r.id},'confirmed')">되돌리기</button>` : ''}
@@ -808,39 +809,35 @@ const App = (() => {
                     </div>`;
             }).join('');
         } else {
-            historyHtml = '<p style="text-align:center;color:var(--text-light);padding:12px;font-size:13px">예약 이력 없음</p>';
+            historyHtml = '<p style="text-align:center;color:var(--text-light);padding:8px;font-size:12px">이력 없음</p>';
         }
 
         content.innerHTML = `
-            <div class="unified-header">
-                <div class="pet-main">${esc(c.pet_name)} <span class="pet-sub">${esc(c.breed)}${c.weight ? ' · ' + c.weight + 'kg' : ''}</span></div>
-                <div class="owner-line">${esc(c.name || '')} · <a href="tel:${c.phone}" style="color:var(--primary)">${esc(c.phone_display)}</a></div>
+            <div class="ud-header">
+                <div><span class="ud-pet">${esc(c.pet_name)}</span> <span class="ud-breed">${esc(c.breed)}${c.weight ? ' · '+c.weight+'kg' : ''}</span></div>
+                <div class="ud-owner">${esc(c.name||'')} · <a href="tel:${c.phone}" style="color:var(--primary)">${esc(c.phone_display)}</a></div>
                 ${petSwitcherHtml}
             </div>
-
-            <div class="unified-grid" style="margin-top:8px">
+            <div class="unified-grid">
                 <div>
-                    <div class="unified-stats-row">
-                        <div class="stat-box"><div class="num">${stats.count}</div><div class="label">방문</div></div>
-                        <div class="stat-box"><div class="num">${stats.total ? stats.total.toLocaleString() : 0}</div><div class="label">매출</div></div>
-                        <div class="stat-box"><div class="num">${stats.avg ? stats.avg.toLocaleString() : 0}</div><div class="label">평균</div></div>
+                    <div class="ud-stats">
+                        <strong>${stats.count}</strong>회 방문 · 매출 <strong>${salesText}</strong>
+                        ${visitLine ? `<br>${visitLine}` : ''}
                     </div>
-                    ${visitParts.length ? `<div style="font-size:11px;color:var(--text-light);margin-bottom:8px;padding:0 2px">${visitParts.join(' · ')}</div>` : ''}
                     ${highlightHtml}
-                    <button class="btn-secondary" style="padding:6px 0;font-size:13px" onclick="App.showCustomerForm_edit(${c.id})">정보 수정</button>
+                    <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})">정보 수정</button>
                 </div>
-
                 <div>
-                    <div class="unified-memo-section">
-                        <div class="memo-title">메모</div>
-                        ${memoHtml || '<span style="color:var(--text-light);font-size:12px">메모 없음</span>'}
-                        <div class="unified-quick-memo">
-                            <textarea id="quickMemo" rows="2" placeholder="메모 추가 입력"></textarea>
-                            <button class="btn-primary-sm" style="flex-shrink:0;padding:10px 16px" onclick="App.saveQuickMemo(${c.id})">추가</button>
+                    <div class="ud-memo">
+                        <div class="ud-memo-title">메모</div>
+                        ${memoHtml || '<span style="color:var(--text-light);font-size:11px">메모 없음</span>'}
+                        <div class="ud-quick-memo">
+                            <textarea id="quickMemo" rows="1" placeholder="메모 추가"></textarea>
+                            <button class="btn-primary-sm" style="flex-shrink:0;padding:6px 12px;font-size:12px" onclick="App.saveQuickMemo(${c.id})">추가</button>
                         </div>
                     </div>
-                    <div style="max-height:45vh;overflow-y:auto">
-                        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">예약 이력 (${historyItems.length}건)</div>
+                    <div class="ud-history-title">이력 (${historyItems.length}건)</div>
+                    <div style="max-height:35vh;overflow-y:auto">
                         ${historyHtml}
                     </div>
                 </div>
@@ -852,7 +849,7 @@ const App = (() => {
         const el = document.getElementById('acc_' + rid);
         if (!el) return;
         el.classList.toggle('open');
-        const btn = el.querySelector('.history-accordion-header');
+        const btn = el.querySelector('.ud-acc-header');
         if (btn) btn.setAttribute('aria-expanded', el.classList.contains('open'));
     }
 
