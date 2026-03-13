@@ -1293,7 +1293,7 @@ const App = (() => {
                     const d2 = new Date(r.date + 'T00:00:00');
                     const dateShort = `${r.date.substring(5).replace('-','/')}`;
                     const memo = [r.request, r.groomer_memo].filter(Boolean).join(' / ');
-                    return `<div style="display:flex;gap:6px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border)"><span style="color:var(--text-light);white-space:nowrap;flex-shrink:0">${dateShort}</span><span style="color:var(--text)">${esc(memo)}</span></div>`;
+                    return `<div style="display:flex;gap:6px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border)"><span style="color:var(--primary);white-space:nowrap;flex-shrink:0;font-weight:600">${esc(c.pet_name)}</span><span style="color:var(--text-light);white-space:nowrap;flex-shrink:0">${dateShort}</span><span style="color:var(--text)">${esc(memo)}</span></div>`;
                 }).join('');
 
             content.innerHTML = `
