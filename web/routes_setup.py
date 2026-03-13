@@ -197,7 +197,7 @@ echo        OK
 
 :: === 4. .env (PowerShell로 안전하게 생성 — bat 특수문자 문제 회피) ===
 echo [4/6] Config...
-powershell -Command "Set-Content -Path '%INSTALL_DIR%\\.env' -Value ('RENDER_URL={server_url}' + [char]10 + 'TASKER_API_KEY={api_key_ps}' + [char]10) -NoNewline -Encoding UTF8"
+powershell -Command "[IO.File]::WriteAllText('%INSTALL_DIR%\\.env', ('RENDER_URL={server_url}' + \"`n\" + 'TASKER_API_KEY={api_key_ps}' + \"`n\"), (New-Object System.Text.UTF8Encoding $false))"
 if not exist "%INSTALL_DIR%\\.env" (
     echo        [FAIL] .env creation failed.
     pause
