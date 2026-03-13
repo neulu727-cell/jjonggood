@@ -714,7 +714,7 @@ const App = (() => {
             const cres = await fetch(`/api/customer/${customerId}`);
             const cdata = await cres.json();
             const existing = (cdata.memo || '').trim();
-            const memo = existing ? existing + '\n' + newMemo : newMemo;
+            const memo = existing ? existing + ', ' + newMemo : newMemo;
 
             const res = await fetch(`/api/customer/${customerId}`, {
                 method: 'PUT',
