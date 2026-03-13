@@ -639,13 +639,19 @@ const App = (() => {
             // 전화번호 포맷
             const phoneDisplay = r.customer_phone.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
 
+            // 형제 펫 정보
+            const siblings = r.siblings || [];
+            const siblingTag = siblings.length > 0
+                ? ` <span style="font-size:10px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:1px 6px;border-radius:4px">${siblings.map(s => s.pet_name).join(', ')}도 함께</span>`
+                : '';
+
             content.innerHTML = `
                 <div class="res-detail-grid">
                     <div>
                         <div class="detail-section" style="padding:10px 12px;margin-bottom:8px">
                             <div class="detail-row" style="padding:4px 0">
                                 <span class="label">반려동물</span>
-                                <span class="value">${esc(r.pet_name)} (${esc(r.breed)})${r.weight ? ' · ' + r.weight + 'kg' : ''}</span>
+                                <span class="value">${esc(r.pet_name)} (${esc(r.breed)})${r.weight ? ' · ' + r.weight + 'kg' : ''}${siblingTag}</span>
                             </div>
                             <div class="detail-row" style="padding:4px 0">
                                 <span class="label">보호자</span>
@@ -690,7 +696,7 @@ const App = (() => {
                             if (resMemo) memoParts.push(resMemo);
                             const combined = memoParts.join('\n───\n');
                             return combined
-                                ? `<div style="font-size:12px;color:var(--text);background:#FAFBFC;border:1px solid var(--border);padding:6px 10px;border-radius:8px;margin-bottom:8px;white-space:pre-wrap;max-height:150px;overflow-y:auto;line-height:1.5">${esc(combined)}</div>`
+                                ? `<div style="font-size:12px;color:var(--text);background:#FAFBFC;border:1px solid var(--border);padding:8px 10px;border-radius:8px;margin-bottom:8px;white-space:pre-wrap;max-height:250px;overflow-y:auto;line-height:1.6">${esc(combined)}</div>`
                                 : `<div style="font-size:12px;color:var(--text-light);margin-bottom:8px">메모 없음</div>`;
                         })()}
                         <div style="display:flex;gap:8px;align-items:flex-end">

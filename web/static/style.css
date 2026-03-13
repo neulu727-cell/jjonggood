@@ -792,7 +792,7 @@ textarea#quickMemo:focus {
     .main-content { flex-direction: row; flex: 1; }
 
     .left-panel {
-        width: 420px; flex-shrink: 0;
+        width: 480px; flex-shrink: 0;
         display: flex; flex-direction: column;
         background: #F8F9FB; border-right: 1px solid var(--border-strong);
         overflow: hidden; height: 100%;
@@ -848,7 +848,7 @@ textarea#quickMemo:focus {
 
     /* 수신기록 (중간 컬럼) */
     .call-sidebar {
-        width: 220px; flex-shrink: 0;
+        width: 240px; flex-shrink: 0;
         display: flex !important; flex-direction: column;
         background: #F8F9FB; border-right: 1px solid var(--border-strong);
         overflow: hidden; height: 100%;
@@ -943,7 +943,7 @@ textarea#quickMemo:focus {
     }
     /* 예약 폼/상세 넓은 모달 */
     .bottom-sheet.wide-sheet {
-        max-width: 860px; max-height: 90vh;
+        max-width: 920px; max-height: 90vh;
     }
     .res-form-grid {
         display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px;
@@ -951,7 +951,7 @@ textarea#quickMemo:focus {
     .res-form-grid .form-group { margin-bottom: 12px; }
     .res-form-grid .res-form-full { grid-column: 1 / -1; }
     .res-detail-grid {
-        display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 0 20px; align-items: start;
+        display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; align-items: start;
     }
     .res-detail-grid .detail-section { margin-bottom: 0; padding: 10px 12px; }
     .res-detail-grid .detail-row { padding: 4px 0; font-size: 13px; }

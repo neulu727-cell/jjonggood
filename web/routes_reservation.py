@@ -66,6 +66,7 @@ def get_reservation(rid):
     if not r:
         return jsonify({"error": "not found"}), 404
     customer = queries.get_customer_by_id(db, r.customer_id)
+    siblings = queries.get_siblings(db, r.customer_phone, exclude_id=r.customer_id) if customer else []
     start_h, start_m = map(int, r.time.split(":"))
     end_minutes = start_h * 60 + start_m + r.duration
     end_h, end_m = divmod(end_minutes, 60)
@@ -93,6 +94,7 @@ def get_reservation(rid):
         "customer_memo": customer.memo if customer else "",
         "status": r.status,
         "completed_at": r.completed_at,
+        "siblings": [{"id": s.id, "pet_name": s.pet_name, "breed": s.breed} for s in siblings],
     })
 
 
