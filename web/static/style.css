@@ -286,7 +286,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .bottom-sheet {
     background: var(--card); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     width: 100%; max-width: 480px;
-    max-height: 70vh; overflow-y: auto;
+    max-height: 70vh; overflow-y: auto; overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     animation: slideUp 0.3s cubic-bezier(0.33, 1, 0.68, 1);
     box-shadow: var(--shadow-lg);
@@ -342,11 +342,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .form-group textarea { resize: vertical; min-height: 60px; }
 /* 상세 화면 내 독립 textarea */
 textarea#quickMemo {
-    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border-strong);
+    flex: 1; min-width: 0; min-height: 52px;
+    padding: 8px 12px; border: 1.5px solid var(--border-strong);
     border-radius: var(--radius-sm); font-size: 13px; outline: none;
     font-family: inherit; color: var(--text); background: #fff;
     transition: border-color var(--transition), box-shadow var(--transition);
-    resize: vertical;
+    resize: vertical; box-sizing: border-box;
 }
 textarea#quickMemo:focus {
     border-color: var(--primary);
@@ -941,18 +942,19 @@ textarea#quickMemo:focus {
     }
     /* 예약 폼/상세 넓은 모달 */
     .bottom-sheet.wide-sheet {
-        max-width: 800px; max-height: 90vh;
+        max-width: 860px; max-height: 90vh;
     }
     .res-form-grid {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px;
+        display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px;
     }
     .res-form-grid .form-group { margin-bottom: 12px; }
     .res-form-grid .res-form-full { grid-column: 1 / -1; }
     .res-detail-grid {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start;
+        display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 0 20px; align-items: start;
     }
-    .res-detail-grid .detail-section { margin-bottom: 0; padding: 12px; }
-    .res-detail-grid .detail-row { padding: 5px 0; font-size: 13px; }
+    .res-detail-grid .detail-section { margin-bottom: 0; padding: 10px 12px; }
+    .res-detail-grid .detail-row { padding: 4px 0; font-size: 13px; }
+    .wide-sheet .sheet-body { padding: 16px 24px; }
 
     /* PC 고객 뷰 패널 */
     .view-panel {

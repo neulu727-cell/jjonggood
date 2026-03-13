@@ -684,10 +684,10 @@ const App = (() => {
 
                     <div>
                         <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">${esc(r.pet_name)} 메모</div>
-                        ${r.customer_memo ? `<div style="font-size:12px;color:var(--text);background:#FAFBFC;border:1px solid var(--border);padding:6px 10px;border-radius:8px;margin-bottom:6px;white-space:pre-wrap;max-height:150px;overflow-y:auto;line-height:1.5">${esc(r.customer_memo)}</div>` : `<div style="font-size:12px;color:var(--text-light);margin-bottom:6px">메모 없음</div>`}
-                        <div style="display:flex;gap:6px;align-items:flex-end">
-                            <textarea id="quickMemo" rows="2" style="flex:1;min-height:44px;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;outline:none;transition:border-color 0.2s,box-shadow 0.2s" placeholder="메모 추가 입력" onfocus="this.style.borderColor='var(--primary)';this.style.boxShadow='0 0 0 3px rgba(79,70,229,0.1)'" onblur="this.style.borderColor='var(--border-strong)';this.style.boxShadow='none'"></textarea>
-                            <button class="btn-primary" style="padding:8px 14px;font-size:13px;white-space:nowrap;margin:0;flex-shrink:0;border-radius:8px" onclick="App.saveQuickMemo(${r.customer_id}, ${rid})">추가</button>
+                        ${r.customer_memo ? `<div style="font-size:12px;color:var(--text);background:#FAFBFC;border:1px solid var(--border);padding:6px 10px;border-radius:8px;margin-bottom:8px;white-space:pre-wrap;max-height:150px;overflow-y:auto;line-height:1.5">${esc(r.customer_memo)}</div>` : `<div style="font-size:12px;color:var(--text-light);margin-bottom:8px">메모 없음</div>`}
+                        <div style="display:flex;gap:8px;align-items:flex-end">
+                            <textarea id="quickMemo" rows="2" placeholder="메모 추가 입력"></textarea>
+                            <button class="btn-primary-sm" style="flex-shrink:0;padding:10px 16px" onclick="App.saveQuickMemo(${r.customer_id}, ${rid})">추가</button>
                         </div>
                     </div>
                 </div>
