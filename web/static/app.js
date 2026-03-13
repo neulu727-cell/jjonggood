@@ -696,8 +696,8 @@ const App = (() => {
                             if (resMemo) memoParts.push(resMemo);
                             const combined = memoParts.join('\n───\n');
                             return combined
-                                ? `<div style="font-size:12px;color:var(--text);background:#FAFBFC;border:1px solid var(--border);padding:8px 10px;border-radius:8px;margin-bottom:8px;white-space:pre-wrap;max-height:250px;overflow-y:auto;line-height:1.6">${esc(combined)}</div>`
-                                : `<div style="font-size:12px;color:var(--text-light);margin-bottom:8px">메모 없음</div>`;
+                                ? `<div style="font-size:14px;color:var(--text);background:#FAFBFC;border:1px solid var(--border);padding:10px 12px;border-radius:8px;margin-bottom:8px;white-space:pre-wrap;max-height:250px;overflow-y:auto;line-height:1.6">${esc(combined)}</div>`
+                                : `<div style="font-size:14px;color:var(--text-light);margin-bottom:8px">메모 없음</div>`;
                         })()}
                         <div style="display:flex;gap:8px;align-items:flex-end">
                             <textarea id="quickMemo" rows="2" placeholder="메모 추가 입력"></textarea>
