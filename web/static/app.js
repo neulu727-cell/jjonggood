@@ -684,7 +684,15 @@ const App = (() => {
 
                     <div>
                         <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">${esc(r.pet_name)} 메모</div>
-                        ${r.customer_memo ? `<div style="font-size:12px;color:var(--text);background:#FAFBFC;border:1px solid var(--border);padding:6px 10px;border-radius:8px;margin-bottom:8px;white-space:pre-wrap;max-height:150px;overflow-y:auto;line-height:1.5">${esc(r.customer_memo)}</div>` : `<div style="font-size:12px;color:var(--text-light);margin-bottom:8px">메모 없음</div>`}
+                        ${(() => {
+                            const memoParts = [];
+                            if (r.customer_memo) memoParts.push(r.customer_memo);
+                            if (resMemo) memoParts.push(resMemo);
+                            const combined = memoParts.join('\n───\n');
+                            return combined
+                                ? `<div style="font-size:12px;color:var(--text);background:#FAFBFC;border:1px solid var(--border);padding:6px 10px;border-radius:8px;margin-bottom:8px;white-space:pre-wrap;max-height:150px;overflow-y:auto;line-height:1.5">${esc(combined)}</div>`
+                                : `<div style="font-size:12px;color:var(--text-light);margin-bottom:8px">메모 없음</div>`;
+                        })()}
                         <div style="display:flex;gap:8px;align-items:flex-end">
                             <textarea id="quickMemo" rows="2" placeholder="메모 추가 입력"></textarea>
                             <button class="btn-primary-sm" style="flex-shrink:0;padding:10px 16px" onclick="App.saveQuickMemo(${r.customer_id}, ${rid})">추가</button>
