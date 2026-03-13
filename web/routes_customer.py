@@ -123,6 +123,7 @@ def get_customer(cid):
     if not d:
         return jsonify({"error": "not found"}), 404
 
+    # 현재 펫 예약 이력
     reservations = queries.get_customer_reservations(db, cid)
     res_list = [{
         "id": r.id, "date": r.date, "time": r.time,
@@ -130,9 +131,23 @@ def get_customer(cid):
         "amount": r.amount, "duration": r.duration,
         "request": r.request or "", "groomer_memo": r.groomer_memo or "",
         "fur_length": r.fur_length or "",
+        "pet_name": r.pet_name or "",
     } for r in reservations]
 
     siblings = queries.get_siblings(db, d.get("phone", ""), exclude_id=cid)
+
+    # 형제 강아지들의 예약 이력도 포함
+    sibling_reservations = {}
+    for s in siblings:
+        s_res = queries.get_customer_reservations(db, s["id"])
+        sibling_reservations[s["id"]] = [{
+            "id": r.id, "date": r.date, "time": r.time,
+            "service_type": r.service_type, "status": r.status,
+            "amount": r.amount, "duration": r.duration,
+            "request": r.request or "", "groomer_memo": r.groomer_memo or "",
+            "fur_length": r.fur_length or "",
+            "pet_name": r.pet_name or "",
+        } for r in s_res]
 
     return jsonify({
         "id": d["id"], "name": d.get("name", ""), "phone": d.get("phone", ""),
@@ -144,6 +159,7 @@ def get_customer(cid):
         "stats": d["stats"],
         "reservations": res_list,
         "siblings": siblings,
+        "sibling_reservations": sibling_reservations,
     })
 
 

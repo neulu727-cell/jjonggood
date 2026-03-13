@@ -1242,9 +1242,42 @@ const App = (() => {
             const c = await res.json();
 
             const stats = c.stats || { count: 0, total: 0, avg: 0 };
+
+            const firstVisit = c.reservations && c.reservations.length
+                ? c.reservations[c.reservations.length - 1].date : null;
+            const daysSinceLast = c.last_visit
+                ? Math.floor((Date.now() - new Date(c.last_visit + 'T00:00:00')) / 86400000)
+                : null;
+
+            // 모든 펫 정보 수집
+            const siblings = c.siblings || [];
+            const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, memo: c.memo || '' }, ...siblings.map(s => ({...s, memo: s.memo || ''}))];
+
+            // 펫 스위처
+            let petSwitcherHtml = '';
+            if (siblings.length > 0) {
+                petSwitcherHtml = '<div class="pet-switcher" style="margin-top:6px">' +
+                    allPets.map(p =>
+                        `<button class="pet-pill${p.id === c.id ? ' active' : ''}" onclick="App.showCustomerDetail(${p.id})">${esc(p.pet_name)}<span class="breed">${esc(p.breed)}</span></button>`
+                    ).join('') +
+                    `<button class="pet-pill pet-pill-add" onclick="App.addSiblingPet('${esc(c.phone)}', '${esc(c.name || '')}')">+ 추가</button>` +
+                    '</div>';
+            }
+
+            // 모든 강아지의 예약 이력 합치기 (날짜 내림차순)
+            const siblingRes = c.sibling_reservations || {};
+            let allReservations = (c.reservations || []).map(r => ({...r, _pet: c.pet_name}));
+            for (const s of siblings) {
+                const sRes = siblingRes[s.id] || [];
+                allReservations = allReservations.concat(sRes.map(r => ({...r, _pet: s.pet_name})));
+            }
+            allReservations.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+
+            const hasSiblings = siblings.length > 0;
+
             let historyHtml = '';
-            if (c.reservations && c.reservations.length) {
-                historyHtml = c.reservations.map(r => {
+            if (allReservations.length) {
+                historyHtml = allReservations.map(r => {
                     const statusLabel = STATUS_LABEL[r.status] || r.status;
                     const d = new Date(r.date + 'T00:00:00');
                     const dow = WEEKDAYS_KR[d.getDay()];
@@ -1252,11 +1285,12 @@ const App = (() => {
                     const timeStr = r.time ? ' ' + formatTime(r.time) : '';
                     const amt = r.amount ? r.amount.toLocaleString() + '원' : '';
                     const resMemo = [r.request, r.groomer_memo].filter(Boolean).join(' / ');
+                    const petTag = hasSiblings ? `<span style="font-size:10px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:1px 6px;border-radius:4px;margin-right:4px">${esc(r._pet)}</span>` : '';
                     return `
                         <div class="history-card" onclick="App.showReservationDetail(${r.id})">
                             <span class="res-status ${r.status}" style="min-width:36px;text-align:center">${statusLabel}</span>
                             <div class="history-card-body">
-                                <div class="history-card-date">${dateStr}${timeStr}</div>
+                                <div class="history-card-date">${petTag}${dateStr}${timeStr}</div>
                                 <div class="history-card-service">${esc(r.service_type)}${r.fur_length ? ' / ' + esc(r.fur_length) : ''}${amt ? ' · ' + amt : ''}</div>
                                 ${resMemo ? `<div style="font-size:11px;color:var(--text-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">${esc(resMemo)}</div>` : ''}
                             </div>
@@ -1267,36 +1301,6 @@ const App = (() => {
             } else {
                 historyHtml = '<p style="text-align:center;color:var(--text-light);padding:12px;font-size:13px">예약 이력 없음</p>';
             }
-
-            const firstVisit = c.reservations && c.reservations.length
-                ? c.reservations[c.reservations.length - 1].date : null;
-            const daysSinceLast = c.last_visit
-                ? Math.floor((Date.now() - new Date(c.last_visit + 'T00:00:00')) / 86400000)
-                : null;
-
-            // 펫 스위처 (siblings가 있을 때)
-            const siblings = c.siblings || [];
-            const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, memo: c.memo || '' }, ...siblings.map(s => ({...s, memo: s.memo || ''}))];
-            let petSwitcherHtml = '';
-            if (siblings.length > 0) {
-                petSwitcherHtml = '<div class="pet-switcher">' +
-                    allPets.map(p =>
-                        `<button class="pet-pill${p.id === c.id ? ' active' : ''}" onclick="App.showCustomerDetail(${p.id})">${esc(p.pet_name)}<span class="breed">${esc(p.breed)}</span></button>`
-                    ).join('') +
-                    `<button class="pet-pill pet-pill-add" onclick="App.addSiblingPet('${esc(c.phone)}', '${esc(c.name || '')}')">+ 추가</button>` +
-                    '</div>';
-            }
-
-            // 예약 이력에서 메모 요약 수집
-            const resMemoSummary = (c.reservations || [])
-                .filter(r => r.request || r.groomer_memo)
-                .slice(0, 5)
-                .map(r => {
-                    const d2 = new Date(r.date + 'T00:00:00');
-                    const dateShort = `${r.date.substring(5).replace('-','/')}`;
-                    const memo = [r.request, r.groomer_memo].filter(Boolean).join(' / ');
-                    return `<div style="display:flex;gap:6px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border)"><span style="color:var(--primary);white-space:nowrap;flex-shrink:0;font-weight:600">${esc(c.pet_name)}</span><span style="color:var(--text-light);white-space:nowrap;flex-shrink:0">${dateShort}</span><span style="color:var(--text)">${esc(memo)}</span></div>`;
-                }).join('');
 
             // 방문 주기 계산
             const cycleDays = (stats.count > 1 && firstVisit && c.last_visit)
@@ -1309,13 +1313,29 @@ const App = (() => {
             if (c.last_visit) visitParts.push(`최근 ${c.last_visit}${daysSinceLast !== null ? `(${daysSinceLast}일전)` : ''}`);
             if (cycleDays) visitParts.push(`주기 ${cycleDays}일`);
 
-            // 메모 HTML (현재 펫 + siblings)
-            const petMemos = allPets.filter(p => p.memo);
-            const memoHtml = petMemos.length
-                ? petMemos.map(p =>
-                    `<div style="margin-bottom:4px"><span style="font-size:11px;font-weight:600;color:var(--primary)">${esc(p.pet_name)}</span><div style="font-size:12px;color:var(--text);background:#fff;border:1px solid var(--border);padding:4px 8px;border-radius:6px;margin-top:1px;white-space:pre-wrap;line-height:1.5">${esc(p.memo)}</div></div>`
-                ).join('')
-                : '<span style="color:var(--text-light);font-size:12px">메모 없음</span>';
+            // 강아지별 통합 메모 (펫 메모 + 예약 메모를 하나로)
+            const memoHtml = allPets.map(p => {
+                // 이 강아지의 예약 메모들
+                const petRes = (p.id === c.id) ? (c.reservations || []) : (siblingRes[p.id] || []);
+                const resMemoParts = petRes
+                    .filter(r => r.request || r.groomer_memo)
+                    .slice(0, 5)
+                    .map(r => {
+                        const dateShort = r.date.substring(5).replace('-','/');
+                        const memo = [r.request, r.groomer_memo].filter(Boolean).join('/');
+                        return `${dateShort} ${memo}`;
+                    });
+
+                // 펫 메모 + 예약 메모 합치기
+                const allMemoLines = [];
+                if (p.memo) allMemoLines.push(p.memo);
+                if (resMemoParts.length) allMemoLines.push(resMemoParts.join('\n'));
+                const combined = allMemoLines.join('\n───\n');
+
+                if (!combined) return '';
+
+                return `<div style="margin-bottom:6px"><span style="font-size:11px;font-weight:600;color:var(--primary)">${esc(p.pet_name)}</span><div style="font-size:12px;color:var(--text);background:#fff;border:1px solid var(--border);padding:4px 8px;border-radius:6px;margin-top:1px;white-space:pre-wrap;line-height:1.5">${esc(combined)}</div></div>`;
+            }).join('');
 
             content.innerHTML = `
                 <div style="text-align:center;padding:8px 12px 4px">
@@ -1334,14 +1354,13 @@ const App = (() => {
                         ${visitParts.length ? `<div style="font-size:11px;color:var(--text-light);margin-bottom:8px;padding:0 2px">${visitParts.join(' · ')}</div>` : ''}
                         <div style="background:#FAFBFC;border-radius:8px;padding:8px 10px;margin-bottom:8px">
                             <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">메모</div>
-                            ${memoHtml}
-                            ${resMemoSummary ? `<div style="margin-top:6px;border-top:1px solid var(--border);padding-top:4px"><span style="font-size:10px;font-weight:600;color:var(--text-light)">예약 메모</span>${resMemoSummary}</div>` : ''}
+                            ${memoHtml || '<span style="color:var(--text-light);font-size:12px">메모 없음</span>'}
                         </div>
                         <button class="btn-secondary" style="padding:6px 0;font-size:13px" onclick="App.showCustomerForm_edit(${cid})">정보 수정</button>
                     </div>
 
                     <div style="max-height:calc(80vh - 120px);overflow-y:auto">
-                        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">예약 이력 (${(c.reservations||[]).length}건)</div>
+                        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">예약 이력 (${allReservations.length}건)</div>
                         ${historyHtml}
                     </div>
                 </div>
