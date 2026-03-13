@@ -837,7 +837,7 @@ const App = (() => {
                         </div>
                     </div>
                     <div class="ud-history-title">이력 (${historyItems.length}건)</div>
-                    <div style="max-height:35vh;overflow-y:auto">
+                    <div class="ud-history-scroll">
                         ${historyHtml}
                     </div>
                 </div>

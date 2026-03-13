@@ -956,15 +956,16 @@ textarea#quickMemo:focus {
         box-shadow: var(--shadow-lg); border-radius: 0 0 var(--radius-lg) var(--radius-lg);
     }
 
-    /* 통합 상세 2컬럼 */
-    .unified-grid {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; align-items: start;
-    }
     .wide-sheet .sheet-body { padding: 12px 20px; }
 }
 
 /* === 통합 상세 페이지 (compact) === */
 .unified-grid { display: grid; grid-template-columns: 1fr; gap: 8px 0; }
+@media (min-width: 900px) {
+    .unified-grid {
+        grid-template-columns: 1fr 1fr; gap: 0 20px; align-items: start;
+    }
+}
 
 /* 헤더 - 한 줄 최대 밀도 */
 .ud-header { padding: 4px 0 2px; }
@@ -1047,6 +1048,12 @@ textarea#quickMemo:focus {
 }
 
 /* 아코디언 이력 */
+.ud-history-scroll {
+    max-height: 50vh; overflow-y: auto;
+}
+@media (min-width: 900px) {
+    .ud-history-scroll { max-height: calc(70vh - 160px); }
+}
 .ud-history-title {
     font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px;
 }
