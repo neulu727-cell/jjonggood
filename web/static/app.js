@@ -1340,9 +1340,18 @@ const App = (() => {
                 if (resMemoParts.length) allMemoLines.push(resMemoParts.join('\n'));
                 const combined = allMemoLines.join('\n───\n');
 
-                if (!combined) return '';
-
-                return `<div style="margin-bottom:6px"><span style="font-size:11px;font-weight:600;color:var(--primary)">${esc(p.pet_name)}</span><div style="font-size:12px;color:var(--text);background:#fff;border:1px solid var(--border);padding:4px 8px;border-radius:6px;margin-top:1px;white-space:pre-wrap;line-height:1.5">${esc(combined)}</div></div>`;
+                return `<div style="margin-bottom:6px">
+                    <span style="font-size:11px;font-weight:600;color:var(--primary)">${esc(p.pet_name)}</span>
+                    <span style="font-size:11px;color:var(--text-light);cursor:pointer;margin-left:4px" onclick="App.toggleMemoEdit(${p.id}, ${cid})">✎</span>
+                    <div id="petMemoView_${p.id}" style="font-size:12px;color:var(--text);background:#fff;border:1px solid var(--border);padding:4px 8px;border-radius:6px;margin-top:1px;white-space:pre-wrap;line-height:1.5;min-height:20px">${combined ? esc(combined) : '<span style="color:var(--text-light)">메모 없음</span>'}</div>
+                    <div id="petMemoEdit_${p.id}" style="display:none;margin-top:1px">
+                        <textarea id="petMemoTA_${p.id}" style="width:100%;min-height:50px;padding:4px 8px;border:1.5px solid var(--primary);border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box">${esc(p.memo)}</textarea>
+                        <div style="display:flex;gap:4px;margin-top:4px">
+                            <button class="btn-primary-sm" style="padding:4px 12px;font-size:11px" onclick="App.savePetMemo(${p.id}, ${cid})">저장</button>
+                            <button style="padding:4px 12px;font-size:11px;background:none;border:1px solid var(--border-strong);border-radius:6px;cursor:pointer;color:var(--text-light)" onclick="App.toggleMemoEdit(${p.id}, ${cid})">취소</button>
+                        </div>
+                    </div>
+                </div>`;
             }).join('');
 
             content.innerHTML = `
@@ -1375,6 +1384,42 @@ const App = (() => {
             `;
         } catch (e) {
             content.innerHTML = '<p style="text-align:center;color:#999;padding:20px">불러오기 실패</p>';
+        }
+    }
+
+    function toggleMemoEdit(petId, mainCid) {
+        const viewEl = document.getElementById('petMemoView_' + petId);
+        const editEl = document.getElementById('petMemoEdit_' + petId);
+        if (!viewEl || !editEl) return;
+        const isEditing = editEl.style.display !== 'none';
+        viewEl.style.display = isEditing ? '' : 'none';
+        editEl.style.display = isEditing ? 'none' : '';
+        if (!isEditing) {
+            const ta = document.getElementById('petMemoTA_' + petId);
+            if (ta) ta.focus();
+        }
+    }
+
+    async function savePetMemo(petId, mainCid) {
+        const ta = document.getElementById('petMemoTA_' + petId);
+        if (!ta) return;
+        const memo = ta.value;
+        try {
+            const res = await fetch(`/api/customer/${petId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memo }),
+            });
+            const result = await res.json();
+            if (result.ok) {
+                toast('메모 저장됨');
+                cachedCustomers = null;
+                showCustomerDetail(mainCid);
+            } else {
+                toast(result.error || '저장 실패');
+            }
+        } catch (e) {
+            toast('저장 실패');
         }
     }
 
@@ -1999,7 +2044,7 @@ const App = (() => {
         showReservationDetail, showEditReservation,
         updateReservation, changeStatus,
         searchCustomers, setCustomerSort, showCustomerDetail,
-        showCustomerForm_edit, addSiblingPet,
+        showCustomerForm_edit, addSiblingPet, toggleMemoEdit, savePetMemo,
         saveCustomer, deleteCustomer, onBreedInput, onBreedKeydown, selectBreed,
         toggleCallHistory, showCallPopup, closeCallPopup,
         reserveFromCall, registerFromCall, downloadBackup,
