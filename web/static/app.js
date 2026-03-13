@@ -714,33 +714,6 @@ const App = (() => {
         if (cycleDays) vp.push(`주기 ${cycleDays}일`);
         if (vp.length) visitLine = vp.join(' · ');
 
-        // 현재 예약 하이라이트 (컴팩트)
-        let highlightHtml = '';
-        if (activeRes) {
-            const r = activeRes;
-            const statusText = STATUS_LABEL[r.status] || r.status;
-            const amtText = r.amount ? r.amount.toLocaleString() + '원' : '';
-            const d = new Date(r.date + 'T00:00:00');
-            const dow = WEEKDAYS_KR[d.getDay()];
-            const payText = r.payment_method ? ` ${esc(r.payment_method)}` : '';
-            const hlLabel = r.status === 'completed' ? '최근 미용' : r.status === 'cancelled' ? '취소된 예약' : r.status === 'no_show' ? '노쇼 예약' : '예약 정보';
-            const hlPetTag = hasSiblings && r.pet_name ? `<span style="font-size:11px;font-weight:600;color:var(--primary);margin-right:4px">${esc(r.pet_name)}</span>` : '';
-            highlightHtml = `
-                <div class="ud-highlight">
-                    <div class="ud-hl-label">${hlLabel}</div>
-                    <div class="ud-hl-main">${hlPetTag}${r.date.substring(5).replace('-','.')}(${dow}) ${formatTime(r.time)}~${formatTime(r.end_time)} · <span class="res-status ${r.status}">${statusText}</span></div>
-                    <div class="ud-hl-sub">${esc(r.service_type)} ${r.duration}분${r.fur_length ? ' / '+esc(r.fur_length) : ''} · ${amtText}${payText}</div>
-                    <div class="ud-hl-actions">
-                        <button class="btn-secondary" onclick="App.showEditReservation(${r.id})">수정</button>
-                        ${r.status === 'confirmed' ? `
-                            <button class="btn-status yellow" data-pet="${esc(r.pet_name)}" onclick="App.enterMoveMode(${r.id},this.dataset.pet)">날짜변경</button>
-                            <button class="btn-status green" onclick="App.changeStatus(${r.id},'completed')">완료</button>
-                        ` : ''}
-                        ${r.status === 'completed' ? `<button class="btn-secondary" onclick="App.changeStatus(${r.id},'confirmed')">되돌리기</button>` : ''}
-                    </div>
-                </div>`;
-        }
-
         // 강아지별 통합 메모 (컴팩트)
         const memoHtml = allPets.map(p => {
             const petRes = (p.id === c.id) ? (c.reservations || []) : (siblingRes[p.id] || []);
@@ -770,12 +743,12 @@ const App = (() => {
             </div>`;
         }).join('');
 
-        // 아코디언 이력 (activeRes 제외)
+        // 아코디언 이력 (모든 예약 표시, activeRes는 자동 펼침+강조)
         const activeResId = activeRes ? activeRes.id : null;
-        const historyItems = allReservations.filter(r => r.id !== activeResId);
         let historyHtml = '';
-        if (historyItems.length) {
-            historyHtml = historyItems.map(r => {
+        if (allReservations.length) {
+            historyHtml = allReservations.map(r => {
+                const isActive = r.id === activeResId;
                 const statusLabel = STATUS_LABEL[r.status] || r.status;
                 const d = new Date(r.date + 'T00:00:00');
                 const dow = WEEKDAYS_KR[d.getDay()];
@@ -785,8 +758,8 @@ const App = (() => {
                 const resMemo = [r.request, r.groomer_memo].filter(Boolean).join(' / ');
                 const petTag = hasSiblings ? `<span style="font-size:10px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:1px 5px;border-radius:3px;margin-right:3px">${esc(r._pet)}</span>` : '';
                 return `
-                    <div class="ud-acc-item" id="acc_${r.id}">
-                        <button type="button" class="ud-acc-header" onclick="App.toggleHistoryAccordion(${r.id})" aria-expanded="false" aria-controls="acc_body_${r.id}">
+                    <div class="ud-acc-item${isActive ? ' open active-res' : ''}" id="acc_${r.id}">
+                        <button type="button" class="ud-acc-header" onclick="App.toggleHistoryAccordion(${r.id})" aria-expanded="${isActive}" aria-controls="acc_body_${r.id}">
                             <span class="res-status ${r.status}" style="min-width:32px;text-align:center;font-size:11px">${statusLabel}</span>
                             <div style="flex:1;min-width:0">
                                 <div style="font-size:12px">${petTag}${dateStr}${timeStr}</div>
@@ -829,9 +802,6 @@ const App = (() => {
                         <strong>${totalCount}</strong>회 방문 · 매출 <strong>${salesText}</strong>
                         ${visitLine ? `<br>${visitLine}` : ''}
                     </div>
-                    ${highlightHtml}
-                </div>
-                <div>
                     <div class="ud-memo">
                         <div class="ud-memo-title">메모</div>
                         ${memoHtml || '<span style="color:var(--text-light);font-size:11px">메모 없음</span>'}
@@ -840,7 +810,9 @@ const App = (() => {
                             <button class="btn-primary-sm" style="flex-shrink:0;padding:6px 12px;font-size:12px" onclick="App.saveQuickMemo(${c.id})">추가</button>
                         </div>
                     </div>
-                    <div class="ud-history-title">이력 (${historyItems.length}건)</div>
+                </div>
+                <div>
+                    <div class="ud-history-title">이력 (${allReservations.length}건)</div>
                     <div class="ud-history-scroll">
                         ${historyHtml}
                     </div>

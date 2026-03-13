@@ -1004,28 +1004,13 @@ textarea#quickMemo:focus {
     font-size: 14px; font-weight: 700; color: var(--primary);
 }
 
-/* 현재 예약 하이라이트 - 좌측 액센트 바 */
-.ud-highlight {
+/* 활성 예약 강조 (타임라인에서 클릭한 항목) */
+.ud-acc-item.active-res {
     border-left: 3px solid #7C3AED;
     background: #F5F3FF; border-radius: 0 6px 6px 0;
-    padding: 8px 10px; margin: 4px 0;
+    margin: 2px 0;
 }
-.ud-highlight .ud-hl-label {
-    font-size: 10px; font-weight: 700; color: #5B21B6;
-    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;
-}
-.ud-highlight .ud-hl-main {
-    font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.5;
-}
-.ud-highlight .ud-hl-sub {
-    font-size: 12px; color: var(--text-secondary); line-height: 1.5;
-}
-.ud-highlight .ud-hl-actions {
-    display: flex; gap: 4px; margin-top: 6px;
-}
-.ud-highlight .ud-hl-actions button {
-    flex: 1; min-width: 0; margin: 0; padding: 5px 0; font-size: 12px;
-}
+.ud-acc-item.active-res .ud-acc-header { padding-left: 6px; }
 
 /* 정보수정 - 텍스트 링크 */
 .ud-edit-link {
