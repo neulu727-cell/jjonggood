@@ -128,6 +128,8 @@ def get_customer(cid):
         "id": r.id, "date": r.date, "time": r.time,
         "service_type": r.service_type, "status": r.status,
         "amount": r.amount, "duration": r.duration,
+        "request": r.request or "", "groomer_memo": r.groomer_memo or "",
+        "fur_length": r.fur_length or "",
     } for r in reservations]
 
     siblings = queries.get_siblings(db, d.get("phone", ""), exclude_id=cid)

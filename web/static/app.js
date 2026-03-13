@@ -1249,19 +1249,21 @@ const App = (() => {
                     const dateStr = `${r.date.replace(/-/g,'.')}(${dow})`;
                     const timeStr = r.time ? ' ' + formatTime(r.time) : '';
                     const amt = r.amount ? r.amount.toLocaleString() + '원' : '';
+                    const resMemo = [r.request, r.groomer_memo].filter(Boolean).join(' / ');
                     return `
                         <div class="history-card" onclick="App.showReservationDetail(${r.id})">
                             <span class="res-status ${r.status}" style="min-width:36px;text-align:center">${statusLabel}</span>
                             <div class="history-card-body">
                                 <div class="history-card-date">${dateStr}${timeStr}</div>
-                                <div class="history-card-service">${esc(r.service_type)}${amt ? ' · ' + amt : ''}</div>
+                                <div class="history-card-service">${esc(r.service_type)}${r.fur_length ? ' / ' + esc(r.fur_length) : ''}${amt ? ' · ' + amt : ''}</div>
+                                ${resMemo ? `<div style="font-size:11px;color:var(--text-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">${esc(resMemo)}</div>` : ''}
                             </div>
                             <span style="color:var(--text-light);font-size:16px">&#8250;</span>
                         </div>
                     `;
                 }).join('');
             } else {
-                historyHtml = '<p style="text-align:center;color:var(--text-light);padding:24px">예약 이력 없음</p>';
+                historyHtml = '<p style="text-align:center;color:var(--text-light);padding:12px;font-size:13px">예약 이력 없음</p>';
             }
 
             const firstVisit = c.reservations && c.reservations.length
@@ -1283,50 +1285,56 @@ const App = (() => {
                     '</div>';
             }
 
+            // 예약 이력에서 메모 요약 수집
+            const resMemoSummary = (c.reservations || [])
+                .filter(r => r.request || r.groomer_memo)
+                .slice(0, 5)
+                .map(r => {
+                    const d2 = new Date(r.date + 'T00:00:00');
+                    const dateShort = `${r.date.substring(5).replace('-','/')}`;
+                    const memo = [r.request, r.groomer_memo].filter(Boolean).join(' / ');
+                    return `<div style="display:flex;gap:6px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border)"><span style="color:var(--text-light);white-space:nowrap;flex-shrink:0">${dateShort}</span><span style="color:var(--text)">${esc(memo)}</span></div>`;
+                }).join('');
+
             content.innerHTML = `
-                <div class="detail-section" style="text-align:center;padding:16px">
-                    <div style="font-size:18px;font-weight:bold;margin-bottom:4px">${esc(c.pet_name)} <span style="font-weight:normal;color:var(--text-light)">${esc(c.breed)}</span></div>
+                <div class="detail-section" style="text-align:center;padding:12px">
+                    <div style="font-size:17px;font-weight:bold;margin-bottom:3px">${esc(c.pet_name)} <span style="font-weight:normal;color:var(--text-light)">${esc(c.breed)}</span></div>
                     <div style="color:var(--text-light);font-size:13px">${esc(c.name || '')} · <a href="tel:${c.phone}" style="color:var(--primary)">${esc(c.phone_display)}</a></div>
                     ${petSwitcherHtml}
                 </div>
 
-                <div class="stat-cards">
-                    <div class="stat-card">
-                        <div class="num">${stats.count}</div>
-                        <div class="label">총 방문</div>
+                <div class="res-detail-grid">
+                    <div>
+                        <div class="stat-cards" style="margin-bottom:12px">
+                            <div class="stat-card"><div class="num">${stats.count}</div><div class="label">방문</div></div>
+                            <div class="stat-card"><div class="num">${stats.total ? stats.total.toLocaleString() : 0}</div><div class="label">매출</div></div>
+                            <div class="stat-card"><div class="num">${stats.avg ? stats.avg.toLocaleString() : 0}</div><div class="label">평균</div></div>
+                        </div>
+                        <div class="detail-section" style="padding:10px;margin-bottom:10px">
+                            ${firstVisit ? `<div class="detail-row"><span class="label">첫 방문</span><span class="value">${firstVisit}</span></div>` : ''}
+                            ${c.last_visit ? `<div class="detail-row"><span class="label">최근</span><span class="value">${c.last_visit}${daysSinceLast !== null ? ` (${daysSinceLast}일 전)` : ''}</span></div>` : ''}
+                            ${stats.count > 1 ? `<div class="detail-row"><span class="label">주기</span><span class="value">${firstVisit && c.last_visit ? Math.round((new Date(c.last_visit+'T00:00:00') - new Date(firstVisit+'T00:00:00')) / 86400000 / (stats.count - 1)) + '일' : '-'}</span></div>` : ''}
+                        </div>
+                        <div class="detail-section" style="padding:10px;margin-bottom:10px">
+                            <h4 style="margin-bottom:6px">메모</h4>
+                            ${allPets.filter(p => p.memo).length ? allPets.filter(p => p.memo).map(p =>
+                                `<div style="margin-bottom:6px">
+                                    <span style="font-size:11px;font-weight:600;color:var(--primary)">${esc(p.pet_name)}</span>
+                                    <div style="font-size:12px;color:var(--text);background:#fff;border:1px solid var(--border);padding:6px 8px;border-radius:var(--radius-sm);margin-top:2px;white-space:pre-wrap">${esc(p.memo)}</div>
+                                </div>`
+                            ).join('') : '<p style="color:var(--text-light);font-size:12px;margin:0">메모 없음</p>'}
+                            ${resMemoSummary ? `<div style="margin-top:8px"><span style="font-size:11px;font-weight:600;color:var(--text-secondary)">최근 예약 메모</span>${resMemoSummary}</div>` : ''}
+                        </div>
+                        <button class="btn-secondary" style="padding:8px 0;font-size:13px" onclick="App.showCustomerForm_edit(${cid})">정보 수정</button>
                     </div>
-                    <div class="stat-card">
-                        <div class="num">${stats.total ? stats.total.toLocaleString() : 0}</div>
-                        <div class="label">총 매출</div>
+
+                    <div>
+                        <div class="detail-section" style="padding:10px;margin-bottom:0;max-height:400px;overflow-y:auto">
+                            <h4 style="margin-bottom:6px">예약 이력 (${(c.reservations||[]).length}건)</h4>
+                            ${historyHtml}
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="num">${stats.avg ? stats.avg.toLocaleString() : 0}</div>
-                        <div class="label">평균 단가</div>
-                    </div>
                 </div>
-
-                <div class="detail-section">
-                    ${firstVisit ? `<div class="detail-row"><span class="label">첫 방문</span><span class="value">${firstVisit}</span></div>` : ''}
-                    ${c.last_visit ? `<div class="detail-row"><span class="label">마지막 방문</span><span class="value">${c.last_visit}${daysSinceLast !== null ? ` (${daysSinceLast}일 전)` : ''}</span></div>` : ''}
-                    ${stats.count ? `<div class="detail-row"><span class="label">방문 주기</span><span class="value">${firstVisit && c.last_visit && stats.count > 1 ? Math.round((new Date(c.last_visit+'T00:00:00') - new Date(firstVisit+'T00:00:00')) / 86400000 / (stats.count - 1)) + '일' : '-'}</span></div>` : ''}
-                </div>
-
-                <div class="detail-section">
-                    <h4>메모</h4>
-                    ${allPets.filter(p => p.memo).length ? allPets.filter(p => p.memo).map(p =>
-                        `<div style="margin-bottom:8px">
-                            <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">${esc(p.pet_name)}</span>
-                            <div style="font-size:13px;color:var(--text);background:#fff;border:1px solid var(--border);padding:8px 10px;border-radius:var(--radius-sm);margin-top:4px;white-space:pre-wrap">${esc(p.memo)}</div>
-                        </div>`
-                    ).join('') : '<p style="text-align:center;color:var(--text-light);padding:8px;font-size:13px">메모 없음</p>'}
-                </div>
-
-                <div class="detail-section">
-                    <h4>예약 이력</h4>
-                    ${historyHtml}
-                </div>
-
-                <button class="btn-secondary" onclick="App.showCustomerForm_edit(${cid})">정보 수정</button>
             `;
         } catch (e) {
             content.innerHTML = '<p style="text-align:center;color:#999;padding:20px">불러오기 실패</p>';
