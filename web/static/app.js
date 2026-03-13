@@ -224,7 +224,8 @@ const App = (() => {
                     const startLabel = formatTime(r.time);
                     const endLabel = formatTime(r.end_time);
                     const statusCls = r.status || 'confirmed';
-                    const statusText = STATUS_LABEL[statusCls] || statusCls;
+                    const TL_LABEL = { confirmed: '예약', completed: '미용완료', cancelled: '취소', no_show: '노쇼' };
+                    const statusText = TL_LABEL[statusCls] || statusCls;
                     const breedText = r.breed ? `(${r.breed})` : '';
                     const amtText = r.amount ? `${r.amount.toLocaleString()}원` : '';
                     const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
@@ -245,7 +246,7 @@ const App = (() => {
                                 <div class="res-service">${esc(r.service)}${furText}${amtText ? ' · ' + amtText : ''}</div>
                                 ${memoText}
                             </div>
-                            ${isPast ? '' : `<span class="res-status ${statusCls}">${statusText}</span>`}
+                            <span class="res-status ${statusCls}">${statusText}</span>
                         </div>`;
                 }
                 rendered.add(slot);
@@ -724,9 +725,10 @@ const App = (() => {
             const d = new Date(r.date + 'T00:00:00');
             const dow = WEEKDAYS_KR[d.getDay()];
             const payText = r.payment_method ? ` ${esc(r.payment_method)}` : '';
+            const hlLabel = r.status === 'completed' ? '최근 미용' : r.status === 'cancelled' ? '취소된 예약' : r.status === 'no_show' ? '노쇼 예약' : '예약 정보';
             highlightHtml = `
                 <div class="ud-highlight">
-                    <div class="ud-hl-label">현재 예약</div>
+                    <div class="ud-hl-label">${hlLabel}</div>
                     <div class="ud-hl-main">${r.date.substring(5).replace('-','.')}(${dow}) ${formatTime(r.time)}~${formatTime(r.end_time)} · <span class="res-status ${r.status}">${statusText}</span></div>
                     <div class="ud-hl-sub">${esc(r.service_type)} ${r.duration}분${r.fur_length ? ' / '+esc(r.fur_length) : ''} · ${amtText}${payText}</div>
                     <div class="ud-hl-actions">
@@ -813,9 +815,15 @@ const App = (() => {
         }
 
         content.innerHTML = `
-            <div class="ud-header">
-                <div><span class="ud-pet">${esc(c.pet_name)}</span> <span class="ud-breed">${esc(c.breed)}${c.weight ? ' · '+c.weight+'kg' : ''}</span></div>
-                <div class="ud-owner">${esc(c.name||'')} · <a href="tel:${c.phone}" style="color:var(--primary)">${esc(c.phone_display)}</a></div>
+            <div class="ud-header-bar">
+                <div class="ud-header-main">
+                    <span class="ud-pet-name">${esc(c.pet_name)}</span>
+                    <span class="ud-pet-info">${esc(c.breed)}${c.weight ? ' · '+c.weight+'kg' : ''}</span>
+                    <span class="ud-pet-divider">|</span>
+                    <span class="ud-pet-owner">${esc(c.name||'')}</span>
+                    <a href="tel:${c.phone}" class="ud-pet-phone">${esc(c.phone_display)}</a>
+                    <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})">수정</button>
+                </div>
                 ${petSwitcherHtml}
             </div>
             <div class="unified-grid">
@@ -825,7 +833,6 @@ const App = (() => {
                         ${visitLine ? `<br>${visitLine}` : ''}
                     </div>
                     ${highlightHtml}
-                    <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})">정보 수정</button>
                 </div>
                 <div>
                     <div class="ud-memo">

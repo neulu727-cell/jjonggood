@@ -967,18 +967,34 @@ textarea#quickMemo:focus {
     }
 }
 
-/* 헤더 - 한 줄 최대 밀도 */
-.ud-header { padding: 4px 0 2px; }
-.ud-header .ud-pet {
-    font-size: 15px; font-weight: 700; display: inline;
+/* 헤더 바 - 전체 너비, 한 줄 크게 */
+.ud-header-bar {
+    padding: 0 0 6px; margin-bottom: 4px;
+    border-bottom: 1px solid var(--border);
 }
-.ud-header .ud-breed {
-    font-size: 13px; font-weight: 400; color: var(--text-light);
+.ud-header-main {
+    display: flex; align-items: baseline; flex-wrap: wrap;
+    gap: 4px 8px;
 }
-.ud-header .ud-owner {
-    font-size: 12px; color: var(--text-light); margin-top: 1px;
+.ud-pet-name {
+    font-size: 20px; font-weight: 800; color: var(--text);
 }
-.ud-header .pet-switcher { margin-top: 4px; }
+.ud-pet-info {
+    font-size: 14px; font-weight: 500; color: var(--text-secondary);
+}
+.ud-pet-divider {
+    font-size: 14px; color: var(--border-strong); margin: 0 2px;
+}
+.ud-pet-owner {
+    font-size: 14px; color: var(--text-secondary);
+}
+.ud-pet-phone {
+    font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;
+}
+.ud-header-bar .ud-edit-link {
+    margin-left: auto;
+}
+.ud-header-bar .pet-switcher { margin-top: 4px; }
 
 /* 인라인 통계 - 박스 없이 텍스트 */
 .ud-stats {
