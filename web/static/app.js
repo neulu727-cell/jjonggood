@@ -1328,13 +1328,12 @@ const App = (() => {
             if (c.last_visit) visitParts.push(`최근 ${c.last_visit}${daysSinceLast !== null ? `(${daysSinceLast}일전)` : ''}`);
             if (cycleDays) visitParts.push(`주기 ${cycleDays}일`);
 
-            // 강아지별 통합 메모 (펫 메모 + 예약 메모를 하나로)
+            // 강아지별 통합 메모 (펫 메모 + 모든 예약 메모를 하나로)
             const memoHtml = allPets.map(p => {
                 // 이 강아지의 예약 메모들
                 const petRes = (p.id === c.id) ? (c.reservations || []) : (siblingRes[p.id] || []);
                 const resMemoParts = petRes
                     .filter(r => r.request || r.groomer_memo)
-                    .slice(0, 5)
                     .map(r => {
                         const dateShort = r.date.substring(5).replace('-','/');
                         const memo = [r.request, r.groomer_memo].filter(Boolean).join('/');
@@ -1350,9 +1349,9 @@ const App = (() => {
                 return `<div style="margin-bottom:6px">
                     <span style="font-size:11px;font-weight:600;color:var(--primary)">${esc(p.pet_name)}</span>
                     <span style="font-size:11px;color:var(--text-light);cursor:pointer;margin-left:4px" onclick="App.toggleMemoEdit(${p.id}, ${cid})">✎</span>
-                    <div id="petMemoView_${p.id}" style="font-size:12px;color:var(--text);background:#fff;border:1px solid var(--border);padding:4px 8px;border-radius:6px;margin-top:1px;white-space:pre-wrap;line-height:1.5;min-height:20px">${combined ? esc(combined) : '<span style="color:var(--text-light)">메모 없음</span>'}</div>
+                    <div id="petMemoView_${p.id}" style="font-size:14px;color:var(--text);background:#fff;border:1px solid var(--border);padding:6px 10px;border-radius:6px;margin-top:1px;white-space:pre-wrap;line-height:1.6;min-height:24px">${combined ? esc(combined) : '<span style="color:var(--text-light);font-size:12px">메모 없음</span>'}</div>
                     <div id="petMemoEdit_${p.id}" style="display:none;margin-top:1px">
-                        <textarea id="petMemoTA_${p.id}" style="width:100%;min-height:50px;padding:4px 8px;border:1.5px solid var(--primary);border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box">${esc(p.memo)}</textarea>
+                        <textarea id="petMemoTA_${p.id}" style="width:100%;min-height:50px;padding:6px 10px;border:1.5px solid var(--primary);border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;box-sizing:border-box">${esc(p.memo)}</textarea>
                         <div style="display:flex;gap:4px;margin-top:4px">
                             <button class="btn-primary-sm" style="padding:4px 12px;font-size:11px" onclick="App.savePetMemo(${p.id}, ${cid})">저장</button>
                             <button style="padding:4px 12px;font-size:11px;background:none;border:1px solid var(--border-strong);border-radius:6px;cursor:pointer;color:var(--text-light)" onclick="App.toggleMemoEdit(${p.id}, ${cid})">취소</button>
