@@ -1272,7 +1272,7 @@ const App = (() => {
 
             // 펫 스위처 (siblings가 있을 때)
             const siblings = c.siblings || [];
-            const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, memo: c.memo }, ...siblings];
+            const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, memo: c.memo || '' }, ...siblings.map(s => ({...s, memo: s.memo || ''}))];
             let petSwitcherHtml = '';
             if (siblings.length > 0) {
                 petSwitcherHtml = '<div class="pet-switcher">' +
