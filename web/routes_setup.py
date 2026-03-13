@@ -213,18 +213,21 @@ set STARTUP_DIR=%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup
 :: 기존 VBS 방식 제거
 if exist "%STARTUP_DIR%\\jjonggood_bridge.vbs" del "%STARTUP_DIR%\\jjonggood_bridge.vbs"
 
-:: 시작프로그램 bat (GUI 창이 보이도록 직접 실행)
+:: pythonw 경로 설정 (CMD 없이 GUI만 표시)
+set LOCAL_PYTHONW=%LOCAL_PYTHON:python.exe=pythonw.exe%
+:: 시스템 python인 경우 pythonw로 변경
+if "%LOCAL_PYTHON%"=="python" set LOCAL_PYTHONW=pythonw
+
+:: 시작프로그램 bat (CMD 없이 GUI만)
 echo @echo off> "%STARTUP_DIR%\\jjonggood_monitor.bat"
 echo cd /d "%INSTALL_DIR%">> "%STARTUP_DIR%\\jjonggood_monitor.bat"
-echo start "" "%LOCAL_PYTHON%" adb_bridge.py>> "%STARTUP_DIR%\\jjonggood_monitor.bat"
+echo start "" "%LOCAL_PYTHONW%" adb_bridge.py>> "%STARTUP_DIR%\\jjonggood_monitor.bat"
 echo        OK
 
-:: run_bridge.bat (수동 실행용)
+:: run_bridge.bat (수동 실행용 — CMD 없이 GUI만)
 echo @echo off> "%INSTALL_DIR%\\run_bridge.bat"
-echo title JJongGood Monitor>> "%INSTALL_DIR%\\run_bridge.bat"
 echo cd /d "%INSTALL_DIR%">> "%INSTALL_DIR%\\run_bridge.bat"
-echo "%LOCAL_PYTHON%" adb_bridge.py>> "%INSTALL_DIR%\\run_bridge.bat"
-echo pause>> "%INSTALL_DIR%\\run_bridge.bat"
+echo start "" "%LOCAL_PYTHONW%" adb_bridge.py>> "%INSTALL_DIR%\\run_bridge.bat"
 
 :: backup 폴더 생성
 if not exist "%INSTALL_DIR%\\backup" mkdir "%INSTALL_DIR%\\backup"
@@ -246,14 +249,9 @@ echo.
 
 cd /d "%INSTALL_DIR%"
 echo.
-echo   Starting adb_bridge.py...
-echo   (If it closes immediately, check for errors below)
+echo   Starting monitor (GUI only, no CMD)...
 echo.
-"%LOCAL_PYTHON%" adb_bridge.py
-echo.
-echo ============================================
-echo   Program exited. (exit code: %errorlevel%)
-echo ============================================
+start "" "%LOCAL_PYTHONW%" adb_bridge.py
 echo   If you see errors above, please check:
 echo   - .env file exists with RENDER_URL and TASKER_API_KEY
 echo   - adb_bridge.py was downloaded correctly
