@@ -94,7 +94,7 @@ def get_reservation(rid):
         "customer_memo": customer.memo if customer else "",
         "status": r.status,
         "completed_at": r.completed_at,
-        "siblings": [{"id": s.id, "pet_name": s.pet_name, "breed": s.breed} for s in siblings],
+        "siblings": [{"id": s["id"], "pet_name": s["pet_name"], "breed": s["breed"]} for s in siblings],
     })
 
 
