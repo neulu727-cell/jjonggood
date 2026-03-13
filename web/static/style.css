@@ -1024,7 +1024,7 @@ textarea#quickMemo:focus {
 
 /* 아코디언 이력 */
 .ud-history-scroll {
-    max-height: 50vh; overflow-y: auto;
+    max-height: 50vh; overflow-y: auto; overflow-x: hidden;
 }
 @media (min-width: 900px) {
     .ud-history-scroll { max-height: calc(70vh - 160px); }
@@ -1045,7 +1045,7 @@ textarea#quickMemo:focus {
     flex-shrink: 0;
 }
 .ud-acc-item.open .ud-acc-header .arrow { transform: rotate(90deg); }
-.ud-acc-body { display: none; padding: 0 0 8px 44px; }
+.ud-acc-body { display: none; padding: 0 0 8px 12px; }
 .ud-acc-item.open .ud-acc-body { display: block; }
 .ud-acc-body .detail-row {
     display: flex; justify-content: space-between;
