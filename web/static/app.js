@@ -737,7 +737,7 @@ const App = (() => {
                 <button type="button" style="font-size:12px;color:var(--text-light);background:none;border:none;cursor:pointer;padding:2px 6px;vertical-align:middle" onclick="App.toggleMemoEdit(${p.id}, ${c.id})" aria-label="${esc(p.pet_name)} 메모 편집">✎</button>
                 <div id="petMemoView_${p.id}" class="memo-text">${combined ? esc(combined) : '<span style="color:var(--text-light);font-size:11px">메모 없음</span>'}</div>
                 <div id="petMemoEdit_${p.id}" style="display:none;margin-top:1px">
-                    <textarea id="petMemoTA_${p.id}" style="width:100%;min-height:40px;padding:4px 8px;border:1.5px solid var(--primary);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">${esc(p.memo)}</textarea>
+                    <textarea id="petMemoTA_${p.id}" style="width:100%;min-height:40px;padding:4px 8px;border:1.5px solid var(--primary);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">${esc(combined)}</textarea>
                     <div style="display:flex;gap:4px;margin-top:3px">
                         <button class="btn-primary-sm" style="padding:3px 10px;font-size:11px" onclick="App.savePetMemo(${p.id}, ${c.id})">저장</button>
                         <button style="padding:3px 10px;font-size:11px;background:none;border:1px solid var(--border-strong);border-radius:5px;cursor:pointer;color:var(--text-light)" onclick="App.toggleMemoEdit(${p.id}, ${c.id})">취소</button>
