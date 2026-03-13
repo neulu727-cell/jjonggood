@@ -979,13 +979,7 @@ textarea#quickMemo:focus {
     font-size: 14px; font-weight: 700; color: var(--primary);
 }
 
-/* 활성 예약 강조 (타임라인에서 클릭한 항목) */
-.ud-acc-item.active-res {
-    border-left: 3px solid #7C3AED;
-    background: #F5F3FF; border-radius: 0 6px 6px 0;
-    margin: 2px 0;
-}
-.ud-acc-item.active-res .ud-acc-header { padding-left: 6px; }
+/* 활성 예약 (타임라인에서 클릭한 항목 — 자동 펼침만, 별도 스타일 없음) */
 
 /* 정보수정 - 텍스트 링크 */
 .ud-edit-link {
