@@ -114,8 +114,8 @@ function closeSheet(id) {
 ### 통합 상세뷰 (unified-grid)
 ```html
 <div class="unified-grid">
-    <div><!-- 좌: 인라인 통계 + 방문정보 + 현재예약 하이라이트 + 정보수정 링크 --></div>
-    <div><!-- 우: 메모(편집+퀵추가) + 아코디언 이력 --></div>
+    <div><!-- 좌: 인라인 통계 + 메모(편집+퀵추가) --></div>
+    <div><!-- 우: 아코디언 이력 (activeRes 자동 펼침) --></div>
 </div>
 ```
 ```css
@@ -196,29 +196,36 @@ function closeSheet(id) {
 
 ## 통합 상세 — 컴팩트 컴포넌트
 
+### 헤더 바 (ud-header-bar)
+모든 펫을 전체 너비로 크게 표시. 펫 스위처(pill 전환) 없음.
+```html
+<div class="ud-header-bar">
+    <div class="ud-header-main">
+        <span class="ud-pet-name">두리</span><span class="ud-pet-info">비숑 · 5kg</span>
+        <span class="ud-pet-divider">/</span>
+        <span class="ud-pet-name">몽실</span><span class="ud-pet-info">시츄 · 4.5kg</span>
+        <button class="pet-pill pet-pill-add">+</button>
+        <span class="ud-pet-divider">|</span>
+        <a href="tel:..." class="ud-pet-phone">010-1234-5678</a>
+        <button class="ud-edit-link">수정</button>
+    </div>
+</div>
+```
+
 ### 인라인 통계 (ud-stats)
-박스/카드 금지. 텍스트 한 줄로 표현, strong 태그로 숫자만 강조.
+박스/카드 금지. 전체 가족 합산. strong 태그로 숫자만 강조.
 ```html
 <div class="ud-stats">
-    <strong>12</strong>회 방문 · 매출 <strong>850,000원</strong>
+    <strong>3</strong>건 이력 · 완료 <strong>2</strong>건 · 매출 <strong>190,000원</strong>
     <br>첫 01.15 · 최근 03.13(0일전) · 주기 28일
 </div>
 ```
 
-### 현재 예약 하이라이트 (ud-highlight)
-전체 테두리 박스 대신 **좌측 3px 액센트 바**로 구분. 내용은 2~3줄 문장.
-```html
-<div class="ud-highlight">
-    <div class="ud-hl-label">현재 예약</div>
-    <div class="ud-hl-main">03.13(목) 10:00~12:00 · [완료]</div>
-    <div class="ud-hl-sub">전체얼컷 120분/9mm · 60,000원</div>
-    <div class="ud-hl-actions">[수정] [날짜변경] [완료]</div>
-</div>
-```
-
 ### 아코디언 이력 (ud-acc-item)
-클릭 시 그 자리에서 상세+액션 펼침. 별도 모달 열지 않음.
+모든 예약이 이력에 통합. 별도 하이라이트 섹션 없음.
+타임라인에서 클릭한 예약은 **자동 펼침 + 보라색 액센트바**로 강조.
 ```html
+<!-- 일반 이력 -->
 <div class="ud-acc-item" id="acc_123">
     <button class="ud-acc-header" aria-expanded="false">
         <span class="res-status completed">완료</span>
@@ -229,26 +236,29 @@ function closeSheet(id) {
         <!-- 서비스/금액/메모 상세 + [수정][날짜변경][완료] 버튼 -->
     </div>
 </div>
+
+<!-- 타임라인에서 클릭한 활성 예약 (자동 펼침 + 강조) -->
+<div class="ud-acc-item open active-res" id="acc_456">
+    <!-- .active-res: border-left: 3px solid #7C3AED; background: #F5F3FF -->
+    ...
+</div>
 ```
 
 ### 정보 수정 — 텍스트 링크
-full-width 버튼 금지. 텍스트 링크로 최소 공간 사용.
+full-width 버튼 금지. 헤더 우측에 텍스트 링크로 최소 공간 사용.
 ```html
-<button class="ud-edit-link" onclick="App.showCustomerForm_edit(id)">정보 수정</button>
+<button class="ud-edit-link" aria-label="고객 정보 수정">수정</button>
 ```
 
 ---
 
-## 펫 스위처
+## 멀티펫 표시
 
-같은 보호자의 여러 강아지를 pill 버튼으로 전환:
-```html
-<div class="pet-switcher">
-    <button class="pet-pill active">두리 <span class="breed">비숑</span></button>
-    <button class="pet-pill">몽실 <span class="breed">시츄</span></button>
-    <button class="pet-pill pet-pill-add">+ 추가</button>
-</div>
-```
+펫 스위처(pill 전환) 방식은 **폐기**됨. 통합 페이지에서 모든 펫을 한번에 나열:
+- 헤더: 모든 펫 이름/견종/체중을 `/`로 구분하여 나열
+- 메모: 강아지별 섹션으로 모두 표시
+- 이력: 모든 펫의 예약을 시간순 합산 (펫이름 태그로 구분)
+- `+` 버튼: 형제펫 추가 (추가 후에도 통합 페이지 유지)
 
 ---
 

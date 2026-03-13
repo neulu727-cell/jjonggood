@@ -794,7 +794,6 @@ const App = (() => {
                 <div class="ud-header-main">
                     ${petsHeaderHtml}${addBtnHtml}
                     <span class="ud-pet-divider">|</span>
-                    ${c.name ? `<span class="ud-pet-owner">${esc(c.name)}</span>` : ''}
                     <a href="tel:${c.phone}" class="ud-pet-phone">${esc(c.phone_display)}</a>
                     <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})" aria-label="고객 정보 수정">수정</button>
                 </div>

@@ -963,9 +963,6 @@ textarea#quickMemo:focus {
 .ud-pet-divider {
     font-size: 14px; color: var(--border-strong); margin: 0 2px;
 }
-.ud-pet-owner {
-    font-size: 14px; color: var(--text-secondary);
-}
 .ud-pet-phone {
     font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;
 }
