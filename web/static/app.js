@@ -515,14 +515,6 @@ const App = (() => {
                     <div class="btn-grid">${priceGrid}</div>
                 </div>
                 <div class="form-group">
-                    <label>결제방법</label>
-                    <input type="hidden" id="resPaymentMethod" value="">
-                    <div class="btn-grid">
-                        <button type="button" class="btn-grid-item" data-field="resPaymentMethod" data-value="카드" onclick="App.selectGridBtn(this)">카드</button>
-                        <button type="button" class="btn-grid-item" data-field="resPaymentMethod" data-value="현금" onclick="App.selectGridBtn(this)">현금</button>
-                    </div>
-                </div>
-                <div class="form-group">
                     <label>메모</label>
                     <textarea id="resRequest" rows="2" placeholder="요청사항, 메모 등"></textarea>
                 </div>
@@ -849,15 +841,38 @@ const App = (() => {
         }
     }
 
-    async function changeStatus(rid, status) {
+    async function changeStatus(rid, status, paymentMethod) {
         const labels = { completed: '미용 완료', cancelled: '예약 취소', no_show: '노쇼 처리', confirmed: '되돌리기' };
-        if (!confirm(`${labels[status]} 처리하시겠습니까?`)) return;
+
+        // 미용 완료 시 결제방법 선택 팝업
+        if (status === 'completed' && !paymentMethod) {
+            const overlay = document.createElement('div');
+            overlay.className = 'bottom-sheet-overlay';
+            overlay.style.zIndex = '200';
+            overlay.innerHTML = `
+                <div class="bottom-sheet" style="max-width:340px;padding:24px;text-align:center">
+                    <h3 style="margin:0 0 16px;font-size:17px">결제방법 선택</h3>
+                    <div style="display:flex;gap:10px">
+                        <button class="btn-grid-item" style="flex:1;padding:16px;font-size:16px" onclick="this.closest('.bottom-sheet-overlay').remove(); App.changeStatus(${rid},'completed','카드')">카드</button>
+                        <button class="btn-grid-item" style="flex:1;padding:16px;font-size:16px" onclick="this.closest('.bottom-sheet-overlay').remove(); App.changeStatus(${rid},'completed','현금')">현금</button>
+                    </div>
+                    <button style="margin-top:12px;background:none;border:none;color:var(--text-light);cursor:pointer;font-size:13px" onclick="this.closest('.bottom-sheet-overlay').remove()">취소</button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            return;
+        }
+
+        if (status !== 'completed' && !confirm(`${labels[status]} 처리하시겠습니까?`)) return;
 
         try {
+            const body = { status };
+            if (paymentMethod) body.payment_method = paymentMethod;
+
             const res = await fetch(`/api/reservation/${rid}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status }),
+                body: JSON.stringify(body),
             });
             const result = await res.json();
             if (result.ok) {

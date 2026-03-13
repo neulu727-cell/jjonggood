@@ -121,6 +121,10 @@ def update_status(rid):
         queries.delete_reservation(db, rid)
     else:
         queries.update_reservation_status(db, rid, status)
+        # 완료 시 결제방법 저장
+        payment_method = data.get("payment_method", "")
+        if payment_method:
+            queries.update_reservation_with_history(db, rid, payment_method=payment_method)
     return jsonify({"ok": True})
 
 
