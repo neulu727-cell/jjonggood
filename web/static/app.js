@@ -1272,9 +1272,9 @@ const App = (() => {
 
             // 펫 스위처 (siblings가 있을 때)
             const siblings = c.siblings || [];
+            const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, memo: c.memo }, ...siblings];
             let petSwitcherHtml = '';
             if (siblings.length > 0) {
-                const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed }, ...siblings];
                 petSwitcherHtml = '<div class="pet-switcher">' +
                     allPets.map(p =>
                         `<button class="pet-pill${p.id === c.id ? ' active' : ''}" onclick="App.showCustomerDetail(${p.id})">${esc(p.pet_name)}<span class="breed">${esc(p.breed)}</span></button>`
@@ -1309,6 +1309,16 @@ const App = (() => {
                     ${firstVisit ? `<div class="detail-row"><span class="label">첫 방문</span><span class="value">${firstVisit}</span></div>` : ''}
                     ${c.last_visit ? `<div class="detail-row"><span class="label">마지막 방문</span><span class="value">${c.last_visit}${daysSinceLast !== null ? ` (${daysSinceLast}일 전)` : ''}</span></div>` : ''}
                     ${stats.count ? `<div class="detail-row"><span class="label">방문 주기</span><span class="value">${firstVisit && c.last_visit && stats.count > 1 ? Math.round((new Date(c.last_visit+'T00:00:00') - new Date(firstVisit+'T00:00:00')) / 86400000 / (stats.count - 1)) + '일' : '-'}</span></div>` : ''}
+                </div>
+
+                <div class="detail-section">
+                    <h4>메모</h4>
+                    ${allPets.filter(p => p.memo).length ? allPets.filter(p => p.memo).map(p =>
+                        `<div style="margin-bottom:8px">
+                            <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">${esc(p.pet_name)}</span>
+                            <div style="font-size:13px;color:var(--text);background:#fff;border:1px solid var(--border);padding:8px 10px;border-radius:var(--radius-sm);margin-top:4px;white-space:pre-wrap">${esc(p.memo)}</div>
+                        </div>`
+                    ).join('') : '<p style="text-align:center;color:var(--text-light);padding:8px;font-size:13px">메모 없음</p>'}
                 </div>
 
                 <div class="detail-section">

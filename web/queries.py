@@ -82,11 +82,11 @@ def get_siblings(db: DatabaseManager, phone: str, exclude_id: int = None) -> lis
     """같은 전화번호의 다른 반려동물 목록"""
     if exclude_id:
         rows = db.fetch_all(
-            "SELECT id, pet_name, breed FROM customers WHERE phone = ? AND id != ? ORDER BY id",
+            "SELECT id, pet_name, breed, memo FROM customers WHERE phone = ? AND id != ? ORDER BY id",
             (phone, exclude_id))
     else:
         rows = db.fetch_all(
-            "SELECT id, pet_name, breed FROM customers WHERE phone = ? ORDER BY id",
+            "SELECT id, pet_name, breed, memo FROM customers WHERE phone = ? ORDER BY id",
             (phone,))
     return [dict(r) for r in rows]
 
