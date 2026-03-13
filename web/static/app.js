@@ -213,7 +213,6 @@ const App = (() => {
     }
 
     function renderTimelineList(slots, booked, bookedIsStart) {
-        const isPast = selectedDate < fmtDate(new Date());
         let html = '<div class="timeline-list">';
         const rendered = new Set();
         for (const slot of slots) {
@@ -221,11 +220,6 @@ const App = (() => {
             const r = booked[slot];
             if (r) {
                 if (bookedIsStart[slot]) {
-                    // 과거 날짜면 완료된 예약만 표시
-                    if (isPast && r.status !== 'completed') {
-                        rendered.add(slot);
-                        continue;
-                    }
                     const startLabel = formatTime(r.time);
                     const endLabel = formatTime(r.end_time);
                     const statusCls = r.status || 'confirmed';
