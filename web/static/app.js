@@ -488,44 +488,48 @@ const App = (() => {
             <input type="hidden" id="resDuration" value="${svc0[1]}">
             <input type="hidden" id="resAmount" value="${svc0[2]}">
             <input type="hidden" id="resFurLength" value="">
-            <div class="form-group">
-                <label>고객</label>
-                <input type="text" value="${esc(customer.pet_name)} (${esc(customer.breed || '')}) - ${esc(customer.name || customer.phone_display || '')}" disabled>
-            </div>
-            <div class="form-group">
-                <label>시간</label>
-                <input type="text" value="${formatTime(pendingSlotTime)} (${pendingSlotTime})" disabled>
-            </div>
-            ${prevHtml}
-            <div class="form-group">
-                <label>미용 종류</label>
-                <div class="btn-grid">${serviceGrid}</div>
-            </div>
-            <div class="form-group">
-                <label>털 길이</label>
-                <div class="btn-grid">${furGrid}</div>
-            </div>
-            <div class="form-group">
-                <label>소요시간 <span class="sub-label" id="durLabel">${svc0[1]}분</span></label>
-                <div class="btn-grid">${durGrid}</div>
-            </div>
-            <div class="form-group">
-                <label>금액 <span class="sub-label" id="priceLabel">${svc0[2].toLocaleString()}원</span></label>
-                <div class="btn-grid">${priceGrid}</div>
-            </div>
-            <div class="form-group">
-                <label>결제방법</label>
-                <input type="hidden" id="resPaymentMethod" value="">
-                <div class="btn-grid">
-                    <button type="button" class="btn-grid-item" data-field="resPaymentMethod" data-value="카드" onclick="App.selectGridBtn(this)">카드</button>
-                    <button type="button" class="btn-grid-item" data-field="resPaymentMethod" data-value="현금" onclick="App.selectGridBtn(this)">현금</button>
+            <div class="res-form-grid">
+                <div class="form-group">
+                    <label>고객</label>
+                    <input type="text" value="${esc(customer.pet_name)} (${esc(customer.breed || '')}) - ${esc(customer.name || customer.phone_display || '')}" disabled>
+                </div>
+                <div class="form-group">
+                    <label>시간</label>
+                    <input type="text" value="${formatTime(pendingSlotTime)} (${pendingSlotTime})" disabled>
+                </div>
+                ${prevHtml ? `<div class="res-form-full">${prevHtml}</div>` : ''}
+                <div class="form-group res-form-full">
+                    <label>미용 종류</label>
+                    <div class="btn-grid">${serviceGrid}</div>
+                </div>
+                <div class="form-group">
+                    <label>털 길이</label>
+                    <div class="btn-grid">${furGrid}</div>
+                </div>
+                <div class="form-group">
+                    <label>소요시간 <span class="sub-label" id="durLabel">${svc0[1]}분</span></label>
+                    <div class="btn-grid">${durGrid}</div>
+                </div>
+                <div class="form-group res-form-full">
+                    <label>금액 <span class="sub-label" id="priceLabel">${svc0[2].toLocaleString()}원</span></label>
+                    <div class="btn-grid">${priceGrid}</div>
+                </div>
+                <div class="form-group">
+                    <label>결제방법</label>
+                    <input type="hidden" id="resPaymentMethod" value="">
+                    <div class="btn-grid">
+                        <button type="button" class="btn-grid-item" data-field="resPaymentMethod" data-value="카드" onclick="App.selectGridBtn(this)">카드</button>
+                        <button type="button" class="btn-grid-item" data-field="resPaymentMethod" data-value="현금" onclick="App.selectGridBtn(this)">현금</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>메모</label>
+                    <textarea id="resRequest" rows="2" placeholder="요청사항, 메모 등"></textarea>
+                </div>
+                <div class="res-form-full">
+                    <button class="btn-primary" onclick="App.saveReservation()">예약 저장</button>
                 </div>
             </div>
-            <div class="form-group">
-                <label>메모</label>
-                <textarea id="resRequest" rows="2" placeholder="요청사항, 메모 등"></textarea>
-            </div>
-            <button class="btn-primary" onclick="App.saveReservation()">예약 저장</button>
         `;
         openSheet('reservationSheet');
     }
@@ -761,7 +765,7 @@ const App = (() => {
                 <input type="hidden" id="editResDuration" value="${r.duration}">
                 <input type="hidden" id="editResAmount" value="${r.amount}">
                 <input type="hidden" id="editResFurLength" value="${esc(r.fur_length || '')}">
-                <div class="form-row">
+                <div class="res-form-grid">
                     <div class="form-group">
                         <label>날짜</label>
                         <input type="date" id="editResDate" value="${r.date}">
@@ -770,36 +774,38 @@ const App = (() => {
                         <label>시간</label>
                         <input type="time" id="editResTime" value="${r.time}">
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>미용 종류</label>
-                    <div class="btn-grid">${serviceGrid}</div>
-                </div>
-                <div class="form-group">
-                    <label>털 길이</label>
-                    <div class="btn-grid">${furGrid}</div>
-                </div>
-                <div class="form-group">
-                    <label>소요시간 <span class="sub-label" id="durLabel">${r.duration}분</span></label>
-                    <div class="btn-grid">${durGrid}</div>
-                </div>
-                <div class="form-group">
-                    <label>금액 <span class="sub-label" id="priceLabel">${(r.amount||0).toLocaleString()}원</span></label>
-                    <div class="btn-grid">${priceGrid}</div>
-                </div>
-                <div class="form-group">
-                    <label>결제방법</label>
-                    <input type="hidden" id="editResPaymentMethod" value="${esc(r.payment_method || '')}">
-                    <div class="btn-grid">
-                        <button type="button" class="btn-grid-item${r.payment_method==='카드'?' active':''}" data-field="editResPaymentMethod" data-value="카드" onclick="App.selectGridBtn(this)">카드</button>
-                        <button type="button" class="btn-grid-item${r.payment_method==='현금'?' active':''}" data-field="editResPaymentMethod" data-value="현금" onclick="App.selectGridBtn(this)">현금</button>
+                    <div class="form-group res-form-full">
+                        <label>미용 종류</label>
+                        <div class="btn-grid">${serviceGrid}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>털 길이</label>
+                        <div class="btn-grid">${furGrid}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>소요시간 <span class="sub-label" id="durLabel">${r.duration}분</span></label>
+                        <div class="btn-grid">${durGrid}</div>
+                    </div>
+                    <div class="form-group res-form-full">
+                        <label>금액 <span class="sub-label" id="priceLabel">${(r.amount||0).toLocaleString()}원</span></label>
+                        <div class="btn-grid">${priceGrid}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>결제방법</label>
+                        <input type="hidden" id="editResPaymentMethod" value="${esc(r.payment_method || '')}">
+                        <div class="btn-grid">
+                            <button type="button" class="btn-grid-item${r.payment_method==='카드'?' active':''}" data-field="editResPaymentMethod" data-value="카드" onclick="App.selectGridBtn(this)">카드</button>
+                            <button type="button" class="btn-grid-item${r.payment_method==='현금'?' active':''}" data-field="editResPaymentMethod" data-value="현금" onclick="App.selectGridBtn(this)">현금</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>메모</label>
+                        <textarea id="editResRequest" rows="2">${esc([r.request, r.groomer_memo].filter(Boolean).join(' / '))}</textarea>
+                    </div>
+                    <div class="res-form-full">
+                        <button class="btn-primary" onclick="App.updateReservation()">수정 저장</button>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>메모</label>
-                    <textarea id="editResRequest" rows="2">${esc([r.request, r.groomer_memo].filter(Boolean).join(' / '))}</textarea>
-                </div>
-                <button class="btn-primary" onclick="App.updateReservation()">수정 저장</button>
             `;
             openSheet('reservationSheet');
         } catch (e) {

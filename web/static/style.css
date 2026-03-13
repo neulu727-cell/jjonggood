@@ -292,6 +292,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     box-shadow: var(--shadow-lg);
 }
 .bottom-sheet.tall { max-height: 85vh; }
+/* 모바일: 예약 폼 1열 */
+.res-form-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
+.res-form-grid .form-group { margin-bottom: 12px; }
 @keyframes slideUp {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
@@ -922,6 +925,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         max-width: 520px; border-radius: var(--radius-lg); max-height: 80vh;
         box-shadow: var(--shadow-lg);
     }
+    /* 예약 폼 넓은 모달 */
+    .bottom-sheet.wide-sheet {
+        max-width: 800px; max-height: 90vh;
+    }
+    .res-form-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px;
+    }
+    .res-form-grid .form-group { margin-bottom: 12px; }
+    .res-form-grid .res-form-full { grid-column: 1 / -1; }
 
     /* PC 고객 뷰 패널 */
     .view-panel {
