@@ -297,6 +297,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .res-form-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
 .res-form-grid .form-group { margin-bottom: 12px; }
 .res-detail-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
+.res-detail-grid > div { overflow: hidden; }
 @keyframes slideUp {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
@@ -620,7 +621,7 @@ textarea#quickMemo:focus {
 }
 .detail-row:last-child { border-bottom: none; }
 .detail-row .label { color: var(--text-light); flex-shrink: 0; }
-.detail-row .value { font-weight: 600; text-align: right; }
+.detail-row .value { font-weight: 600; text-align: right; min-width: 0; word-break: break-all; }
 
 .stat-cards {
     display: flex; gap: 10px; margin-bottom: 20px;
@@ -639,10 +640,10 @@ textarea#quickMemo:focus {
     font-size: 13px; cursor: pointer;
     transition: background var(--transition);
 }
-.history-item:hover { background: var(--primary-light); margin: 0 -8px; padding: 12px 8px; border-radius: var(--radius-sm); }
+.history-item:hover { background: var(--primary-light); border-radius: var(--radius-sm); }
 .history-item:last-child { border-bottom: none; }
 .history-date { color: var(--text-light); min-width: 82px; font-weight: 500; }
-.history-service { flex: 1; font-weight: 500; }
+.history-service { flex: 1; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .history-amount { font-weight: 700; color: var(--text); }
 .history-status {
     font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600;
@@ -654,11 +655,11 @@ textarea#quickMemo:focus {
     padding: 14px 0; border-bottom: 1px solid var(--border);
     cursor: pointer; transition: background var(--transition);
 }
-.history-card:hover { background: var(--primary-light); margin: 0 -8px; padding: 14px 8px; border-radius: var(--radius-sm); }
+.history-card:hover { background: var(--primary-light); border-radius: var(--radius-sm); }
 .history-card:last-child { border-bottom: none; }
 .history-card-body { flex: 1; min-width: 0; }
 .history-card-date { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
-.history-card-service { font-size: 13px; color: var(--text-secondary); }
+.history-card-service { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* === 로딩 === */
 .loading {

@@ -667,7 +667,7 @@ const App = (() => {
                                 <span class="label">상태</span>
                                 <span class="value"><span class="res-status ${r.status}">${statusText}</span>${r.completed_at ? ' ' + r.completed_at.substring(11, 16) : ''}</span>
                             </div>
-                            ${resMemo ? `<div class="detail-row" style="padding:4px 0"><span class="label">메모</span><span class="value" style="max-width:220px;word-break:break-all">${esc(resMemo)}</span></div>` : ''}
+                            ${resMemo ? `<div class="detail-row" style="padding:4px 0"><span class="label">메모</span><span class="value">${esc(resMemo)}</span></div>` : ''}
                         </div>
                         <div style="display:flex;gap:6px;flex-wrap:wrap">
                             <button class="btn-secondary" style="flex:1;margin:0;padding:7px 0;font-size:13px;min-width:0" onclick="App.showEditReservation(${rid})">예약 수정</button>
@@ -1292,7 +1292,7 @@ const App = (() => {
                             <div class="history-card-body">
                                 <div class="history-card-date">${petTag}${dateStr}${timeStr}</div>
                                 <div class="history-card-service">${esc(r.service_type)}${r.fur_length ? ' / ' + esc(r.fur_length) : ''}${amt ? ' · ' + amt : ''}</div>
-                                ${resMemo ? `<div style="font-size:11px;color:var(--text-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">${esc(resMemo)}</div>` : ''}
+                                ${resMemo ? `<div style="font-size:11px;color:var(--text-light);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(resMemo)}</div>` : ''}
                             </div>
                             <span style="color:var(--text-light);font-size:16px">&#8250;</span>
                         </div>
@@ -1359,7 +1359,7 @@ const App = (() => {
                         <button class="btn-secondary" style="padding:6px 0;font-size:13px" onclick="App.showCustomerForm_edit(${cid})">정보 수정</button>
                     </div>
 
-                    <div style="max-height:calc(80vh - 120px);overflow-y:auto">
+                    <div style="max-height:50vh;overflow-y:auto">
                         <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">예약 이력 (${allReservations.length}건)</div>
                         ${historyHtml}
                     </div>
