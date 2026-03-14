@@ -478,10 +478,12 @@ const App = (() => {
             `<button type="button" class="btn-grid-item${d===svc0[1]?' active':''}" data-field="resDuration" data-value="${d}" onclick="App.selectGridBtn(this)">${durLabels[d]}</button>`
         ).join('');
 
-        const prices = [30000, 40000, 45000, 50000, 55000, 60000, 70000, 80000];
-        let priceGrid = prices.map(p =>
-            `<button type="button" class="btn-grid-item${p===svc0[2]?' active':''}" data-field="resAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${(p/10000)}만</button>`
-        ).join('');
+        const prices = [30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000,100000];
+        let priceGrid = prices.map(p => {
+            const label = p % 10000 === 0 ? `${p/10000}만` : `${Math.floor(p/10000)}만${(p%10000)/1000}천`;
+            return `<button type="button" class="btn-grid-item${p===svc0[2]?' active':''}" data-field="resAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${label}</button>`;
+        }).join('');
+        priceGrid += `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="0" onclick="App.showCustomAmount('resAmount')">기타</button>`;
 
         // 이전 서비스 이력
         let prevHtml = '';
@@ -578,6 +580,18 @@ const App = (() => {
             const priceLabel = document.getElementById('priceLabel');
             if (priceLabel) priceLabel.textContent = parseInt(btn.dataset.value).toLocaleString() + '원';
         }
+    }
+
+    function showCustomAmount(fieldId) {
+        const val = prompt('금액을 입력하세요 (숫자만)', '');
+        if (val === null) return;
+        const num = parseInt(val.replace(/[^0-9]/g, ''));
+        if (!num || num <= 0) return;
+        document.getElementById(fieldId).value = num;
+        // 모든 금액 버튼 active 해제
+        document.querySelectorAll(`[data-field="${fieldId}"]`).forEach(b => b.classList.remove('active'));
+        const priceLabel = document.getElementById('priceLabel');
+        if (priceLabel) priceLabel.textContent = num.toLocaleString() + '원';
     }
 
     function applyPrevService(service, duration, amount, furLength) {
@@ -926,10 +940,12 @@ const App = (() => {
                 `<button type="button" class="btn-grid-item${d===r.duration?' active':''}" data-field="editResDuration" data-value="${d}" onclick="App.selectGridBtn(this)">${durLabels[d]||d+'분'}</button>`
             ).join('');
 
-            const prices = [30000, 40000, 45000, 50000, 55000, 60000, 70000, 80000];
-            let priceGrid = prices.map(p =>
-                `<button type="button" class="btn-grid-item${p===r.amount?' active':''}" data-field="editResAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${(p/10000)}만</button>`
-            ).join('');
+            const prices = [30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000,100000];
+            let priceGrid = prices.map(p => {
+                const label = p % 10000 === 0 ? `${p/10000}만` : `${Math.floor(p/10000)}만${(p%10000)/1000}천`;
+                return `<button type="button" class="btn-grid-item${p===r.amount?' active':''}" data-field="editResAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${label}</button>`;
+            }).join('');
+            priceGrid += `<button type="button" class="btn-grid-item" data-field="editResAmount" data-value="0" onclick="App.showCustomAmount('editResAmount')">기타</button>`;
             const form = document.getElementById('reservationForm');
             document.getElementById('sheetTitle').textContent = '예약 수정';
             form.innerHTML = `
@@ -2217,6 +2233,6 @@ const App = (() => {
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode, formatPhoneInput,
         updateBridgeStatus,
         showImportForm, submitImport,
-        changeSalesMonth, goTodaySales,
+        changeSalesMonth, goTodaySales, showCustomAmount,
     };
 })();
