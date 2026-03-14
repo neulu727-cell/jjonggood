@@ -72,7 +72,7 @@ def create_app():
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SECURE"] = True
-    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=360)
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB 업로드 제한
 
     # 블루프린트 등록
