@@ -16,6 +16,9 @@ const App = (() => {
     let moveMode = null; // { reservationId, petName } or null
     // 통합 상세: 현재 열려 있는 activeRes ID (메모 저장 후 복원용)
     let _unifiedActiveResId = null;
+    // 매출관리
+    let salesYear, salesMonth;
+    let salesData = null;
 
     function isPC() { return window.innerWidth >= 900; }
 
@@ -49,6 +52,7 @@ const App = (() => {
         const calSec = document.getElementById('calendarSection');
         const tlSec = document.getElementById('timelineSection');
         const custView = document.getElementById('customerView');
+        const salesView = document.getElementById('salesView');
 
         if (view === 'calendar') {
             if (!isPC()) {
@@ -56,14 +60,29 @@ const App = (() => {
                 tlSec.style.display = '';
             }
             custView.style.display = 'none';
+            salesView.style.display = 'none';
         } else if (view === 'customers') {
             if (!isPC()) {
                 calSec.style.display = 'none';
                 tlSec.style.display = 'none';
             }
             custView.style.display = 'flex';
+            salesView.style.display = 'none';
             document.getElementById('customerSearchInput').focus();
             loadCustomerList('', customerSort);
+        } else if (view === 'sales') {
+            if (!isPC()) {
+                calSec.style.display = 'none';
+                tlSec.style.display = 'none';
+            }
+            custView.style.display = 'none';
+            salesView.style.display = 'flex';
+            if (!salesData) {
+                const now = new Date();
+                salesYear = now.getFullYear();
+                salesMonth = now.getMonth() + 1;
+                loadSalesMonth();
+            }
         }
     }
 
@@ -2039,6 +2058,145 @@ const App = (() => {
         }
     }
 
+    // ==================== 매출관리 ====================
+
+    async function loadSalesMonth() {
+        document.getElementById('salesMonthLabel').textContent =
+            `${salesYear}.${String(salesMonth).padStart(2,'0')}`;
+        const body = document.getElementById('salesBody');
+        body.innerHTML = '<div class="loading">불러오는 중</div>';
+        try {
+            const res = await fetch(`/api/sales/month?y=${salesYear}&m=${salesMonth}`);
+            if (!res.ok) { window.location.href = '/login'; return; }
+            salesData = await res.json();
+            renderSalesView();
+        } catch (e) {
+            body.innerHTML = '<div class="empty-timeline"><div class="icon">!</div><p>데이터를 불러올 수 없습니다</p></div>';
+        }
+    }
+
+    function renderSalesView() {
+        const body = document.getElementById('salesBody');
+        let html = '';
+        html += renderSalesSummary();
+        html += renderSalesCalendar();
+        html += renderSalesStats();
+        body.innerHTML = html;
+    }
+
+    function renderSalesSummary() {
+        const s = salesData.summary;
+        return `<div class="sales-summary">
+            <div class="sales-card">
+                <div class="sales-card-label">총 매출</div>
+                <div class="sales-card-value">${s.total_sales.toLocaleString()}원</div>
+            </div>
+            <div class="sales-card">
+                <div class="sales-card-label">완료 건수</div>
+                <div class="sales-card-value">${s.completed_cnt}건</div>
+            </div>
+            <div class="sales-card">
+                <div class="sales-card-label">건당 평균</div>
+                <div class="sales-card-value">${s.avg_amount.toLocaleString()}원</div>
+            </div>
+        </div>`;
+    }
+
+    function _abbreviateAmount(n) {
+        if (n >= 10000) {
+            const man = Math.floor(n / 10000);
+            const rest = n % 10000;
+            if (rest >= 1000) {
+                return `${man}만${Math.floor(rest/1000)}천`;
+            }
+            return rest > 0 ? `${man}만${rest.toLocaleString()}` : `${man}만`;
+        }
+        return n.toLocaleString();
+    }
+
+    function renderSalesCalendar() {
+        const daily = salesData.daily;
+        const firstDay = new Date(salesYear, salesMonth - 1, 1).getDay();
+        const lastDate = new Date(salesYear, salesMonth, 0).getDate();
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+        let html = '<div class="sales-calendar-section"><div class="weekday-row"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div><div class="calendar-grid">';
+
+        for (let i = 0; i < firstDay; i++) {
+            html += '<div class="cal-cell empty"></div>';
+        }
+
+        for (let d = 1; d <= lastDate; d++) {
+            const dateStr = `${salesYear}-${String(salesMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dow = (firstDay + d - 1) % 7;
+            let cls = 'cal-cell';
+            if (dateStr === todayStr) cls += ' today';
+            if (dow === 0) cls += ' sunday';
+            if (dow === 6) cls += ' saturday';
+
+            const info = daily[dateStr];
+            let badgeHtml = '';
+            if (info) {
+                badgeHtml = `<div class="cal-badges"><span class="cal-badge completed">${_abbreviateAmount(info.total)}</span>`;
+                if (info.cnt > 1) badgeHtml += `<span class="cal-more">${info.cnt}건</span>`;
+                badgeHtml += '</div>';
+            }
+
+            html += `<div class="${cls}"><div class="cal-day">${d}</div>${badgeHtml}</div>`;
+        }
+
+        html += '</div></div>';
+        return html;
+    }
+
+    function renderSalesStats() {
+        let html = '';
+
+        // 반려동물별 방문 TOP
+        if (salesData.top_pets.length) {
+            html += '<div class="stats-section"><div class="stats-title">반려동물별 방문</div><div class="stats-list">';
+            salesData.top_pets.forEach((p, i) => {
+                html += `<div class="stats-row" onclick="App.showCustomerDetail(${p.customer_id})" style="cursor:pointer">
+                    <span class="stats-rank">${i+1}</span>
+                    <span class="stats-name">${esc(p.pet_name)}<span class="stats-detail"> ${esc(p.breed)}</span></span>
+                    <span class="stats-detail">${p.visit_cnt}회 &middot; ${p.visit_sales.toLocaleString()}원</span>
+                </div>`;
+            });
+            html += '</div></div>';
+        }
+
+        // 결제수단별
+        if (salesData.payment.length) {
+            html += '<div class="stats-section"><div class="stats-title">결제수단별</div><div class="stats-list">';
+            salesData.payment.forEach(p => {
+                html += `<div class="stats-row">
+                    <span class="stats-name">${esc(p.method)}</span>
+                    <span class="stats-detail">${p.cnt}건 &middot; ${p.total.toLocaleString()}원</span>
+                </div>`;
+            });
+            html += '</div></div>';
+        }
+
+        return html;
+    }
+
+    function changeSalesMonth(delta) {
+        salesMonth += delta;
+        if (salesMonth > 12) { salesMonth = 1; salesYear++; }
+        else if (salesMonth < 1) { salesMonth = 12; salesYear--; }
+        salesData = null;
+        loadSalesMonth();
+    }
+
+    function goTodaySales() {
+        const now = new Date();
+        salesYear = now.getFullYear();
+        salesMonth = now.getMonth() + 1;
+        salesData = null;
+        loadSalesMonth();
+    }
+
     return {
         selectDate, closeTimeline, changeMonth, goToday, loadCustomerList,
         get customerSort() { return customerSort; },
@@ -2059,5 +2217,6 @@ const App = (() => {
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode, formatPhoneInput,
         updateBridgeStatus,
         showImportForm, submitImport,
+        changeSalesMonth, goTodaySales,
     };
 })();

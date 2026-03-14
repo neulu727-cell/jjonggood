@@ -1053,3 +1053,71 @@ textarea#quickMemo:focus {
 .ud-acc-body .acc-actions button {
     flex: 1; min-width: 0; margin: 0; padding: 4px 0; font-size: 11px;
 }
+
+/* === 매출관리 === */
+.sales-body {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 0 16px 80px;
+}
+.sales-summary {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    padding: 12px 0;
+}
+.sales-card {
+    background: var(--primary-light); border-radius: var(--radius-md);
+    padding: 14px 12px; text-align: center;
+}
+.sales-card-label {
+    font-size: 11px; font-weight: 600; color: var(--text-light);
+    margin-bottom: 4px;
+}
+.sales-card-value {
+    font-size: 16px; font-weight: 800; color: var(--primary);
+}
+.sales-calendar-section {
+    margin-bottom: 16px;
+}
+.sales-calendar-section .weekday-row {
+    padding: 8px 4px 4px;
+}
+.sales-calendar-section .calendar-grid {
+    gap: 1px; padding: 4px;
+}
+.sales-calendar-section .cal-cell {
+    min-height: 60px;
+}
+.stats-section {
+    margin-bottom: 16px;
+}
+.stats-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 8px; padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+}
+.stats-list {
+    display: flex; flex-direction: column;
+}
+.stats-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 4px; border-bottom: 1px solid var(--border);
+    font-size: 13px; transition: background var(--transition);
+}
+.stats-row:last-child { border-bottom: none; }
+.stats-row:hover { background: var(--primary-light); border-radius: var(--radius-sm); }
+.stats-rank {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--primary-badge); color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+}
+.stats-name {
+    flex: 1; font-weight: 600; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.stats-name .stats-detail {
+    font-weight: 400; color: var(--text-light); font-size: 12px;
+}
+.stats-detail {
+    font-size: 12px; color: var(--text-secondary); flex-shrink: 0;
+    font-weight: 600;
+}

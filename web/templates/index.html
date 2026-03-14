@@ -112,6 +112,28 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
             <span>고객</span>
         </button>
+        <button class="nav-item" onclick="App.showView('sales')" data-view="sales">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>매출</span>
+        </button>
+    </div>
+</div>
+
+<!-- 매출관리 뷰 -->
+<div class="view-panel" id="salesView" style="display:none">
+    <div class="panel-header">
+        <button class="btn-today" onclick="App.goTodaySales()">이번달</button>
+        <div class="month-nav">
+            <button onclick="App.changeSalesMonth(-1)" aria-label="이전 달">&#8249;</button>
+            <span class="month-label" id="salesMonthLabel"></span>
+            <button onclick="App.changeSalesMonth(1)" aria-label="다음 달">&#8250;</button>
+        </div>
+        <button class="btn-icon" onclick="App.showView('calendar')" title="닫기" style="margin-left:auto">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+    </div>
+    <div class="sales-body" id="salesBody">
+        <div class="loading">불러오는 중</div>
     </div>
 </div>
 

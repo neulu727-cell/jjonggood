@@ -435,6 +435,77 @@ def clear_all_data(db: DatabaseManager) -> None:
     db.execute("DELETE FROM customers")
 
 
+# ==================== 매출 관련 ====================
+
+def get_sales_month_data(db: DatabaseManager, year: int, month: int) -> dict:
+    """월별 매출 데이터: 일별매출, 월간요약, 반려동물별 TOP10, 결제수단별 집계"""
+    # 1) 일별 매출 합계 + 건수
+    daily_rows = db.fetch_all(
+        """SELECT TO_CHAR(date, 'YYYY-MM-DD') as date_str,
+                  SUM(amount) as total, COUNT(*) as cnt
+           FROM reservations
+           WHERE EXTRACT(YEAR FROM date) = ? AND EXTRACT(MONTH FROM date) = ?
+             AND status = 'completed' AND amount > 0
+           GROUP BY date
+           ORDER BY date""",
+        (year, month)
+    )
+    daily = {row["date_str"]: {"total": int(row["total"]), "cnt": row["cnt"]}
+             for row in daily_rows}
+
+    # 2) 월간 요약
+    summary_row = db.fetch_one(
+        """SELECT COALESCE(SUM(amount), 0) as total_sales,
+                  COUNT(*) as completed_cnt,
+                  COALESCE(AVG(amount), 0) as avg_amount
+           FROM reservations
+           WHERE EXTRACT(YEAR FROM date) = ? AND EXTRACT(MONTH FROM date) = ?
+             AND status = 'completed' AND amount > 0""",
+        (year, month)
+    )
+    summary = {
+        "total_sales": int(summary_row["total_sales"]),
+        "completed_cnt": summary_row["completed_cnt"],
+        "avg_amount": int(summary_row["avg_amount"]),
+    }
+
+    # 3) 반려동물별 방문 TOP 10
+    top_rows = db.fetch_all(
+        """SELECT c.id as customer_id, c.pet_name, c.breed,
+                  COUNT(*) as visit_cnt, SUM(r.amount) as visit_sales
+           FROM reservations r
+           JOIN customers c ON r.customer_id = c.id
+           WHERE EXTRACT(YEAR FROM r.date) = ? AND EXTRACT(MONTH FROM r.date) = ?
+             AND r.status = 'completed' AND r.amount > 0
+           GROUP BY c.id, c.pet_name, c.breed
+           ORDER BY visit_cnt DESC, visit_sales DESC
+           LIMIT 10""",
+        (year, month)
+    )
+    top_pets = [{"customer_id": row["customer_id"],
+                 "pet_name": row["pet_name"] or "",
+                 "breed": row["breed"] or "",
+                 "visit_cnt": row["visit_cnt"],
+                 "visit_sales": int(row["visit_sales"])}
+                for row in top_rows]
+
+    # 4) 결제수단별 집계
+    pay_rows = db.fetch_all(
+        """SELECT COALESCE(NULLIF(payment_method, ''), '미지정') as method,
+                  COUNT(*) as cnt, COALESCE(SUM(amount), 0) as total
+           FROM reservations
+           WHERE EXTRACT(YEAR FROM date) = ? AND EXTRACT(MONTH FROM date) = ?
+             AND status = 'completed' AND amount > 0
+           GROUP BY method
+           ORDER BY total DESC""",
+        (year, month)
+    )
+    payment = [{"method": row["method"], "cnt": row["cnt"], "total": int(row["total"])}
+               for row in pay_rows]
+
+    return {"daily": daily, "summary": summary, "top_pets": top_pets, "payment": payment}
+
+
 # ==================== 헬퍼 ====================
 
 def _row_to_reservation(row) -> Reservation:
