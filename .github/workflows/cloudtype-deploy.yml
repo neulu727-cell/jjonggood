@@ -5,22 +5,12 @@ on:
     branches:
       - master
 
-permissions:
-  contents: read
-  deployments: write
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Connect deploy key
-        uses: cloudtype-github-actions/connect@v1
-        with:
-          token: ${{ secrets.CLOUDTYPE_TOKEN }}
-          ghtoken: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy
         uses: cloudtype-github-actions/deploy@v1
