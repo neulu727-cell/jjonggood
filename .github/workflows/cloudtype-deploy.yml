@@ -16,7 +16,7 @@ jobs:
         uses: cloudtype-github-actions/deploy@v1
         with:
           token: ${{ secrets.CLOUDTYPE_TOKEN }}
-          project: mmlita8t4ba02b3c
+          project: neulu727/jjonggood
           stage: jjonggood
           yaml: |
             name: jjonggood
