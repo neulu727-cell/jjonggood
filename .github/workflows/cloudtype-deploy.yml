@@ -5,6 +5,10 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+  deployments: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -26,7 +30,7 @@ jobs:
           stage: jjonggood
           yaml: |
             name: jjonggood
-            app: python@3.11
+            app: python@3.12
             options:
               ports: 8000
               install: pip install -r web/requirements.txt
