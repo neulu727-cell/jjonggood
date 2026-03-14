@@ -28,3 +28,14 @@ jobs:
               git:
                 url: https://github.com/${{ github.repository }}.git
                 ref: ${{ github.ref }}
+              env:
+                - name: DATABASE_URL
+                  value: ${{ secrets.CT_DATABASE_URL }}
+                - name: SECRET_KEY
+                  value: ${{ secrets.CT_SECRET_KEY }}
+                - name: VIEWER_PASSWORD
+                  value: ${{ secrets.CT_VIEWER_PASSWORD }}
+                - name: TASKER_API_KEY
+                  value: ${{ secrets.CT_TASKER_API_KEY }}
+                - name: TZ
+                  value: Asia/Seoul
