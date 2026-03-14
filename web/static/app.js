@@ -54,11 +54,15 @@ const App = (() => {
         const custView = document.getElementById('customerView');
         const salesView = document.getElementById('salesView');
 
+        // PC에서 캘린더로 돌아올 때 복원
+        const leftPanel = document.querySelector('.left-panel');
+        const callSb = document.getElementById('callSidebar');
+
         if (view === 'calendar') {
-            if (!isPC()) {
-                calSec.style.display = '';
-                tlSec.style.display = '';
-            }
+            calSec.style.display = '';
+            tlSec.style.display = '';
+            if (leftPanel) leftPanel.style.display = '';
+            if (callSb) callSb.style.display = '';
             custView.style.display = 'none';
             salesView.style.display = 'none';
         } else if (view === 'customers') {
@@ -71,10 +75,10 @@ const App = (() => {
             document.getElementById('customerSearchInput').focus();
             loadCustomerList('', customerSort);
         } else if (view === 'sales') {
-            if (!isPC()) {
-                calSec.style.display = 'none';
-                tlSec.style.display = 'none';
-            }
+            calSec.style.display = 'none';
+            tlSec.style.display = 'none';
+            if (leftPanel) leftPanel.style.display = 'none';
+            if (callSb) callSb.style.display = 'none';
             custView.style.display = 'none';
             salesView.style.display = 'flex';
             if (!salesData) {

@@ -933,6 +933,12 @@ textarea#quickMemo:focus {
         max-width: 520px; left: 50%; transform: translateX(-50%);
         box-shadow: var(--shadow-lg); border-radius: 0 0 var(--radius-lg) var(--radius-lg);
     }
+    /* PC 매출 뷰: 전체 너비 */
+    #salesView.view-panel {
+        position: relative; max-width: 700px; left: auto; transform: none;
+        margin: 0 auto; top: auto;
+        box-shadow: none; border-radius: 0;
+    }
 
     .wide-sheet .sheet-body { padding: 12px 20px; }
 }
