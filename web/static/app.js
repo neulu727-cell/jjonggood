@@ -85,8 +85,8 @@ const App = (() => {
                 const now = new Date();
                 salesYear = now.getFullYear();
                 salesMonth = now.getMonth() + 1;
-                loadSalesMonth();
             }
+            loadSalesMonth();
         }
     }
 
@@ -2171,16 +2171,43 @@ const App = (() => {
     }
 
     function renderSalesStats() {
-        let html = '';
+        const DOW_NAMES = ['일','월','화','수','목','금','토'];
+        let html = '<div class="stats-grid">';
+
+        // 견종별 매출/방문
+        if (salesData.breeds && salesData.breeds.length) {
+            html += '<div class="stats-section"><div class="stats-title">견종별 매출</div><div class="stats-list">';
+            salesData.breeds.forEach((b, i) => {
+                const pct = salesData.summary.total_sales ? Math.round(b.total / salesData.summary.total_sales * 100) : 0;
+                html += `<div class="stats-row">
+                    <span class="stats-rank">${i+1}</span>
+                    <span class="stats-name">${esc(b.breed)}</span>
+                    <span class="stats-detail">${b.visit_cnt}회 &middot; ${b.total.toLocaleString()}원 <span class="stats-pct">${pct}%</span></span>
+                </div>`;
+            });
+            html += '</div></div>';
+        }
 
         // 반려동물별 방문 TOP
         if (salesData.top_pets.length) {
-            html += '<div class="stats-section"><div class="stats-title">반려동물별 방문</div><div class="stats-list">';
+            html += '<div class="stats-section"><div class="stats-title">반려동물별 방문 TOP 10</div><div class="stats-list">';
             salesData.top_pets.forEach((p, i) => {
                 html += `<div class="stats-row" onclick="App.showCustomerDetail(${p.customer_id})" style="cursor:pointer">
                     <span class="stats-rank">${i+1}</span>
-                    <span class="stats-name">${esc(p.pet_name)}<span class="stats-detail"> ${esc(p.breed)}</span></span>
+                    <span class="stats-name">${esc(p.pet_name)}<span class="stats-breed"> ${esc(p.breed)}</span></span>
                     <span class="stats-detail">${p.visit_cnt}회 &middot; ${p.visit_sales.toLocaleString()}원</span>
+                </div>`;
+            });
+            html += '</div></div>';
+        }
+
+        // 서비스별 매출
+        if (salesData.services && salesData.services.length) {
+            html += '<div class="stats-section"><div class="stats-title">서비스별 매출</div><div class="stats-list">';
+            salesData.services.forEach(s => {
+                html += `<div class="stats-row">
+                    <span class="stats-name">${esc(s.service)}</span>
+                    <span class="stats-detail">${s.cnt}건 &middot; ${s.total.toLocaleString()}원 (평균 ${s.avg.toLocaleString()}원)</span>
                 </div>`;
             });
             html += '</div></div>';
@@ -2190,14 +2217,31 @@ const App = (() => {
         if (salesData.payment.length) {
             html += '<div class="stats-section"><div class="stats-title">결제수단별</div><div class="stats-list">';
             salesData.payment.forEach(p => {
+                const pct = salesData.summary.total_sales ? Math.round(p.total / salesData.summary.total_sales * 100) : 0;
                 html += `<div class="stats-row">
                     <span class="stats-name">${esc(p.method)}</span>
-                    <span class="stats-detail">${p.cnt}건 &middot; ${p.total.toLocaleString()}원</span>
+                    <span class="stats-detail">${p.cnt}건 &middot; ${p.total.toLocaleString()}원 <span class="stats-pct">${pct}%</span></span>
                 </div>`;
             });
             html += '</div></div>';
         }
 
+        // 요일별 매출
+        if (salesData.by_dow && salesData.by_dow.length) {
+            html += '<div class="stats-section"><div class="stats-title">요일별 매출</div><div class="stats-list">';
+            const maxTotal = Math.max(...salesData.by_dow.map(d => d.total));
+            salesData.by_dow.forEach(d => {
+                const barW = maxTotal ? Math.round(d.total / maxTotal * 100) : 0;
+                html += `<div class="stats-row dow-row">
+                    <span class="stats-dow">${DOW_NAMES[d.dow]}</span>
+                    <div class="stats-bar-wrap"><div class="stats-bar-fill" style="width:${barW}%"></div></div>
+                    <span class="stats-detail">${d.cnt}건 &middot; ${d.total.toLocaleString()}원</span>
+                </div>`;
+            });
+            html += '</div></div>';
+        }
+
+        html += '</div>';
         return html;
     }
 

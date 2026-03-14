@@ -933,12 +933,6 @@ textarea#quickMemo:focus {
         max-width: 520px; left: 50%; transform: translateX(-50%);
         box-shadow: var(--shadow-lg); border-radius: 0 0 var(--radius-lg) var(--radius-lg);
     }
-    /* PC 매출 뷰: 전체 너비 */
-    #salesView.view-panel {
-        position: relative; max-width: 700px; left: auto; transform: none;
-        margin: 0 auto; top: auto;
-        box-shadow: none; border-radius: 0;
-    }
 
     .wide-sheet .sheet-body { padding: 12px 20px; }
 }
@@ -1061,6 +1055,15 @@ textarea#quickMemo:focus {
 }
 
 /* === 매출관리 === */
+.sales-view {
+    display: none; flex-direction: column; flex: 1;
+    overflow: hidden; width: 100%;
+}
+.sales-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; background: var(--card);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
 .sales-body {
     flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
     padding: 0 16px 80px;
@@ -1092,6 +1095,9 @@ textarea#quickMemo:focus {
 .sales-calendar-section .cal-cell {
     min-height: 60px;
 }
+.stats-grid {
+    display: grid; grid-template-columns: 1fr; gap: 0;
+}
 .stats-section {
     margin-bottom: 16px;
 }
@@ -1120,10 +1126,44 @@ textarea#quickMemo:focus {
     flex: 1; font-weight: 600; min-width: 0;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.stats-name .stats-detail {
+.stats-name .stats-breed {
     font-weight: 400; color: var(--text-light); font-size: 12px;
 }
 .stats-detail {
     font-size: 12px; color: var(--text-secondary); flex-shrink: 0;
     font-weight: 600;
+}
+.stats-pct {
+    display: inline-block; background: var(--primary-badge); color: var(--primary);
+    font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+    margin-left: 4px;
+}
+/* 요일별 바 차트 */
+.stats-dow {
+    width: 20px; font-weight: 700; text-align: center; flex-shrink: 0;
+    font-size: 12px; color: var(--text-secondary);
+}
+.stats-bar-wrap {
+    flex: 1; height: 18px; background: var(--border); border-radius: 4px;
+    overflow: hidden; min-width: 60px;
+}
+.stats-bar-fill {
+    height: 100%; background: var(--primary); border-radius: 4px;
+    transition: width 0.4s ease;
+}
+@media (min-width: 900px) {
+    .sales-view {
+        max-width: 100%;
+    }
+    .sales-body {
+        padding: 0 32px 32px; max-width: 900px; margin: 0 auto; width: 100%;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr 1fr; gap: 0 24px;
+    }
+    .sales-summary {
+        gap: 12px; padding: 16px 0;
+    }
+    .sales-card { padding: 18px 16px; }
+    .sales-card-value { font-size: 20px; }
 }

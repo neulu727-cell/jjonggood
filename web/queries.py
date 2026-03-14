@@ -503,7 +503,55 @@ def get_sales_month_data(db: DatabaseManager, year: int, month: int) -> dict:
     payment = [{"method": row["method"], "cnt": row["cnt"], "total": int(row["total"])}
                for row in pay_rows]
 
-    return {"daily": daily, "summary": summary, "top_pets": top_pets, "payment": payment}
+    # 5) 견종별 집계
+    breed_rows = db.fetch_all(
+        """SELECT COALESCE(NULLIF(c.breed, ''), '미지정') as breed,
+                  COUNT(*) as visit_cnt, COALESCE(SUM(r.amount), 0) as total,
+                  COALESCE(AVG(r.amount), 0) as avg_amount
+           FROM reservations r
+           JOIN customers c ON r.customer_id = c.id
+           WHERE EXTRACT(YEAR FROM r.date) = ? AND EXTRACT(MONTH FROM r.date) = ?
+             AND r.status = 'completed' AND r.amount > 0
+           GROUP BY breed
+           ORDER BY visit_cnt DESC""",
+        (year, month)
+    )
+    breeds = [{"breed": row["breed"], "visit_cnt": row["visit_cnt"],
+               "total": int(row["total"]), "avg": int(row["avg_amount"])}
+              for row in breed_rows]
+
+    # 6) 서비스별 집계
+    service_rows = db.fetch_all(
+        """SELECT COALESCE(NULLIF(service_type, ''), '미지정') as service,
+                  COUNT(*) as cnt, COALESCE(SUM(amount), 0) as total,
+                  COALESCE(AVG(amount), 0) as avg_amount
+           FROM reservations
+           WHERE EXTRACT(YEAR FROM date) = ? AND EXTRACT(MONTH FROM date) = ?
+             AND status = 'completed' AND amount > 0
+           GROUP BY service
+           ORDER BY total DESC""",
+        (year, month)
+    )
+    services = [{"service": row["service"], "cnt": row["cnt"],
+                 "total": int(row["total"]), "avg": int(row["avg_amount"])}
+                for row in service_rows]
+
+    # 7) 요일별 집계
+    dow_rows = db.fetch_all(
+        """SELECT EXTRACT(DOW FROM date)::int as dow,
+                  COUNT(*) as cnt, COALESCE(SUM(amount), 0) as total
+           FROM reservations
+           WHERE EXTRACT(YEAR FROM date) = ? AND EXTRACT(MONTH FROM date) = ?
+             AND status = 'completed' AND amount > 0
+           GROUP BY dow
+           ORDER BY dow""",
+        (year, month)
+    )
+    by_dow = [{"dow": row["dow"], "cnt": row["cnt"], "total": int(row["total"])}
+              for row in dow_rows]
+
+    return {"daily": daily, "summary": summary, "top_pets": top_pets,
+            "payment": payment, "breeds": breeds, "services": services, "by_dow": by_dow}
 
 
 # ==================== 헬퍼 ====================
