@@ -22,6 +22,9 @@ jobs:
             name: jjonggood
             app: python@3.12
             options:
+              ports: 8000
+              install: pip install flask gunicorn gevent psycopg2-binary python-dotenv
+              start: gunicorn 'web.app:create_app()' --bind 0.0.0.0:8000 --worker-class gevent --workers 2 --timeout 30
               git:
                 url: https://github.com/${{ github.repository }}.git
                 ref: ${{ github.ref }}
