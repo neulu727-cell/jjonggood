@@ -17,7 +17,7 @@ jobs:
         with:
           token: ${{ secrets.CLOUDTYPE_TOKEN }}
           project: neulu727/jjonggood
-          stage: mmlj2eq2754513b9
+          stage: main
           yaml: |
             name: jjonggood
             app: python@3.12
