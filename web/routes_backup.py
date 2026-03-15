@@ -110,10 +110,11 @@ def import_data():
     """통합 TSV 파일 하나로 고객+예약 동시 임포트.
 
     양식 (탭 구분, 첫 줄 헤더):
-    전화번호  반려동물  견종  몸무게  나이  메모  날짜  시간  소요시간(분)  서비스  털길이  금액  결제금액  결제방법  상태
+    전화번호  반려동물  견종  몸무게  나이  메모  날짜  시간  소요시간(분)  서비스  털길이  금액  결제금액  결제방법  상태  미용메모
 
     - 같은 전화번호가 여러 줄이면 → 고객 1명, 예약 여러 건
     - 날짜가 비어있으면 → 고객만 등록 (예약 없음)
+    - 미용메모(16번째)는 선택사항
     """
     from web.app import get_db
     from web import queries
@@ -204,15 +205,16 @@ def import_data():
                 payment_method = cols[13].strip() if len(cols) > 13 else ""
                 status_raw = cols[14].strip() if len(cols) > 14 else "예약"
                 status = STATUS_MAP.get(status_raw, "confirmed")
+                groomer_memo = cols[15].strip() if len(cols) > 15 else ""
 
                 try:
                     cur.execute(
                         """INSERT INTO reservations
                            (customer_id, date, time, service_type, duration, request,
-                            amount, quoted_amount, payment_method, fur_length, status)
-                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
+                            amount, quoted_amount, payment_method, fur_length, status, groomer_memo)
+                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
                         (customer_id, date_str, time_str, service, duration, "",
-                         amount, quoted_amount, payment_method, fur_length, status))
+                         amount, quoted_amount, payment_method, fur_length, status, groomer_memo))
                     reservations_count += 1
                 except Exception as e:
                     errors.append(f"{i}행: 예약 등록 실패 - {e}")

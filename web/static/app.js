@@ -554,6 +554,17 @@ const App = (() => {
             </div>
         `;
         openSheet('reservationSheet');
+        _setupFormDirtyTracking();
+    }
+
+    function _setupFormDirtyTracking() {
+        const form = document.getElementById('reservationForm');
+        if (!form) return;
+        form.dataset.dirty = '0';
+        form.addEventListener('input', () => { form.dataset.dirty = '1'; }, { once: true });
+        form.addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-grid-item')) form.dataset.dirty = '1';
+        });
     }
 
     function selectGridBtn(btn) {
@@ -645,6 +656,9 @@ const App = (() => {
             request: '',
             groomer_memo: document.getElementById('resMemo').value.trim(),
         };
+        if (data.groomer_memo.length > 500) {
+            if (!confirm(`미용메모가 ${data.groomer_memo.length}자입니다. 500자까지만 저장됩니다. 계속하시겠습니까?`)) return;
+        }
 
         try {
             const res = await fetch('/api/reservation', {
@@ -654,7 +668,7 @@ const App = (() => {
             });
             const result = await res.json();
             if (result.ok) {
-                closeSheet('reservationSheet');
+                closeSheet('reservationSheet', true);
                 toast('예약이 저장되었습니다');
                 selectDate(selectedDate);
                 loadMonth(); // 캘린더 뱃지 갱신
@@ -947,6 +961,7 @@ const App = (() => {
             document.getElementById('sheetTitle').textContent = '예약 수정';
             form.innerHTML = `
                 <input type="hidden" id="editResId" value="${rid}">
+                <input type="hidden" id="editResCustId" value="${r.customer_id}">
                 <input type="hidden" id="editResService" value="${esc(r.service_type)}">
                 <input type="hidden" id="editResDuration" value="${r.duration}">
                 <input type="hidden" id="editResAmount" value="${r.amount}">
@@ -994,6 +1009,7 @@ const App = (() => {
                 </div>
             `;
             openSheet('reservationSheet');
+            _setupFormDirtyTracking();
         } catch (e) {
             toast('불러오기 실패');
         }
@@ -1013,6 +1029,9 @@ const App = (() => {
             request: '',
             groomer_memo: document.getElementById('editResMemo').value.trim(),
         };
+        if (data.groomer_memo.length > 500) {
+            if (!confirm(`미용메모가 ${data.groomer_memo.length}자입니다. 500자까지만 저장됩니다. 계속하시겠습니까?`)) return;
+        }
 
         try {
 
@@ -1023,10 +1042,15 @@ const App = (() => {
             });
             const result = await res.json();
             if (result.ok) {
-                closeSheet('reservationSheet');
+                closeSheet('reservationSheet', true);
                 toast('수정되었습니다');
                 if (selectedDate) selectDate(selectedDate);
                 loadMonth();
+                // unified detail 자동 갱신
+                const custId = document.getElementById('editResCustId')?.value;
+                if (custId) {
+                    showReservationDetail(parseInt(rid), parseInt(custId));
+                }
             } else {
                 toast(result.error || '수정 실패');
             }
@@ -1443,6 +1467,9 @@ const App = (() => {
         const ta = document.getElementById('petMemoTA_' + petId);
         if (!ta) return;
         const memo = ta.value;
+        if (memo.length > 500) {
+            if (!confirm(`메모가 ${memo.length}자입니다. 500자까지만 저장됩니다. 계속하시겠습니까?`)) return;
+        }
         try {
             const res = await fetch(`/api/customer/${petId}`, {
                 method: 'PUT',
@@ -1725,8 +1752,15 @@ const App = (() => {
         if (sheet) _setupSheetSwipe(overlay, sheet);
     }
 
-    function closeSheet(id) {
+    function closeSheet(id, force) {
         const overlay = document.getElementById(id);
+        // 미저장 경고: reservationSheet에서 폼 변경 감지
+        if (!force && id === 'reservationSheet') {
+            const form = document.getElementById('reservationForm');
+            if (form && form.dataset.dirty === '1') {
+                if (!confirm('수정 사항이 저장되지 않았습니다. 닫으시겠습니까?')) return;
+            }
+        }
         const sheet = overlay.querySelector('.bottom-sheet');
         if (sheet) {
             sheet.style.transition = 'transform 0.2s ease';
