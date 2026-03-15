@@ -256,7 +256,8 @@ const App = (() => {
                     const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
                     const weightText = r.weight ? `${r.weight}kg` : '';
                     const petMeta = [breedText, weightText].filter(Boolean).join(' · ');
-                    const memoText = r.customer_memo ? `<div class="res-memo">${esc(r.customer_memo)}</div>` : '';
+                    const memoItems = [r.customer_memo, r.groomer_memo].filter(Boolean);
+                    const memoText = memoItems.length ? `<div class="res-memo">${esc(memoItems.join(' / '))}</div>` : '';
                     html += `
                         <div class="res-card" onclick="App.showReservationDetail(${r.id},${r.customer_id})">
                             <div class="res-time-col">
@@ -357,7 +358,8 @@ const App = (() => {
                             html += `<div class="tl-row"><span class="tl-detail">${esc(r.service)}${fur}${amtText}</span></div>`;
                             const memoParts = [];
                             if (r.customer_memo) memoParts.push(r.customer_memo);
-                            if (r.request) memoParts.push(r.request);
+                            if (r.groomer_memo) memoParts.push(r.groomer_memo);
+                            else if (r.request) memoParts.push(r.request);
                             if (memoParts.length) html += `<div class="tl-row"><span class="tl-memo">${esc(memoParts.join(' / '))}</span></div>`;
                         } else {
                             html += `<div class="tl-row"><span class="tl-info">~ ${petInfo}</span></div>`;
@@ -541,7 +543,7 @@ const App = (() => {
                 </div>
                 <div class="form-group">
                     <label>메모</label>
-                    <textarea id="resRequest" rows="2" placeholder="요청사항, 메모 등"></textarea>
+                    <textarea id="resMemo" rows="2" placeholder="메모"></textarea>
                 </div>
                 <div class="res-form-full">
                     <button class="btn-primary" onclick="App.saveReservation()">예약 저장</button>
@@ -637,7 +639,8 @@ const App = (() => {
             quoted_amount: parseInt(document.getElementById('resAmount').value) || 0,
             payment_method: (document.getElementById('resPaymentMethod') || {}).value || '',
             fur_length: document.getElementById('resFurLength').value,
-            request: document.getElementById('resRequest').value.trim(),
+            request: '',
+            groomer_memo: document.getElementById('resMemo').value.trim(),
         };
 
         try {
@@ -754,27 +757,14 @@ const App = (() => {
         if (cycleDays) vp.push(`주기 ${cycleDays}일`);
         if (vp.length) visitLine = vp.join(' · ');
 
-        // 강아지별 통합 메모 (컴팩트)
+        // 강아지별 메모 (고객메모만 편집, 예약메모는 이력에서 표시)
         const memoHtml = allPets.map(p => {
-            const petRes = (p.id === c.id) ? (c.reservations || []) : (siblingRes[p.id] || []);
-            const resMemoParts = petRes
-                .filter(r => r.request || r.groomer_memo)
-                .map(r => {
-                    const dateShort = r.date.substring(5).replace('-','/');
-                    const memo = [r.request, r.groomer_memo].filter(Boolean).join('/');
-                    return `${dateShort} ${memo}`;
-                });
-            const allMemoLines = [];
-            if (p.memo) allMemoLines.push(p.memo);
-            if (resMemoParts.length) allMemoLines.push(resMemoParts.join('\n'));
-            const combined = allMemoLines.join('\n───\n');
-
             return `<div class="ud-memo-pet">
                 <span class="pet-label">${esc(p.pet_name)}</span>
                 <button type="button" style="font-size:12px;color:var(--text-light);background:none;border:none;cursor:pointer;padding:2px 6px;vertical-align:middle" onclick="App.toggleMemoEdit(${p.id}, ${c.id})" aria-label="${esc(p.pet_name)} 메모 편집">✎</button>
-                <div id="petMemoView_${p.id}" class="memo-text">${combined ? esc(combined) : '<span style="color:var(--text-light);font-size:11px">메모 없음</span>'}</div>
+                <div id="petMemoView_${p.id}" class="memo-text">${p.memo ? esc(p.memo) : '<span style="color:var(--text-light);font-size:11px">메모 없음</span>'}</div>
                 <div id="petMemoEdit_${p.id}" style="display:none;margin-top:1px">
-                    <textarea id="petMemoTA_${p.id}" style="width:100%;min-height:40px;padding:4px 8px;border:1.5px solid var(--primary);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">${esc(combined)}</textarea>
+                    <textarea id="petMemoTA_${p.id}" style="width:100%;min-height:40px;padding:4px 8px;border:1.5px solid var(--primary);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">${esc(p.memo || '')}</textarea>
                     <div style="display:flex;gap:4px;margin-top:3px">
                         <button class="btn-primary-sm" style="padding:3px 10px;font-size:11px" onclick="App.savePetMemo(${p.id}, ${c.id})">저장</button>
                         <button style="padding:3px 10px;font-size:11px;background:none;border:1px solid var(--border-strong);border-radius:5px;cursor:pointer;color:var(--text-light)" onclick="App.toggleMemoEdit(${p.id}, ${c.id})">취소</button>
@@ -795,7 +785,7 @@ const App = (() => {
                 const dateStr = `${r.date.substring(5).replace('-','.')}(${dow})`;
                 const timeStr = r.time ? ' ' + formatTime(r.time) : '';
                 const amt = r.amount ? r.amount.toLocaleString() + '원' : '';
-                const resMemo = [r.request, r.groomer_memo].filter(Boolean).join(' / ');
+                const resMemo = r.groomer_memo || r.request || '';
                 const petTag = hasSiblings ? `<span style="font-size:10px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:1px 5px;border-radius:3px;margin-right:3px">${esc(r._pet)}</span>` : '';
                 return `
                     <div class="ud-acc-item${isActive ? ' open active-res' : ''}" id="acc_${r.id}">
@@ -993,7 +983,7 @@ const App = (() => {
                     </div>
                     <div class="form-group">
                         <label>메모</label>
-                        <textarea id="editResRequest" rows="2">${esc([r.request, r.groomer_memo].filter(Boolean).join(' / '))}</textarea>
+                        <textarea id="editResMemo" rows="2">${esc(r.groomer_memo || r.request || '')}</textarea>
                     </div>
                     <div class="res-form-full">
                         <button class="btn-primary" onclick="App.updateReservation()">수정 저장</button>
@@ -1017,8 +1007,8 @@ const App = (() => {
             quoted_amount: parseInt(document.getElementById('editResAmount').value) || 0,
             payment_method: (document.getElementById('editResPaymentMethod') || {}).value || '',
             fur_length: document.getElementById('editResFurLength').value,
-            request: document.getElementById('editResRequest').value.trim(),
-            groomer_memo: '',
+            request: '',
+            groomer_memo: document.getElementById('editResMemo').value.trim(),
         };
 
         try {

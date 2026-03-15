@@ -54,6 +54,7 @@ def create_reservation():
         fur_length=data.get("fur_length", "")[:20],
         quoted_amount=quoted_amount,
         payment_method=data.get("payment_method", "")[:30],
+        groomer_memo=data.get("groomer_memo", "")[:500],
     )
     return jsonify({"ok": True, "id": rid})
 

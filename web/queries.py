@@ -127,11 +127,11 @@ def create_reservation(db: DatabaseManager, customer_id: int, date: str,
                        time: str, service_type: str, duration: int = 60,
                        request: str = "", amount: int = 0,
                        fur_length: str = "", quoted_amount: int = 0,
-                       payment_method: str = "") -> int:
+                       payment_method: str = "", groomer_memo: str = "") -> int:
     cursor = db.execute(
-        """INSERT INTO reservations (customer_id, date, time, service_type, duration, request, amount, quoted_amount, payment_method, fur_length)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (customer_id, date, time, service_type, duration, request, amount, quoted_amount, payment_method, fur_length)
+        """INSERT INTO reservations (customer_id, date, time, service_type, duration, request, amount, quoted_amount, payment_method, fur_length, groomer_memo)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (customer_id, date, time, service_type, duration, request, amount, quoted_amount, payment_method, fur_length, groomer_memo)
     )
     return cursor.lastrowid
 
