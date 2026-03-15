@@ -122,6 +122,8 @@ def google_connect():
         include_granted_scopes="true",
     )
     session["google_oauth_state"] = state
+    # PKCE code_verifier 저장 (콜백에서 필요)
+    session["google_code_verifier"] = flow.code_verifier
     return redirect(auth_url)
 
 
@@ -131,6 +133,8 @@ def google_callback():
     """OAuth 콜백 → 토큰 저장"""
     redirect_uri = _build_redirect_uri()
     flow = _get_flow(redirect_uri)
+    # 세션에서 code_verifier 복원
+    flow.code_verifier = session.pop("google_code_verifier", None)
 
     try:
         # 프록시 뒤에서 http로 들어온 URL을 https로 변환
