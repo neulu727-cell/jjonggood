@@ -768,7 +768,7 @@ textarea#quickMemo:focus {
     .main-content { flex-direction: row; flex: 1; }
 
     .left-panel {
-        width: 480px; flex-shrink: 0;
+        width: 480px; min-width: 380px; flex-shrink: 0;
         display: flex; flex-direction: column;
         background: #F8F9FB; border-right: 1px solid var(--border-strong);
         overflow: hidden; height: 100%;
@@ -790,7 +790,7 @@ textarea#quickMemo:focus {
     .cal-badges { gap: 2px; }
 
     .timeline-section {
-        flex: 1; border-top: none;
+        flex: 1; min-width: 0; border-top: none;
         border-left: 3px solid var(--primary);
         overflow-y: auto;
     }
@@ -824,7 +824,7 @@ textarea#quickMemo:focus {
 
     /* 수신기록 (중간 컬럼) */
     .call-sidebar {
-        width: 240px; flex-shrink: 0;
+        width: 240px; min-width: 160px; flex-shrink: 1;
         display: flex !important; flex-direction: column;
         background: #F8F9FB; border-right: 1px solid var(--border-strong);
         overflow: hidden; height: 100%;
