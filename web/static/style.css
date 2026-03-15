@@ -988,7 +988,56 @@ textarea#quickMemo:focus {
 }
 .ud-edit-link:hover { text-decoration: underline; }
 
-/* 메모 섹션 */
+/* 통합 메모 배너 */
+.ud-memo-banner {
+    background: #FFFBEB; border: 1.5px solid #F59E0B; border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 10px;
+}
+.ud-memo-banner-header {
+    font-size: 13px; font-weight: 700; color: #92400E;
+    margin-bottom: 6px; display: flex; align-items: center; gap: 4px;
+}
+.ud-memo-banner-icon { font-size: 15px; }
+.ud-memo-pet {
+    margin-bottom: 6px;
+}
+.ud-memo-pet .pet-label {
+    font-size: 11px; font-weight: 700; color: var(--primary);
+    background: var(--primary-light); padding: 1px 6px; border-radius: 3px;
+    margin-right: 4px;
+}
+.ud-memo-pet .memo-text {
+    font-size: 13px; color: var(--text); background: #fff;
+    border: 1px solid #FCD34D; padding: 6px 10px;
+    border-radius: 6px; margin-top: 3px;
+    white-space: pre-wrap; line-height: 1.6; max-height: 120px; overflow-y: auto;
+}
+.ud-memo-pet .memo-empty {
+    color: #D97706; font-size: 12px; font-style: italic;
+}
+.memo-edit-btn {
+    font-size: 13px; color: #92400E; background: none; border: none;
+    cursor: pointer; padding: 2px 6px; vertical-align: middle;
+}
+.memo-edit-ta {
+    width: 100%; min-height: 60px; padding: 6px 10px;
+    border: 2px solid var(--primary); border-radius: 6px;
+    font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box;
+}
+.btn-cancel-sm {
+    padding: 4px 12px; font-size: 12px; background: none;
+    border: 1px solid var(--border-strong); border-radius: 5px;
+    cursor: pointer; color: var(--text-light);
+}
+.ud-quick-memo {
+    display: flex; gap: 6px; align-items: flex-end; margin-top: 8px;
+}
+.ud-quick-memo textarea {
+    font-size: 13px; padding: 6px 10px; min-height: 34px;
+    border: 1px solid #FCD34D; border-radius: 6px;
+}
+
+/* 레거시 메모 섹션 (미사용) */
 .ud-memo {
     background: #F9FAFB; border-radius: 6px; padding: 6px 8px; margin-bottom: 6px;
     max-height: 35vh; overflow-y: auto;
@@ -996,24 +1045,6 @@ textarea#quickMemo:focus {
 .ud-memo-title {
     font-size: 11px; font-weight: 600; color: var(--text-secondary);
     margin-bottom: 3px; display: flex; align-items: center; gap: 4px;
-}
-.ud-memo-pet {
-    margin-bottom: 4px;
-}
-.ud-memo-pet .pet-label {
-    font-size: 11px; font-weight: 600; color: var(--primary);
-}
-.ud-memo-pet .memo-text {
-    font-size: 13px; color: var(--text); background: #fff;
-    border: 1px solid var(--border); padding: 4px 8px;
-    border-radius: 5px; margin-top: 1px;
-    white-space: pre-wrap; line-height: 1.5; max-height: 80px; overflow-y: auto;
-}
-.ud-quick-memo {
-    display: flex; gap: 6px; align-items: flex-end; margin-top: 4px;
-}
-.ud-quick-memo textarea {
-    font-size: 13px; padding: 5px 8px; min-height: 32px;
 }
 
 /* 아코디언 이력 */

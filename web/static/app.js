@@ -256,11 +256,8 @@ const App = (() => {
                     const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
                     const weightText = r.weight ? `${r.weight}kg` : '';
                     const petMeta = [breedText, weightText].filter(Boolean).join(' · ');
-                    const memoItems = [];
-                    if (r.customer_memo) memoItems.push(r.customer_memo);
-                    if (r.groomer_memo) memoItems.push(r.groomer_memo);
-                    else if (r.request) memoItems.push(r.request);
-                    const memoText = memoItems.length ? `<div class="res-memo">${esc(memoItems.join(' / '))}</div>` : '';
+                    const memoSrc = r.customer_memo || r.groomer_memo || r.request || '';
+                    const memoText = memoSrc ? `<div class="res-memo">${esc(memoSrc)}</div>` : '';
                     html += `
                         <div class="res-card" onclick="App.showReservationDetail(${r.id},${r.customer_id})">
                             <div class="res-time-col">
@@ -359,11 +356,8 @@ const App = (() => {
                             const amtText = r.amount ? `  ${r.amount.toLocaleString()}원` : '';
                             html += `<div class="tl-row"><span class="tl-time">${ts}~${endStr}</span> <span class="tl-info">${petInfo}</span></div>`;
                             html += `<div class="tl-row"><span class="tl-detail">${esc(r.service)}${fur}${amtText}</span></div>`;
-                            const memoParts = [];
-                            if (r.customer_memo) memoParts.push(r.customer_memo);
-                            if (r.groomer_memo) memoParts.push(r.groomer_memo);
-                            else if (r.request) memoParts.push(r.request);
-                            if (memoParts.length) html += `<div class="tl-row"><span class="tl-memo">${esc(memoParts.join(' / '))}</span></div>`;
+                            const memoSrc2 = r.customer_memo || r.groomer_memo || r.request || '';
+                            if (memoSrc2) html += `<div class="tl-row"><span class="tl-memo">${esc(memoSrc2)}</span></div>`;
                         } else {
                             html += `<div class="tl-row"><span class="tl-info">~ ${petInfo}</span></div>`;
                         }
@@ -544,9 +538,9 @@ const App = (() => {
                     <label>금액 <span class="sub-label" id="priceLabel">${svc0[2].toLocaleString()}원</span></label>
                     <div class="btn-grid">${priceGrid}</div>
                 </div>
-                <div class="form-group">
-                    <label>메모</label>
-                    <textarea id="resMemo" rows="2" placeholder="메모"></textarea>
+                <div class="form-group res-form-full">
+                    <label>메모 <span class="sub-label">(이 고객의 통합 메모)</span></label>
+                    <textarea id="resMemo" rows="3" placeholder="메모">${esc(customer.memo || '')}</textarea>
                 </div>
                 <div class="res-form-full">
                     <button class="btn-primary" onclick="App.saveReservation()">예약 저장</button>
@@ -643,8 +637,10 @@ const App = (() => {
     }
 
     async function saveReservation() {
+        const memoText = document.getElementById('resMemo').value.trim();
+        const customerId = parseInt(document.getElementById('resCustomerId').value);
         const data = {
-            customer_id: parseInt(document.getElementById('resCustomerId').value),
+            customer_id: customerId,
             date: selectedDate,
             time: pendingSlotTime,
             service_type: document.getElementById('resService').value,
@@ -654,10 +650,10 @@ const App = (() => {
             payment_method: (document.getElementById('resPaymentMethod') || {}).value || '',
             fur_length: document.getElementById('resFurLength').value,
             request: '',
-            groomer_memo: document.getElementById('resMemo').value.trim(),
+            groomer_memo: memoText,
         };
-        if (data.groomer_memo.length > 500) {
-            if (!confirm(`미용메모가 ${data.groomer_memo.length}자입니다. 500자까지만 저장됩니다. 계속하시겠습니까?`)) return;
+        if (memoText.length > 500) {
+            if (!confirm(`메모가 ${memoText.length}자입니다. 500자까지만 저장됩니다. 계속하시겠습니까?`)) return;
         }
 
         try {
@@ -668,10 +664,17 @@ const App = (() => {
             });
             const result = await res.json();
             if (result.ok) {
+                // 통합 메모: customers.memo도 동기화
+                await fetch(`/api/customer/${customerId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ memo: memoText }),
+                });
+                cachedCustomers = null;
                 closeSheet('reservationSheet', true);
                 toast('예약이 저장되었습니다');
                 selectDate(selectedDate);
-                loadMonth(); // 캘린더 뱃지 갱신
+                loadMonth();
             } else {
                 toast(result.error || '저장 실패');
             }
@@ -774,17 +777,18 @@ const App = (() => {
         if (cycleDays) vp.push(`주기 ${cycleDays}일`);
         if (vp.length) visitLine = vp.join(' · ');
 
-        // 강아지별 메모 (고객메모만 편집, 예약메모는 이력에서 표시)
+        // 통합 메모: 모든 펫의 메모를 하나의 배너로 표시
         const memoHtml = allPets.map(p => {
+            const petLabel = hasSiblings ? `<span class="pet-label">${esc(p.pet_name)}</span>` : '';
             return `<div class="ud-memo-pet">
-                <span class="pet-label">${esc(p.pet_name)}</span>
-                <button type="button" style="font-size:12px;color:var(--text-light);background:none;border:none;cursor:pointer;padding:2px 6px;vertical-align:middle" onclick="App.toggleMemoEdit(${p.id}, ${c.id})" aria-label="${esc(p.pet_name)} 메모 편집">✎</button>
-                <div id="petMemoView_${p.id}" class="memo-text">${p.memo ? esc(p.memo) : '<span style="color:var(--text-light);font-size:11px">메모 없음</span>'}</div>
-                <div id="petMemoEdit_${p.id}" style="display:none;margin-top:1px">
-                    <textarea id="petMemoTA_${p.id}" style="width:100%;min-height:40px;padding:4px 8px;border:1.5px solid var(--primary);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">${esc(p.memo || '')}</textarea>
-                    <div style="display:flex;gap:4px;margin-top:3px">
-                        <button class="btn-primary-sm" style="padding:3px 10px;font-size:11px" onclick="App.savePetMemo(${p.id}, ${c.id})">저장</button>
-                        <button style="padding:3px 10px;font-size:11px;background:none;border:1px solid var(--border-strong);border-radius:5px;cursor:pointer;color:var(--text-light)" onclick="App.toggleMemoEdit(${p.id}, ${c.id})">취소</button>
+                ${petLabel}
+                <button type="button" class="memo-edit-btn" onclick="App.toggleMemoEdit(${p.id}, ${c.id})" aria-label="${esc(p.pet_name)} 메모 편집">✎</button>
+                <div id="petMemoView_${p.id}" class="memo-text">${p.memo ? esc(p.memo) : '<span class="memo-empty">메모를 입력하세요</span>'}</div>
+                <div id="petMemoEdit_${p.id}" style="display:none;margin-top:4px">
+                    <textarea id="petMemoTA_${p.id}" class="memo-edit-ta">${esc(p.memo || '')}</textarea>
+                    <div style="display:flex;gap:4px;margin-top:4px">
+                        <button class="btn-primary-sm" style="padding:4px 12px;font-size:12px" onclick="App.savePetMemo(${p.id}, ${c.id})">저장</button>
+                        <button class="btn-cancel-sm" onclick="App.toggleMemoEdit(${p.id}, ${c.id})">취소</button>
                     </div>
                 </div>
             </div>`;
@@ -803,6 +807,7 @@ const App = (() => {
                 const timeStr = r.time ? ' ' + formatTime(r.time) : '';
                 const amt = r.amount ? r.amount.toLocaleString() + '원' : '';
                 const resMemo = r.groomer_memo || r.request || '';
+                const isLegacyMemo = resMemo && !r.customer_memo; // 과거 데이터: groomer_memo만 있는 경우
                 const petTag = hasSiblings ? `<span style="font-size:10px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:1px 5px;border-radius:3px;margin-right:3px">${esc(r._pet)}</span>` : '';
                 return `
                     <div class="ud-acc-item${isActive ? ' open active-res' : ''}" id="acc_${r.id}">
@@ -842,19 +847,21 @@ const App = (() => {
                     <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})" aria-label="고객 정보 수정">수정</button>
                 </div>
             </div>
+            <div class="ud-memo-banner">
+                <div class="ud-memo-banner-header">
+                    <span class="ud-memo-banner-icon">📋</span> 메모
+                </div>
+                ${memoHtml}
+                <div class="ud-quick-memo">
+                    <textarea id="quickMemo" rows="1" placeholder="메모 추가"></textarea>
+                    <button class="btn-primary-sm" style="flex-shrink:0;padding:6px 12px;font-size:12px" onclick="App.saveQuickMemo(${c.id})">추가</button>
+                </div>
+            </div>
             <div class="unified-grid">
                 <div>
                     <div class="ud-stats">
                         <strong>${allReservations.length}</strong>건 이력${totalCount ? ` · 완료 <strong>${totalCount}</strong>건` : ''} · 매출 <strong>${salesText}</strong>
                         ${visitLine ? `<br>${visitLine}` : ''}
-                    </div>
-                    <div class="ud-memo">
-                        <div class="ud-memo-title">메모</div>
-                        ${memoHtml || '<span style="color:var(--text-light);font-size:11px">메모 없음</span>'}
-                        <div class="ud-quick-memo">
-                            <textarea id="quickMemo" rows="1" placeholder="메모 추가"></textarea>
-                            <button class="btn-primary-sm" style="flex-shrink:0;padding:6px 12px;font-size:12px" onclick="App.saveQuickMemo(${c.id})">추가</button>
-                        </div>
                     </div>
                 </div>
                 <div>
@@ -999,9 +1006,9 @@ const App = (() => {
                             <button type="button" class="btn-grid-item${r.payment_method==='현금'?' active':''}" data-field="editResPaymentMethod" data-value="현금" onclick="App.selectGridBtn(this)">현금</button>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>메모</label>
-                        <textarea id="editResMemo" rows="2">${esc(r.groomer_memo || r.request || '')}</textarea>
+                    <div class="form-group res-form-full">
+                        <label>메모 <span class="sub-label">(이 고객의 통합 메모)</span></label>
+                        <textarea id="editResMemo" rows="3">${esc(r.customer_memo || r.groomer_memo || r.request || '')}</textarea>
                     </div>
                     <div class="res-form-full">
                         <button class="btn-primary" onclick="App.updateReservation()">수정 저장</button>
@@ -1017,6 +1024,7 @@ const App = (() => {
 
     async function updateReservation() {
         const rid = document.getElementById('editResId').value;
+        const memoText = document.getElementById('editResMemo').value.trim();
         const data = {
             date: document.getElementById('editResDate').value,
             time: document.getElementById('editResTime').value,
@@ -1027,14 +1035,13 @@ const App = (() => {
             payment_method: (document.getElementById('editResPaymentMethod') || {}).value || '',
             fur_length: document.getElementById('editResFurLength').value,
             request: '',
-            groomer_memo: document.getElementById('editResMemo').value.trim(),
+            groomer_memo: memoText,
         };
-        if (data.groomer_memo.length > 500) {
-            if (!confirm(`미용메모가 ${data.groomer_memo.length}자입니다. 500자까지만 저장됩니다. 계속하시겠습니까?`)) return;
+        if (memoText.length > 500) {
+            if (!confirm(`메모가 ${memoText.length}자입니다. 500자까지만 저장됩니다. 계속하시겠습니까?`)) return;
         }
 
         try {
-
             const res = await fetch(`/api/reservation/${rid}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -1042,12 +1049,20 @@ const App = (() => {
             });
             const result = await res.json();
             if (result.ok) {
+                // 통합 메모: customers.memo도 동기화
+                const custId = document.getElementById('editResCustId')?.value;
+                if (custId) {
+                    await fetch(`/api/customer/${custId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ memo: memoText }),
+                    });
+                    cachedCustomers = null;
+                }
                 closeSheet('reservationSheet', true);
                 toast('수정되었습니다');
                 if (selectedDate) selectDate(selectedDate);
                 loadMonth();
-                // unified detail 자동 갱신
-                const custId = document.getElementById('editResCustId')?.value;
                 if (custId) {
                     showReservationDetail(parseInt(rid), parseInt(custId));
                 }
