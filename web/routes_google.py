@@ -25,6 +25,14 @@ SCOPES = ["https://www.googleapis.com/auth/contacts"]
 KST = timezone(timedelta(hours=9))
 
 
+def _build_redirect_uri() -> str:
+    """프록시 뒤에서도 https 리디렉션 URI를 생성"""
+    url = request.host_url.rstrip("/") + "/google/callback"
+    if url.startswith("http://") and "localhost" not in url:
+        url = "https://" + url[7:]
+    return url
+
+
 # ==================== 토큰 관리 ====================
 
 def _get_flow(redirect_uri: str):
@@ -106,7 +114,7 @@ def google_connect():
     if not config.GOOGLE_CLIENT_ID or not config.GOOGLE_CLIENT_SECRET:
         return jsonify({"error": "Google OAuth가 설정되지 않았습니다"}), 400
 
-    redirect_uri = request.host_url.rstrip("/") + "/google/callback"
+    redirect_uri = _build_redirect_uri()
     flow = _get_flow(redirect_uri)
     auth_url, state = flow.authorization_url(
         access_type="offline",
@@ -121,11 +129,15 @@ def google_connect():
 @require_auth
 def google_callback():
     """OAuth 콜백 → 토큰 저장"""
-    redirect_uri = request.host_url.rstrip("/") + "/google/callback"
+    redirect_uri = _build_redirect_uri()
     flow = _get_flow(redirect_uri)
 
     try:
-        flow.fetch_token(authorization_response=request.url)
+        # 프록시 뒤에서 http로 들어온 URL을 https로 변환
+        auth_response = request.url
+        if auth_response.startswith("http://") and "localhost" not in auth_response:
+            auth_response = "https://" + auth_response[7:]
+        flow.fetch_token(authorization_response=auth_response)
     except Exception as e:
         log.error("Google OAuth token fetch failed: %s", e)
         return "<script>alert('Google 인증 실패');window.close();</script>"
