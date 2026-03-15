@@ -256,7 +256,10 @@ const App = (() => {
                     const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
                     const weightText = r.weight ? `${r.weight}kg` : '';
                     const petMeta = [breedText, weightText].filter(Boolean).join(' · ');
-                    const memoItems = [r.customer_memo, r.groomer_memo].filter(Boolean);
+                    const memoItems = [];
+                    if (r.customer_memo) memoItems.push(r.customer_memo);
+                    if (r.groomer_memo) memoItems.push(r.groomer_memo);
+                    else if (r.request) memoItems.push(r.request);
                     const memoText = memoItems.length ? `<div class="res-memo">${esc(memoItems.join(' / '))}</div>` : '';
                     html += `
                         <div class="res-card" onclick="App.showReservationDetail(${r.id},${r.customer_id})">
@@ -1424,9 +1427,15 @@ const App = (() => {
         const isEditing = editEl.style.display !== 'none';
         viewEl.style.display = isEditing ? '' : 'none';
         editEl.style.display = isEditing ? 'none' : '';
+        const ta = document.getElementById('petMemoTA_' + petId);
         if (!isEditing) {
-            const ta = document.getElementById('petMemoTA_' + petId);
             if (ta) ta.focus();
+        } else {
+            // 취소 시 원래 값 복원
+            if (ta) {
+                const viewText = viewEl.textContent.trim();
+                ta.value = viewText === '메모 없음' ? '' : viewText;
+            }
         }
     }
 

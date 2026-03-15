@@ -107,6 +107,14 @@ def update_reservation(rid):
     if not data:
         return jsonify({"error": "no data"}), 400
 
+    # 문자열 필드 길이 제한
+    if "groomer_memo" in data:
+        data["groomer_memo"] = str(data["groomer_memo"])[:500]
+    if "request" in data:
+        data["request"] = str(data["request"])[:500]
+    if "service_type" in data:
+        data["service_type"] = str(data["service_type"])[:50]
+
     queries.update_reservation_with_history(db, rid, **data)
     return jsonify({"ok": True})
 

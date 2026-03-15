@@ -173,9 +173,11 @@ def update_customer(cid):
         return jsonify({"error": "no data"}), 400
 
     fields = {}
-    for key in ("name", "pet_name", "breed", "age", "notes", "memo"):
+    for key in ("name", "pet_name", "breed", "age", "notes"):
         if key in data:
             fields[key] = data[key]
+    if "memo" in data:
+        fields["memo"] = str(data["memo"])[:500]
     if "phone" in data:
         fields["phone"] = normalize_phone(data["phone"])
     if "weight" in data:
