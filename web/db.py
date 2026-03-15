@@ -269,6 +269,27 @@ class DatabaseManager:
                         END IF;
                     END $$;
                 """)
+                # 마이그레이션: Google 연락처 연동
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS google_tokens (
+                        id            SERIAL PRIMARY KEY,
+                        access_token  TEXT NOT NULL,
+                        refresh_token TEXT NOT NULL,
+                        expires_at    TIMESTAMP,
+                        created_at    TIMESTAMP DEFAULT NOW()
+                    );
+                """)
+                cur.execute("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'customers' AND column_name = 'google_contact_id'
+                        ) THEN
+                            ALTER TABLE customers ADD COLUMN google_contact_id TEXT;
+                        END IF;
+                    END $$;
+                """)
             conn.commit()
         finally:
             self._put_conn(conn)

@@ -12,6 +12,10 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 VIEWER_PASSWORD = os.environ.get("VIEWER_PASSWORD", "")
 TASKER_API_KEY = os.environ.get("TASKER_API_KEY", "")
 
+# === Google OAuth ===
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+
 # === 미용 서비스 종류 (이름, 기본소요시간(분), 기본가격(원)) ===
 DEFAULT_SERVICES = [
     ("위생목욕", 60, 30000),

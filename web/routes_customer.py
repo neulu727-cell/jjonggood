@@ -1,9 +1,12 @@
 """고객 CRUD API"""
 
+import logging
 from flask import Blueprint, jsonify, request
 from web.app import get_db, require_auth
 from web import queries
 from web.utils.phone_formatter import normalize_phone, format_phone_display
+
+log = logging.getLogger("jjonggood.customer")
 
 customer_bp = Blueprint("customer", __name__)
 
@@ -101,17 +104,28 @@ def create_customer():
         if existing.pet_name == pet_name:
             return jsonify({"error": "이미 등록된 전화번호+반려동물입니다", "customer_id": existing.id}), 409
 
+    weight = _safe_float(data.get("weight"))
+    memo = data.get("memo", "")[:500]
+
     cid = queries.create_customer(
         db,
         name=data.get("name", "").strip()[:50],
         phone=phone,
         pet_name=pet_name,
         breed=breed,
-        weight=_safe_float(data.get("weight")),
+        weight=weight,
         age=data.get("age", "")[:20],
         notes=data.get("notes", "")[:500],
-        memo=data.get("memo", "")[:500],
+        memo=memo,
     )
+
+    # Google 연락처 동기화
+    try:
+        from web.routes_google import sync_contact_to_google
+        sync_contact_to_google(cid, pet_name, weight, breed, phone, memo)
+    except Exception as e:
+        log.warning("Google sync failed on create (customer %s): %s", cid, e)
+
     return jsonify({"ok": True, "id": cid})
 
 
@@ -184,6 +198,24 @@ def update_customer(cid):
         fields["weight"] = _safe_float(data["weight"])
 
     queries.update_customer(db, cid, **fields)
+
+    # Google 연락처 동기화
+    try:
+        from web.routes_google import sync_contact_to_google
+        customer = db.fetch_one("SELECT * FROM customers WHERE id = ?", (cid,))
+        if customer:
+            sync_contact_to_google(
+                cid,
+                customer["pet_name"],
+                customer["weight"],
+                customer["breed"],
+                customer["phone"],
+                customer.get("memo", ""),
+                customer.get("google_contact_id"),
+            )
+    except Exception as e:
+        log.warning("Google sync failed on update (customer %s): %s", cid, e)
+
     return jsonify({"ok": True})
 
 

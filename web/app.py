@@ -84,6 +84,7 @@ def create_app():
     from web.routes_backup import backup_bp
     from web.routes_setup import setup_bp
     from web.routes_sales import sales_bp
+    from web.routes_google import google_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(calendar_bp)
@@ -93,6 +94,7 @@ def create_app():
     app.register_blueprint(backup_bp)
     app.register_blueprint(setup_bp)
     app.register_blueprint(sales_bp)
+    app.register_blueprint(google_bp)
 
     # --- 정적 파일 캐시 버스팅: url_for('static') → ?v=해시 자동 추가 ---
     _static_hashes = {}
@@ -160,6 +162,7 @@ def create_app():
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data:; "
             "connect-src 'self'; "
+            "form-action 'self' https://accounts.google.com; "
             "frame-ancestors 'none'"
         )
 

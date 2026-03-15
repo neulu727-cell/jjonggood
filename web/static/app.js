@@ -37,6 +37,7 @@ const App = (() => {
             loadCallSidebar();
             goToday();
             loadBridgeStatus();
+            loadGoogleStatus();
         } else {
             loadMonth();
         }
@@ -2304,6 +2305,42 @@ const App = (() => {
         loadSalesMonth();
     }
 
+    // ==================== Google 연락처 연동 ====================
+
+    function loadGoogleStatus() {
+        fetch('/google/status', {credentials: 'same-origin'})
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                const el = document.getElementById('googleStatus');
+                if (!el || !data) return;
+                if (data.connected) {
+                    el.style.background = '#065F46';
+                    el.style.color = '#34D399';
+                    el.innerHTML = '&#9679; Google 연동됨';
+                } else {
+                    el.style.background = '#374151';
+                    el.style.color = '#9CA3AF';
+                    el.innerHTML = '&#9679; Google';
+                }
+            })
+            .catch(() => {});
+    }
+
+    function toggleGoogle() {
+        fetch('/google/status', {credentials: 'same-origin'})
+            .then(r => r.json())
+            .then(data => {
+                if (data.connected) {
+                    if (confirm('Google 연락처 연동을 해제하시겠습니까?')) {
+                        fetch('/google/disconnect', {method: 'POST', credentials: 'same-origin'})
+                            .then(() => loadGoogleStatus());
+                    }
+                } else {
+                    window.location.href = '/google/connect';
+                }
+            });
+    }
+
     return {
         selectDate, closeTimeline, changeMonth, goToday, loadCustomerList,
         get customerSort() { return customerSort; },
@@ -2325,5 +2362,6 @@ const App = (() => {
         updateBridgeStatus,
         showImportForm, submitImport,
         changeSalesMonth, goTodaySales, showCustomAmount,
+        toggleGoogle,
     };
 })();
