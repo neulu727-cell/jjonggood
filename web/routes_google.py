@@ -27,7 +27,7 @@ KST = timezone(timedelta(hours=9))
 
 # ==================== 토큰 관리 ====================
 
-def _get_flow(redirect_uri: str) -> Flow:
+def _get_flow(redirect_uri: str):
     """OAuth Flow 생성"""
     client_config = {
         "web": {
@@ -56,7 +56,7 @@ def _get_tokens(db):
     return db.fetch_one("SELECT * FROM google_tokens ORDER BY id DESC LIMIT 1")
 
 
-def _get_credentials(db) -> Credentials | None:
+def _get_credentials(db):
     """유효한 Credentials 반환. 만료 시 자동 갱신."""
     row = _get_tokens(db)
     if not row:
