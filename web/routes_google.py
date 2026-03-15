@@ -140,7 +140,9 @@ def google_callback():
         flow.fetch_token(authorization_response=auth_response)
     except Exception as e:
         log.error("Google OAuth token fetch failed: %s", e)
-        return "<script>alert('Google 인증 실패');window.close();</script>"
+        log.error("auth_response URL: %s", auth_response)
+        log.error("redirect_uri: %s", redirect_uri)
+        return f"<script>alert('Google 인증 실패: {e}');window.location='/';</script>"
 
     creds = flow.credentials
     expires_at = datetime.now(KST) + timedelta(hours=1)
