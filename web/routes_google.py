@@ -4,14 +4,19 @@ import logging
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request, redirect, session
 
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
-from googleapiclient.discovery import build
-
 from web.app import get_db, require_auth
 from web import config
 
 log = logging.getLogger("jjonggood.google")
+
+try:
+    from google.oauth2.credentials import Credentials
+    from google_auth_oauthlib.flow import Flow
+    from googleapiclient.discovery import build
+    GOOGLE_AVAILABLE = True
+except ImportError:
+    log.warning("Google API 패키지 미설치 — 연락처 연동 비활성화")
+    GOOGLE_AVAILABLE = False
 
 google_bp = Blueprint("google", __name__)
 
@@ -96,6 +101,8 @@ def _build_people_service(creds):
 @require_auth
 def google_connect():
     """Google OAuth 시작"""
+    if not GOOGLE_AVAILABLE:
+        return jsonify({"error": "Google API 패키지가 설치되지 않았습니다"}), 500
     if not config.GOOGLE_CLIENT_ID or not config.GOOGLE_CLIENT_SECRET:
         return jsonify({"error": "Google OAuth가 설정되지 않았습니다"}), 400
 
@@ -208,6 +215,8 @@ def sync_contact_to_google(customer_id: int, pet_name: str, weight, breed: str,
     - 없으면 전화번호로 기존 연락처 검색 → 있으면 UPDATE, 없으면 CREATE
     - 실패해도 예외를 던지지 않음 (로그만)
     """
+    if not GOOGLE_AVAILABLE:
+        return
     try:
         db = get_db()
         creds = _get_credentials(db)
