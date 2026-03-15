@@ -972,11 +972,11 @@ textarea#quickMemo:focus {
 
 /* 인라인 통계 - 박스 없이 텍스트 */
 .ud-stats {
-    font-size: 12px; color: var(--text-secondary); padding: 4px 0;
+    font-size: 14px; color: var(--text-secondary); padding: 6px 0;
     line-height: 1.7;
 }
 .ud-stats strong {
-    font-size: 14px; font-weight: 700; color: var(--primary);
+    font-size: 15px; font-weight: 700; color: var(--primary);
 }
 
 /* 활성 예약 (타임라인에서 클릭한 항목 — 자동 펼침만, 별도 스타일 없음) */
@@ -994,38 +994,38 @@ textarea#quickMemo:focus {
     padding: 10px 14px; margin-bottom: 10px;
 }
 .ud-memo-banner-header {
-    font-size: 13px; font-weight: 700; color: #92400E;
+    font-size: 14px; font-weight: 700; color: #92400E;
     margin-bottom: 6px; display: flex; align-items: center; gap: 4px;
 }
-.ud-memo-banner-icon { font-size: 15px; }
+.ud-memo-banner-icon { font-size: 16px; }
 .ud-memo-pet {
     margin-bottom: 6px;
 }
 .ud-memo-pet .pet-label {
-    font-size: 11px; font-weight: 700; color: var(--primary);
-    background: var(--primary-light); padding: 1px 6px; border-radius: 3px;
+    font-size: 12px; font-weight: 700; color: var(--primary);
+    background: var(--primary-light); padding: 2px 8px; border-radius: 4px;
     margin-right: 4px;
 }
 .ud-memo-pet .memo-text {
-    font-size: 13px; color: var(--text); background: #fff;
-    border: 1px solid #FCD34D; padding: 6px 10px;
+    font-size: 14px; color: var(--text); background: #fff;
+    border: 1px solid #FCD34D; padding: 8px 12px;
     border-radius: 6px; margin-top: 3px;
     white-space: pre-wrap; line-height: 1.6; max-height: 120px; overflow-y: auto;
 }
 .ud-memo-pet .memo-empty {
-    color: #D97706; font-size: 12px; font-style: italic;
+    color: #D97706; font-size: 13px; font-style: italic;
 }
 .memo-edit-btn {
-    font-size: 13px; color: #92400E; background: none; border: none;
+    font-size: 14px; color: #92400E; background: none; border: none;
     cursor: pointer; padding: 2px 6px; vertical-align: middle;
 }
 .memo-edit-ta {
-    width: 100%; min-height: 60px; padding: 6px 10px;
+    width: 100%; min-height: 60px; padding: 8px 12px;
     border: 2px solid var(--primary); border-radius: 6px;
-    font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box;
+    font-size: 14px; font-family: inherit; resize: vertical; box-sizing: border-box;
 }
 .btn-cancel-sm {
-    padding: 4px 12px; font-size: 12px; background: none;
+    padding: 6px 14px; font-size: 13px; background: none;
     border: 1px solid var(--border-strong); border-radius: 5px;
     cursor: pointer; color: var(--text-light);
 }
@@ -1033,8 +1033,9 @@ textarea#quickMemo:focus {
     display: flex; gap: 6px; align-items: flex-end; margin-top: 8px;
 }
 .ud-quick-memo textarea {
-    font-size: 13px; padding: 6px 10px; min-height: 34px;
+    font-size: 14px; padding: 8px 12px; min-height: 36px; max-height: 60px;
     border: 1px solid #FCD34D; border-radius: 6px;
+    flex: 1;
 }
 
 /* 레거시 메모 섹션 (미사용) */
@@ -1055,34 +1056,34 @@ textarea#quickMemo:focus {
     .ud-history-scroll { max-height: calc(70vh - 160px); }
 }
 .ud-history-title {
-    font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px;
+    font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;
 }
 .ud-acc-item { border-bottom: 1px solid var(--border); }
 .ud-acc-item:last-child { border-bottom: none; }
 .ud-acc-header {
     display: flex; align-items: center; gap: 8px; width: 100%;
-    min-height: 36px; padding: 6px 2px; cursor: pointer; font-size: 12px;
+    min-height: 42px; padding: 8px 4px; cursor: pointer; font-size: 14px;
     background: none; border: none; text-align: left; color: inherit;
 }
 .ud-acc-header:hover { background: #F5F3FF; border-radius: 4px; }
 .ud-acc-header .arrow {
-    color: var(--text-light); font-size: 12px; transition: transform 0.15s;
+    color: var(--text-light); font-size: 14px; transition: transform 0.15s;
     flex-shrink: 0;
 }
 .ud-acc-item.open .ud-acc-header .arrow { transform: rotate(90deg); }
-.ud-acc-body { display: none; padding: 0 0 8px 12px; }
+.ud-acc-body { display: none; padding: 2px 0 10px 14px; }
 .ud-acc-item.open .ud-acc-body { display: block; }
 .ud-acc-body .detail-row {
     display: flex; justify-content: space-between;
-    padding: 2px 0; font-size: 11px;
+    padding: 4px 0; font-size: 13px;
 }
 .ud-acc-body .detail-row .label { color: var(--text-light); }
 .ud-acc-body .detail-row .value { font-weight: 600; }
 .ud-acc-body .acc-actions {
-    display: flex; gap: 4px; margin-top: 4px;
+    display: flex; gap: 6px; margin-top: 8px;
 }
 .ud-acc-body .acc-actions button {
-    flex: 1; min-width: 0; margin: 0; padding: 4px 0; font-size: 11px;
+    flex: 1; min-width: 0; margin: 0; padding: 8px 0; font-size: 13px;
 }
 
 /* === 매출관리 === */

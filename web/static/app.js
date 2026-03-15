@@ -740,13 +740,14 @@ const App = (() => {
         _unifiedActiveResId = activeRes ? activeRes.id : null;
         const content = document.getElementById('unifiedDetailContent');
         const siblings = c.siblings || [];
-        const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, weight: c.weight, memo: c.memo || '' }, ...siblings.map(s => ({...s, memo: s.memo || ''}))];
+        const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, weight: c.weight, age: c.age || '', memo: c.memo || '' }, ...siblings.map(s => ({...s, age: s.age || '', memo: s.memo || ''}))];
         const hasSiblings = siblings.length > 0;
 
-        // 헤더: 모든 펫을 한 줄에 나열
+        // 헤더: 모든 펫을 한 줄에 나열 (견종 · 체중 · 나이)
         let petsHeaderHtml = allPets.map((p, i) => {
             const w = p.weight ? ' · ' + p.weight + 'kg' : '';
-            return `<span class="ud-pet-name">${esc(p.pet_name)}</span><span class="ud-pet-info">${esc(p.breed)}${w}</span>`;
+            const a = p.age ? ' · ' + p.age + (p.age.includes('살') ? '' : '살') : '';
+            return `<span class="ud-pet-name">${esc(p.pet_name)}</span><span class="ud-pet-info">${esc(p.breed)}${w}${a}</span>`;
         }).join('<span class="ud-pet-divider">/</span>');
         const addBtnHtml = `<button class="pet-pill pet-pill-add" style="font-size:12px;padding:2px 8px;margin-left:4px;vertical-align:middle" data-phone="${esc(c.phone)}" data-name="${esc(c.name || '')}" onclick="App.addSiblingPet(this.dataset.phone, this.dataset.name)">+</button>`;
 
@@ -787,7 +788,7 @@ const App = (() => {
                 <div id="petMemoEdit_${p.id}" style="display:none;margin-top:4px">
                     <textarea id="petMemoTA_${p.id}" class="memo-edit-ta">${esc(p.memo || '')}</textarea>
                     <div style="display:flex;gap:4px;margin-top:4px">
-                        <button class="btn-primary-sm" style="padding:4px 12px;font-size:12px" onclick="App.savePetMemo(${p.id}, ${c.id})">저장</button>
+                        <button class="btn-primary-sm" style="padding:6px 14px;font-size:13px" onclick="App.savePetMemo(${p.id}, ${c.id})">저장</button>
                         <button class="btn-cancel-sm" onclick="App.toggleMemoEdit(${p.id}, ${c.id})">취소</button>
                     </div>
                 </div>
@@ -808,14 +809,14 @@ const App = (() => {
                 const amt = r.amount ? r.amount.toLocaleString() + '원' : '';
                 const resMemo = r.groomer_memo || r.request || '';
                 const isLegacyMemo = resMemo && !r.customer_memo; // 과거 데이터: groomer_memo만 있는 경우
-                const petTag = hasSiblings ? `<span style="font-size:10px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:1px 5px;border-radius:3px;margin-right:3px">${esc(r._pet)}</span>` : '';
+                const petTag = hasSiblings ? `<span style="font-size:12px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:2px 6px;border-radius:4px;margin-right:4px">${esc(r._pet)}</span>` : '';
                 return `
                     <div class="ud-acc-item${isActive ? ' open active-res' : ''}" id="acc_${r.id}">
                         <button type="button" class="ud-acc-header" onclick="App.toggleHistoryAccordion(${r.id})" aria-expanded="${isActive}" aria-controls="acc_body_${r.id}">
-                            <span class="res-status ${r.status}" style="min-width:32px;text-align:center;font-size:11px">${statusLabel}</span>
+                            <span class="res-status ${r.status}" style="min-width:36px;text-align:center;font-size:12px">${statusLabel}</span>
                             <div style="flex:1;min-width:0">
-                                <div style="font-size:12px">${petTag}${dateStr}${timeStr}</div>
-                                <div style="font-size:11px;color:var(--text-light)">${esc(r.service_type)}${r.fur_length ? '/'+esc(r.fur_length) : ''}${amt ? ' · '+amt : ''}</div>
+                                <div style="font-size:14px;font-weight:500">${petTag}${dateStr}${timeStr}</div>
+                                <div style="font-size:13px;color:var(--text-light)">${esc(r.service_type)}${r.fur_length ? '/'+esc(r.fur_length) : ''}${amt ? ' · '+amt : ''}</div>
                             </div>
                             <span class="arrow">&#8250;</span>
                         </button>
@@ -854,22 +855,16 @@ const App = (() => {
                 ${memoHtml}
                 <div class="ud-quick-memo">
                     <textarea id="quickMemo" rows="1" placeholder="메모 추가"></textarea>
-                    <button class="btn-primary-sm" style="flex-shrink:0;padding:6px 12px;font-size:12px" onclick="App.saveQuickMemo(${c.id})">추가</button>
+                    <button class="btn-primary-sm" style="flex-shrink:0;padding:8px 16px;font-size:14px" onclick="App.saveQuickMemo(${c.id})">추가</button>
                 </div>
             </div>
-            <div class="unified-grid">
-                <div>
-                    <div class="ud-stats">
-                        <strong>${allReservations.length}</strong>건 이력${totalCount ? ` · 완료 <strong>${totalCount}</strong>건` : ''} · 매출 <strong>${salesText}</strong>
-                        ${visitLine ? `<br>${visitLine}` : ''}
-                    </div>
-                </div>
-                <div>
-                    <div class="ud-history-title">이력 (${allReservations.length}건)</div>
-                    <div class="ud-history-scroll">
-                        ${historyHtml}
-                    </div>
-                </div>
+            <div class="ud-stats">
+                <strong>${allReservations.length}</strong>건 이력${totalCount ? ` · 완료 <strong>${totalCount}</strong>건` : ''} · 매출 <strong>${salesText}</strong>
+                ${visitLine ? `<br>${visitLine}` : ''}
+            </div>
+            <div class="ud-history-title">이력 (${allReservations.length}건)</div>
+            <div class="ud-history-scroll">
+                ${historyHtml}
             </div>
         `;
     }
