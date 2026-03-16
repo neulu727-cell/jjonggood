@@ -263,7 +263,7 @@ const App = (() => {
                     const memoSrc = r.customer_memo || r.groomer_memo || r.request || '';
                     const memoText = memoSrc ? `<div class="res-memo">${esc(memoSrc)}</div>` : '';
                     html += `
-                        <div class="res-card" onclick="App.showReservationDetail(${r.id},${r.customer_id})">
+                        <div class="res-card ${statusCls}" onclick="App.showReservationDetail(${r.id},${r.customer_id})">
                             <div class="res-time-col">
                                 <div class="res-time-start">${startLabel}</div>
                                 <div class="res-time-end">${endLabel}</div>
