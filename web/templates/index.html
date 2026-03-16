@@ -87,11 +87,11 @@
         </div>
         <!-- 액션 버튼 -->
         <div class="action-buttons">
-            <button class="action-btn blue" onclick="App.showView('customers')">고객 검색</button>
-            <button class="action-btn green" onclick="App.onQuickReserve()">예약 등록</button>
-            <button class="action-btn purple" onclick="App.showNewCustomerForm()">고객 등록</button>
-            <button class="action-btn gray" onclick="App.refresh()">새로고침</button>
-            <button class="action-btn gray" onclick="App.showView('sales')">매출관리</button>
+            <button class="action-btn blue" onclick="App.showView('customers')">🔍 고객 검색</button>
+            <button class="action-btn green" onclick="App.onQuickReserve()">✂️ 예약 등록</button>
+            <button class="action-btn purple" onclick="App.showNewCustomerForm()">🐾 고객 등록</button>
+            <button class="action-btn gray" onclick="App.refresh()">🔄 새로고침</button>
+            <button class="action-btn gray" onclick="App.showView('sales')">💰 매출관리</button>
         </div>
     </div>
 
@@ -134,11 +134,11 @@
         </button>
         <button class="nav-item" onclick="App.showView('customers')" data-view="customers">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-            <span>고객</span>
+            <span>고객 🐾</span>
         </button>
         <button class="nav-item" onclick="App.showView('sales')" data-view="sales">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-            <span>매출</span>
+            <span>매출 💰</span>
         </button>
     </div>
 </div>
@@ -150,7 +150,7 @@
     <div class="bottom-sheet wide-sheet">
         <div class="sheet-handle" onclick="App.closeSheet('reservationSheet')"></div>
         <div class="sheet-header">
-            <h3 id="sheetTitle">예약 등록</h3>
+            <h3 id="sheetTitle">✂️ 예약 등록</h3>
             <button class="sheet-close" onclick="App.closeSheet('reservationSheet')" aria-label="닫기">&times;</button>
         </div>
         <div class="sheet-body" id="reservationForm">
@@ -176,9 +176,9 @@
     <div class="panel-header">
         <div class="search-bar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="customerSearchInput" placeholder="이름, 전화번호, 반려동물 이름" oninput="App.searchCustomers(this.value)">
+            <input type="text" id="customerSearchInput" placeholder="🔍 이름, 전화번호, 반려동물 이름" oninput="App.searchCustomers(this.value)">
         </div>
-        <button class="btn-primary-sm" onclick="App.showNewCustomerForm()">+ 신규</button>
+        <button class="btn-primary-sm" onclick="App.showNewCustomerForm()">🐾 신규</button>
         <button class="btn-icon" onclick="App.showView('calendar')" title="닫기" style="margin-left:4px">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -217,7 +217,7 @@
     <div class="bottom-sheet tall">
         <div class="sheet-handle" onclick="App.closeSheet('callHistorySheet')"></div>
         <div class="sheet-header">
-            <h3>전화 이력</h3>
+            <h3>📞 전화 이력</h3>
             <button class="sheet-close" onclick="App.closeSheet('callHistorySheet')" aria-label="닫기">&times;</button>
         </div>
         <div class="sheet-body" id="callHistoryContent"></div>
@@ -229,7 +229,7 @@
     <div class="bottom-sheet tall">
         <div class="sheet-handle" onclick="App.closeSheet('customerSelectSheet')"></div>
         <div class="sheet-header">
-            <h3>고객 선택</h3>
+            <h3>🐾 고객 선택</h3>
             <button class="sheet-close" onclick="App.closeSheet('customerSelectSheet')" aria-label="닫기">&times;</button>
         </div>
         <div class="sheet-body">
@@ -237,7 +237,7 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="slotCustomerSearch" placeholder="고객 검색..." oninput="App.searchCustomersForSlot(this.value)">
             </div>
-            <button class="btn-new-customer-inline" onclick="App.showNewCustomerFormForSlot()">+ 신규 고객 등록 후 예약</button>
+            <button class="btn-new-customer-inline" onclick="App.showNewCustomerFormForSlot()">🐾 신규 고객 등록 후 예약</button>
             <div id="slotCustomerResults" class="customer-list"></div>
         </div>
     </div>
@@ -248,7 +248,7 @@
     <div class="bottom-sheet tall">
         <div class="sheet-handle" onclick="App.closeSheet('importSheet')"></div>
         <div class="sheet-header">
-            <h3>데이터 임포트</h3>
+            <h3>📦 데이터 임포트</h3>
             <button class="sheet-close" onclick="App.closeSheet('importSheet')" aria-label="닫기">&times;</button>
         </div>
         <div class="sheet-body" id="importFormContent">

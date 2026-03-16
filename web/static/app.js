@@ -367,7 +367,7 @@ const App = (() => {
                 } else {
                     html += `<div class="tl-slot tl-empty" onclick="App.onSlotClick('${ts}')">
                         <span class="tl-time">${ts}</span>
-                        <span class="tl-hint">+ 예약</span>
+                        <span class="tl-hint">✂️ 예약</span>
                     </div>`;
                 }
             }
@@ -464,7 +464,7 @@ const App = (() => {
     function showReservationForm(customer) {
         const form = document.getElementById('reservationForm');
         document.getElementById('sheetTitle').textContent =
-            `예약 등록 - ${customer.pet_name}`;
+            `✂️ 예약 등록 - ${customer.pet_name}`;
 
         const svc0 = CONFIG.services[0];
         let serviceGrid = CONFIG.services.map((s, i) =>
@@ -496,7 +496,7 @@ const App = (() => {
             prevHtml = `
                 <div class="prev-services">
                     <button type="button" class="prev-services-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-                        이전 서비스 이력 (${customer.reservations.length}건) <span>▼</span>
+                        📋 이전 서비스 이력 (${customer.reservations.length}건) <span>▼</span>
                     </button>
                     <div class="prev-services-list" style="display:none">
                         ${recent.map(r => `<div class="prev-service-item" onclick="App.applyPrevService('${esc(r.service_type)}',${r.duration},${r.amount||0},'${esc(r.fur_length||'')}')">
@@ -863,7 +863,7 @@ const App = (() => {
                 <strong>${allReservations.length}</strong>건 이력${totalCount ? ` · 완료 <strong>${totalCount}</strong>건` : ''} · 매출 <strong>${salesText}</strong>
                 ${visitLine ? `<br>${visitLine}` : ''}
             </div>
-            <div class="ud-history-title">이력 (${allReservations.length}건)</div>
+            <div class="ud-history-title">📋 이력 (${allReservations.length}건)</div>
             <div class="ud-history-scroll">
                 ${historyHtml}
             </div>
@@ -961,7 +961,7 @@ const App = (() => {
             }).join('');
             priceGrid += `<button type="button" class="btn-grid-item" data-field="editResAmount" data-value="0" onclick="App.showCustomAmount('editResAmount')">기타</button>`;
             const form = document.getElementById('reservationForm');
-            document.getElementById('sheetTitle').textContent = '예약 수정';
+            document.getElementById('sheetTitle').textContent = '✏️ 예약 수정';
             form.innerHTML = `
                 <input type="hidden" id="editResId" value="${rid}">
                 <input type="hidden" id="editResCustId" value="${r.customer_id}">
@@ -1080,7 +1080,7 @@ const App = (() => {
             overlay.style.zIndex = '200';
             overlay.innerHTML = `
                 <div class="bottom-sheet" style="max-width:340px;padding:24px;text-align:center">
-                    <h3 style="margin:0 0 16px;font-size:17px">결제방법 선택</h3>
+                    <h3 style="margin:0 0 16px;font-size:17px">💳 결제방법 선택</h3>
                     <div style="display:flex;gap:10px">
                         <button class="btn-grid-item" style="flex:1;padding:16px;font-size:16px" onclick="this.closest('.bottom-sheet-overlay').remove(); App.changeStatus(${rid},'completed','카드')">카드</button>
                         <button class="btn-grid-item" style="flex:1;padding:16px;font-size:16px" onclick="this.closest('.bottom-sheet-overlay').remove(); App.changeStatus(${rid},'completed','현금')">현금</button>
@@ -1174,7 +1174,7 @@ const App = (() => {
 
     function renderCustomerList(container, customers, onClick) {
         if (!customers.length) {
-            container.innerHTML = '<div style="text-align:center;padding:30px 20px"><span class="empty-emoji" aria-hidden="true">🔍</span><p style="color:var(--text-light);margin-bottom:12px">찾는 고객이 없어요</p><button class="btn-primary-sm" onclick="App.showNewCustomerForm()" style="padding:10px 20px">+ 신규 고객 등록</button></div>';
+            container.innerHTML = '<div style="text-align:center;padding:30px 20px"><span class="empty-emoji" aria-hidden="true">🔍</span><p style="color:var(--text-light);margin-bottom:12px">찾는 고객이 없어요</p><button class="btn-primary-sm" onclick="App.showNewCustomerForm()" style="padding:10px 20px">🐾 신규 고객 등록</button></div>';
             return;
         }
 
@@ -1221,7 +1221,7 @@ const App = (() => {
     function showCustomerForm(customer, onSaved) {
         const isEdit = !!(customer && customer.id);
         document.getElementById('customerFormTitle').textContent =
-            isEdit ? '고객 정보 수정' : '신규 고객 등록';
+            isEdit ? '✏️ 고객 정보 수정' : '🐾 신규 고객 등록';
 
         const c = customer || {};
         const breedValue = c.breed || '';
@@ -1601,8 +1601,8 @@ const App = (() => {
 
             content.innerHTML = `
                 <div class="call-info-existing">
-                    <div class="call-phone">${esc(data.phone_display)}</div>
-                    <div class="call-customer">${esc(data.pet_name)} (${esc(data.breed)}) - ${esc(data.customer_name)}</div>
+                    <div class="call-phone">📞 ${esc(data.phone_display)}</div>
+                    <div class="call-customer">🐾 ${esc(data.pet_name)} (${esc(data.breed)}) - ${esc(data.customer_name)}</div>
                     ${meta ? `<div class="call-customer">${esc(meta)}</div>` : ''}
                     ${recentHtml}
                 </div>
@@ -1611,8 +1611,8 @@ const App = (() => {
         } else {
             content.innerHTML = `
                 <div class="call-info-new">
-                    <div class="call-phone">${esc(data.phone_display)}</div>
-                    <div class="call-customer">미등록 번호</div>
+                    <div class="call-phone">📞 ${esc(data.phone_display)}</div>
+                    <div class="call-customer">🆕 미등록 번호</div>
                 </div>
                 <div class="call-actions">
                     <button class="call-btn-reserve" onclick="App.registerFromCall('${esc(data.phone)}')">신규 등록</button>
@@ -1824,10 +1824,11 @@ const App = (() => {
     }
 
     function toast(msg, type) {
+        const prefix = type === 'success' ? '✅ ' : type === 'error' ? '❌ ' : '';
         const el = document.createElement('div');
         el.className = 'toast' + (type ? ' toast-' + type : '');
         el.setAttribute('role', 'alert');
-        el.textContent = msg;
+        el.textContent = prefix + msg;
         document.body.appendChild(el);
         setTimeout(() => {
             el.style.transition = 'opacity 0.3s ease';
@@ -1992,7 +1993,7 @@ const App = (() => {
     function enterBookingMode(customer) {
         bookingMode = { customer };
         moveMode = null;
-        showModeBar('booking', `${customer.pet_name || '고객'} 예약 중 - 날짜 선택 → 빈 슬롯 클릭`);
+        showModeBar('booking', `✂️ ${customer.pet_name || '고객'} 예약 중 — 날짜 선택 → 빈 슬롯 클릭`);
         showView('calendar');
         if (!selectedDate) goToday();
         toast('캘린더에서 날짜를 선택 후 빈 슬롯을 클릭하세요');
@@ -2002,7 +2003,7 @@ const App = (() => {
         moveMode = { reservationId, petName };
         bookingMode = null;
         closeSheet('unifiedDetailSheet');
-        showModeBar('moving', `${petName} 예약 이동 중 - 새 날짜/시간 선택`);
+        showModeBar('moving', `📦 ${petName} 예약 이동 중 — 새 날짜/시간 선택`);
         toast('캘린더에서 날짜를 선택 후 빈 슬롯을 클릭하세요');
     }
 
@@ -2157,15 +2158,15 @@ const App = (() => {
         const s = salesData.summary;
         return `<div class="sales-summary">
             <div class="sales-card">
-                <div class="sales-card-label">총 매출</div>
+                <div class="sales-card-label">💰 총 매출</div>
                 <div class="sales-card-value">${s.total_sales.toLocaleString()}원</div>
             </div>
             <div class="sales-card">
-                <div class="sales-card-label">완료 건수</div>
+                <div class="sales-card-label">✅ 완료 건수</div>
                 <div class="sales-card-value">${s.completed_cnt}건</div>
             </div>
             <div class="sales-card">
-                <div class="sales-card-label">건당 평균</div>
+                <div class="sales-card-label">📊 건당 평균</div>
                 <div class="sales-card-value">${s.avg_amount.toLocaleString()}원</div>
             </div>
         </div>`;
@@ -2225,7 +2226,7 @@ const App = (() => {
 
         // 견종별 매출/방문
         if (salesData.breeds && salesData.breeds.length) {
-            html += '<div class="stats-section"><div class="stats-title">견종별 매출</div><div class="stats-list">';
+            html += '<div class="stats-section"><div class="stats-title">🐕 견종별 매출</div><div class="stats-list">';
             salesData.breeds.forEach((b, i) => {
                 const pct = salesData.summary.total_sales ? Math.round(b.total / salesData.summary.total_sales * 100) : 0;
                 html += `<div class="stats-row">
@@ -2239,7 +2240,7 @@ const App = (() => {
 
         // 반려동물별 방문 TOP
         if (salesData.top_pets.length) {
-            html += '<div class="stats-section"><div class="stats-title">반려동물별 방문 TOP 10</div><div class="stats-list">';
+            html += '<div class="stats-section"><div class="stats-title">🏆 반려동물별 방문 TOP 10</div><div class="stats-list">';
             salesData.top_pets.forEach((p, i) => {
                 html += `<div class="stats-row" onclick="App.showCustomerDetail(${p.customer_id})" style="cursor:pointer">
                     <span class="stats-rank">${i+1}</span>
@@ -2252,7 +2253,7 @@ const App = (() => {
 
         // 서비스별 매출
         if (salesData.services && salesData.services.length) {
-            html += '<div class="stats-section"><div class="stats-title">서비스별 매출</div><div class="stats-list">';
+            html += '<div class="stats-section"><div class="stats-title">✂️ 서비스별 매출</div><div class="stats-list">';
             salesData.services.forEach(s => {
                 html += `<div class="stats-row">
                     <span class="stats-name">${esc(s.service)}</span>
@@ -2264,7 +2265,7 @@ const App = (() => {
 
         // 결제수단별
         if (salesData.payment.length) {
-            html += '<div class="stats-section"><div class="stats-title">결제수단별</div><div class="stats-list">';
+            html += '<div class="stats-section"><div class="stats-title">💳 결제수단별</div><div class="stats-list">';
             salesData.payment.forEach(p => {
                 const pct = salesData.summary.total_sales ? Math.round(p.total / salesData.summary.total_sales * 100) : 0;
                 html += `<div class="stats-row">
@@ -2277,7 +2278,7 @@ const App = (() => {
 
         // 요일별 매출
         if (salesData.by_dow && salesData.by_dow.length) {
-            html += '<div class="stats-section"><div class="stats-title">요일별 매출</div><div class="stats-list">';
+            html += '<div class="stats-section"><div class="stats-title">📊 요일별 매출</div><div class="stats-list">';
             const maxTotal = Math.max(...salesData.by_dow.map(d => d.total));
             salesData.by_dow.forEach(d => {
                 const barW = maxTotal ? Math.round(d.total / maxTotal * 100) : 0;
