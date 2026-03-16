@@ -23,7 +23,7 @@ const App = (() => {
     function isPC() { return window.innerWidth >= 900; }
 
     const WEEKDAYS_KR = ['일','월','화','수','목','금','토'];
-    const STATUS_LABEL = { confirmed: '예약', completed: '완료', cancelled: '취소', no_show: '노쇼' };
+    const STATUS_LABEL = { confirmed: '📋 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
 
     // ==================== 초기화 ====================
 
@@ -153,7 +153,10 @@ const App = (() => {
                 badgesHtml += `<span class="cal-badge ${statusCls}">${esc(label)}</span>`;
             }
             if (names.length > maxBadges) {
-                badgesHtml += `<span class="cal-more">+${names.length - maxBadges}</span>`;
+                badgesHtml += `<span class="cal-more">+${names.length - maxBadges} 더</span>`;
+            }
+            if (names.length > 0 && names.length <= maxBadges) {
+                badgesHtml += `<span class="cal-more">${names.length}건</span>`;
             }
 
             html += `<div class="${cls}" onclick="App.selectDate('${dateStr}')">
@@ -250,7 +253,7 @@ const App = (() => {
                     const startLabel = formatTime(r.time);
                     const endLabel = formatTime(r.end_time);
                     const statusCls = r.status || 'confirmed';
-                    const TL_LABEL = { confirmed: '예약', completed: '미용완료', cancelled: '취소', no_show: '노쇼' };
+                    const TL_LABEL = { confirmed: '📋 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
                     const statusText = TL_LABEL[statusCls] || statusCls;
                     const breedText = r.breed ? `(${r.breed})` : '';
                     const amtText = r.amount ? `${r.amount.toLocaleString()}원` : '';
@@ -1156,6 +1159,8 @@ const App = (() => {
 
     async function searchCustomers(keyword) {
         clearTimeout(searchTimer);
+        const clearBtn = document.getElementById('searchClear');
+        if (clearBtn) clearBtn.style.display = (keyword || '').trim() ? 'flex' : 'none';
         if (!(keyword || '').trim()) {
             loadCustomerList('', customerSort);
             return;
@@ -1186,6 +1191,7 @@ const App = (() => {
 
         container.innerHTML = customers.map((c, i) => {
             const initial = (c.pet_name || '?')[0];
+            const ac = avatarColor(c.pet_name);
             const meta = [];
             if (c.phone_display) meta.push(c.phone_display);
             if (c.last_visit) meta.push(`마지막 방문: ${c.last_visit}`);
@@ -1194,7 +1200,7 @@ const App = (() => {
                 ? `<span class="sibling-badge">+${phoneCounts[c.phone] - 1}</span>` : '';
             return `
                 <div class="customer-card" data-idx="${i}">
-                    <div class="customer-avatar">${esc(initial)}</div>
+                    <div class="customer-avatar" style="background:${ac.bg};color:${ac.fg}">${esc(initial)}</div>
                     <div class="customer-info">
                         <div class="customer-name">
                             ${esc(c.pet_name)}
@@ -1708,6 +1714,24 @@ const App = (() => {
         input.setSelectionRange(cursor + diff, cursor + diff);
     }
 
+    const AVATAR_COLORS = [
+        { bg: '#EEF2FF', fg: '#4F46E5' }, // 인디고
+        { bg: '#FEF3C7', fg: '#D97706' }, // 앰버
+        { bg: '#DCFCE7', fg: '#16A34A' }, // 그린
+        { bg: '#FFE4E6', fg: '#E11D48' }, // 로즈
+        { bg: '#E0E7FF', fg: '#4338CA' }, // 바이올렛
+        { bg: '#FEE2E2', fg: '#DC2626' }, // 레드
+        { bg: '#DBEAFE', fg: '#2563EB' }, // 블루
+        { bg: '#F3E8FF', fg: '#9333EA' }, // 퍼플
+        { bg: '#CCFBF1', fg: '#0D9488' }, // 틸
+        { bg: '#FFF7ED', fg: '#EA580C' }, // 오렌지
+    ];
+    function avatarColor(name) {
+        let h = 0;
+        for (let i = 0; i < (name || '').length; i++) h = ((h << 5) - h + name.charCodeAt(i)) | 0;
+        return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+    }
+
     function _skeletonTimeline() {
         let html = '<div style="padding:16px">';
         for (let i = 0; i < 6; i++) {
@@ -2154,20 +2178,33 @@ const App = (() => {
         body.innerHTML = html;
     }
 
+    function _changeTag(cur, prev) {
+        if (!prev || prev === 0) return '';
+        const diff = cur - prev;
+        if (diff === 0) return '';
+        const pct = Math.round(Math.abs(diff) / prev * 100);
+        if (diff > 0) return `<span class="sales-change up">▲ ${pct}%</span>`;
+        return `<span class="sales-change down">▼ ${pct}%</span>`;
+    }
+
     function renderSalesSummary() {
         const s = salesData.summary;
+        const p = salesData.prev_summary || {};
         return `<div class="sales-summary">
             <div class="sales-card">
                 <div class="sales-card-label">💰 총 매출</div>
                 <div class="sales-card-value">${s.total_sales.toLocaleString()}원</div>
+                ${_changeTag(s.total_sales, p.total_sales)}
             </div>
             <div class="sales-card">
                 <div class="sales-card-label">✅ 완료 건수</div>
                 <div class="sales-card-value">${s.completed_cnt}건</div>
+                ${_changeTag(s.completed_cnt, p.completed_cnt)}
             </div>
             <div class="sales-card">
                 <div class="sales-card-label">📊 건당 평균</div>
                 <div class="sales-card-value">${s.avg_amount.toLocaleString()}원</div>
+                ${_changeTag(s.avg_amount, p.avg_amount)}
             </div>
         </div>`;
     }

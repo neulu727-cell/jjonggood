@@ -200,7 +200,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     text-align: center; font-weight: 500;
 }
 .slot-label {
-    font-size: 13px; color: #C4C9D0; flex: 1;
+    font-size: 13px; color: var(--text-light); flex: 1;
 }
 .slot-add {
     font-size: 18px; color: var(--primary); font-weight: 700;
@@ -297,8 +297,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     padding: 8px 0; border: none; background: none;
     color: var(--text-light); font-size: 11px;
     cursor: pointer; transition: color var(--transition);
+    position: relative;
 }
 .nav-item.active { color: var(--primary); }
+.nav-item.active::after {
+    content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 20px; height: 3px; background: var(--primary); border-radius: 0 0 3px 3px;
+    animation: navDot 0.3s ease;
+}
+@keyframes navDot {
+    from { width: 0; opacity: 0; }
+    to { width: 20px; opacity: 1; }
+}
+.nav-item.active svg { transform: scale(1.1); }
+.nav-item svg { transition: transform 0.2s ease; }
 .nav-item:active { background: var(--primary-light); }
 
 /* === 바텀시트 - Toss style === */
@@ -496,6 +508,14 @@ textarea#quickMemo:focus {
     flex: 1; border: none; background: none; padding: 10px 0;
     font-size: 14px; outline: none; color: var(--text);
 }
+.search-clear {
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--text-light); color: #fff; border: none;
+    font-size: 14px; cursor: pointer; flex-shrink: 0;
+    line-height: 1; transition: background 0.15s;
+}
+.search-clear:hover { background: var(--text-secondary); }
 
 .customer-sort-bar {
     display: flex; gap: 6px; padding: 8px 16px 4px;
@@ -506,7 +526,7 @@ textarea#quickMemo:focus {
     transition: all 0.15s;
 }
 .sort-btn.active {
-    background: #4a90d9; color: #fff; border-color: #4a90d9;
+    background: var(--primary); color: #fff; border-color: var(--primary);
 }
 .sort-btn:hover:not(.active) {
     background: #f0f0f0;
@@ -527,7 +547,9 @@ textarea#quickMemo:focus {
     background: var(--primary-light); color: var(--primary);
     display: flex; align-items: center; justify-content: center;
     font-size: 17px; font-weight: 700; flex-shrink: 0;
+    transition: transform 0.15s ease;
 }
+.customer-card:hover .customer-avatar { transform: scale(1.08); }
 .customer-info { flex: 1; min-width: 0; }
 .customer-name {
     font-size: 15px; font-weight: 700; margin-bottom: 3px;
@@ -596,6 +618,23 @@ textarea#quickMemo:focus {
     box-shadow: var(--shadow-lg);
     width: 100%; max-width: 400px; padding: 20px;
     position: relative;
+    animation: callRing 0.5s ease;
+}
+@keyframes callRing {
+    0% { transform: scale(0.9); opacity: 0; }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); opacity: 1; }
+}
+.call-popup-inner::before {
+    content: ''; position: absolute; inset: -4px;
+    border-radius: calc(var(--radius-lg) + 4px);
+    background: var(--primary);
+    opacity: 0; z-index: -1;
+    animation: callPulse 1.5s ease-in-out 3;
+}
+@keyframes callPulse {
+    0%, 100% { opacity: 0; inset: -4px; }
+    50% { opacity: 0.15; inset: -10px; }
 }
 .call-popup-close {
     position: absolute; top: 10px; right: 14px;
@@ -725,7 +764,7 @@ textarea#quickMemo:focus {
 
 /* === 토스트 - Toss style === */
 .toast {
-    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    position: fixed; bottom: calc(80px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
     background: rgba(30, 32, 40, 0.92); color: #fff;
     padding: 12px 28px; border-radius: 24px;
     font-size: 14px; font-weight: 600; z-index: 300;
@@ -1224,6 +1263,12 @@ textarea#quickMemo:focus {
 .sales-card-value {
     font-size: 16px; font-weight: 800; color: var(--primary);
 }
+.sales-change {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 1px 6px; border-radius: 6px; margin-top: 4px;
+}
+.sales-change.up { background: #DCFCE7; color: #16A34A; }
+.sales-change.down { background: #FEE2E2; color: #DC2626; }
 .sales-calendar-section {
     margin-bottom: 16px;
 }

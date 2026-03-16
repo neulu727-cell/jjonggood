@@ -550,7 +550,26 @@ def get_sales_month_data(db: DatabaseManager, year: int, month: int) -> dict:
     by_dow = [{"dow": row["dow"], "cnt": row["cnt"], "total": int(row["total"])}
               for row in dow_rows]
 
-    return {"daily": daily, "summary": summary, "top_pets": top_pets,
+    # 8) 전월 요약 (증감 비교용)
+    prev_m = month - 1 if month > 1 else 12
+    prev_y = year if month > 1 else year - 1
+    prev_row = db.fetch_one(
+        """SELECT COALESCE(SUM(amount), 0) as total_sales,
+                  COUNT(*) as completed_cnt,
+                  COALESCE(AVG(amount), 0) as avg_amount
+           FROM reservations
+           WHERE EXTRACT(YEAR FROM date) = ? AND EXTRACT(MONTH FROM date) = ?
+             AND status = 'completed' AND amount > 0""",
+        (prev_y, prev_m)
+    )
+    prev_summary = {
+        "total_sales": int(prev_row["total_sales"]),
+        "completed_cnt": prev_row["completed_cnt"],
+        "avg_amount": int(prev_row["avg_amount"]),
+    }
+
+    return {"daily": daily, "summary": summary, "prev_summary": prev_summary,
+            "top_pets": top_pets,
             "payment": payment, "breeds": breeds, "services": services, "by_dow": by_dow}
 
 
