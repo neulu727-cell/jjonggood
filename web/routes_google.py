@@ -1,6 +1,7 @@
 """Google 연락처 연동: OAuth 인증 + 연락처 동기화"""
 
 import logging
+import threading
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request, redirect, session
 
@@ -256,41 +257,47 @@ def _build_contact_body(pet_name: str, weight, breed: str, phone: str, memo: str
 
 def sync_contact_to_google(customer_id: int, pet_name: str, weight, breed: str,
                            phone: str, memo: str, google_contact_id: str = None):
-    """고객 데이터를 Google 연락처에 동기화.
+    """고객 데이터를 Google 연락처에 비동기 동기화.
 
-    - google_contact_id가 있으면 UPDATE (기존 메모 병합)
-    - 없으면 전화번호로 기존 연락처 검색 → 있으면 UPDATE, 없으면 CREATE
-    - 실패해도 예외를 던지지 않음 (로그만)
+    백그라운드 스레드에서 실행하여 API 응답을 지연시키지 않음.
+    DB 저장은 이미 완료된 상태에서 호출되므로 안전.
     """
     if not GOOGLE_AVAILABLE:
         return
-    try:
-        db = get_db()
-        creds = _get_credentials(db)
-        if not creds:
-            return  # 연동 안 됨, 스킵
 
-        service = _build_people_service(creds)
+    from flask import current_app
+    app = current_app._get_current_object()
 
-        if google_contact_id:
-            _update_existing_contact(db, service, customer_id, google_contact_id,
-                                     pet_name, weight, breed, phone, memo)
-        else:
-            # 전화번호로 기존 연락처 검색
-            existing = _find_contact_by_phone(service, phone)
-            if existing:
-                resource_name = existing["resourceName"]
-                # DB에 resourceName 저장
-                db.execute("UPDATE customers SET google_contact_id = ? WHERE id = ?",
-                           (resource_name, customer_id))
-                _update_existing_contact(db, service, customer_id, resource_name,
-                                         pet_name, weight, breed, phone, memo)
-            else:
-                _create_new_contact(db, service, customer_id,
-                                    pet_name, weight, breed, phone, memo)
+    def _do_sync():
+        with app.app_context():
+            try:
+                db = get_db()
+                creds = _get_credentials(db)
+                if not creds:
+                    return
 
-    except Exception as e:
-        log.error("Google contact sync failed for customer %s: %s", customer_id, e)
+                service = _build_people_service(creds)
+
+                if google_contact_id:
+                    _update_existing_contact(db, service, customer_id, google_contact_id,
+                                             pet_name, weight, breed, phone, memo)
+                else:
+                    existing = _find_contact_by_phone(service, phone)
+                    if existing:
+                        resource_name = existing["resourceName"]
+                        db.execute("UPDATE customers SET google_contact_id = ? WHERE id = ?",
+                                   (resource_name, customer_id))
+                        _update_existing_contact(db, service, customer_id, resource_name,
+                                                 pet_name, weight, breed, phone, memo)
+                    else:
+                        _create_new_contact(db, service, customer_id,
+                                            pet_name, weight, breed, phone, memo)
+
+            except Exception as e:
+                log.error("Google contact sync failed for customer %s: %s", customer_id, e)
+
+    thread = threading.Thread(target=_do_sync, daemon=True)
+    thread.start()
 
 
 def _find_contact_by_phone(service, phone: str):
