@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#4F46E5">
+<title>오프라인 — 쫑굿</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #F7F8FA;
+    color: #1F2937;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 24px;
+  }
+  .container {
+    text-align: center;
+    max-width: 360px;
+  }
+  .illustration {
+    margin-bottom: 16px;
+    animation: float 3s ease-in-out infinite;
+  }
+  .illustration img {
+    height: 160px;
+    width: auto;
+    opacity: 0.85;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #4F46E5;
+    margin-bottom: 8px;
+  }
+  p {
+    font-size: 14px;
+    color: #6B7280;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+  .retry-btn {
+    display: inline-block;
+    padding: 12px 32px;
+    background: #4F46E5;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .retry-btn:hover { background: #4338CA; }
+  .retry-btn:active { transform: scale(0.97); }
+  .status {
+    margin-top: 16px;
+    font-size: 12px;
+    color: #9CA3AF;
+  }
+  .status.online { color: #10B981; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="illustration" role="img" aria-label="기다리는 사람 일러스트">
+    <img src="/static/img/peep-offline.png" alt="" width="118" height="200">
+  </div>
+  <h1>인터넷 연결이 없습니다</h1>
+  <p>네트워크에 연결되면 자동으로 다시 접속할게요.<br>Wi-Fi 또는 모바일 데이터를 확인해주세요.</p>
+  <button class="retry-btn" onclick="location.reload()">다시 시도</button>
+  <div class="status" id="netStatus">오프라인 상태</div>
+</div>
+<script>
+  window.addEventListener('online', function() {
+    document.getElementById('netStatus').textContent = '연결됨! 새로고침 중...';
+    document.getElementById('netStatus').className = 'status online';
+    setTimeout(function() { location.reload(); }, 500);
+  });
+</script>
+</body>
+</html>

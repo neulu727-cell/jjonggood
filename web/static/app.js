@@ -184,7 +184,7 @@ const App = (() => {
             const data = await res.json();
             renderTimeline(data);
         } catch (e) {
-            content.innerHTML = '<div class="empty-timeline"><div class="icon">🔄</div><p class="empty-title">연결이 불안정해요</p><p>잠시 후 다시 시도해주세요</p><button class="empty-cta" onclick="App.selectDate(\'' + dateStr + '\')">다시 시도</button></div>';
+            content.innerHTML = '<div class="empty-timeline"><img src="/static/img/peep-error.png" alt="" aria-hidden="true" style="height:100px;width:auto;opacity:.7;margin-bottom:8px"><p class="empty-title">연결이 불안정해요</p><p>잠시 후 다시 시도해주세요</p><button class="empty-cta" onclick="App.selectDate(\'' + dateStr + '\')">다시 시도</button></div>';
         }
         document.getElementById('timelineSection').scrollTop = 0;
     }
@@ -383,7 +383,7 @@ const App = (() => {
         renderCalendar();
         document.querySelector('.calendar-section')?.classList.remove('collapsed');
         document.getElementById('timelineContent').innerHTML =
-            '<div class="empty-timeline"><div class="icon">📅</div><p class="empty-title">날짜를 선택해주세요</p><p>캘린더에서 날짜를 탭하면 예약 현황을 볼 수 있어요</p></div>';
+            '<div class="empty-timeline"><img src="/static/img/peep-empty.png" alt="" aria-hidden="true" style="height:120px;width:auto;opacity:.8;margin-bottom:8px"><p class="empty-title">날짜를 선택해주세요</p><p>캘린더에서 날짜를 탭하면 예약 현황을 볼 수 있어요</p></div>';
     }
 
     // ==================== 빈 슬롯 클릭 → 고객 선택 → 예약 생성 ====================
@@ -1150,7 +1150,7 @@ const App = (() => {
             if (!q) cachedCustomers = data.customers;
             renderCustomerList(container, data.customers, (c) => App.showCustomerDetail(c.id));
         } catch (e) {
-            container.innerHTML = '<div style="text-align:center;color:#999;padding:40px"><p>고객 목록을 불러올 수 없습니다</p><button class="btn-secondary" style="width:auto;margin-top:12px;padding:10px 24px" onclick="App.loadCustomerList(\'\',App.customerSort)">다시 시도</button></div>';
+            container.innerHTML = '<div style="text-align:center;padding:30px 20px"><img src="/static/img/peep-error.png" alt="" aria-hidden="true" style="height:100px;width:auto;opacity:.7;margin-bottom:8px"><p style="color:#999;margin-bottom:12px">고객 목록을 불러올 수 없습니다</p><button class="btn-secondary" style="width:auto;margin-top:12px;padding:10px 24px" onclick="App.loadCustomerList(\'\',App.customerSort)">다시 시도</button></div>';
         }
     }
 
@@ -1174,7 +1174,7 @@ const App = (() => {
 
     function renderCustomerList(container, customers, onClick) {
         if (!customers.length) {
-            container.innerHTML = '<div style="text-align:center;padding:40px 20px"><p style="color:var(--text-light);margin-bottom:12px">검색 결과 없음</p><button class="btn-primary-sm" onclick="App.showNewCustomerForm()" style="padding:10px 20px">+ 신규 고객 등록</button></div>';
+            container.innerHTML = '<div style="text-align:center;padding:30px 20px"><img src="/static/img/peep-notfound.png" alt="" aria-hidden="true" style="height:100px;width:auto;opacity:.7;margin-bottom:8px"><p style="color:var(--text-light);margin-bottom:12px">찾는 고객이 없어요</p><button class="btn-primary-sm" onclick="App.showNewCustomerForm()" style="padding:10px 20px">+ 신규 고객 등록</button></div>';
             return;
         }
 
@@ -1534,7 +1534,7 @@ const App = (() => {
             const res = await fetch('/api/call-history');
             const data = await res.json();
             if (!data.history || !data.history.length) {
-                content.innerHTML = '<div class="empty-timeline" style="padding:40px 10px"><div class="icon">📞</div><p style="font-size:13px">수신 이력이 없어요</p></div>';
+                content.innerHTML = '<div class="empty-timeline" style="padding:30px 10px"><img src="/static/img/peep-nocall.png" alt="" aria-hidden="true" style="height:80px;width:auto;opacity:.7;margin-bottom:4px"><p style="font-size:13px">수신 이력이 없어요</p></div>';
                 return;
             }
             content.innerHTML = data.history.map(h => {
@@ -1878,7 +1878,7 @@ const App = (() => {
             const data = await res.json();
             const filtered = data.history || [];
             if (!filtered.length) {
-                container.innerHTML = '<div class="empty-timeline" style="padding:40px 10px"><div class="icon">📞</div><p style="font-size:13px">수신 이력이 없어요</p></div>';
+                container.innerHTML = '<div class="empty-timeline" style="padding:30px 10px"><img src="/static/img/peep-nocall.png" alt="" aria-hidden="true" style="height:80px;width:auto;opacity:.7;margin-bottom:4px"><p style="font-size:13px">수신 이력이 없어요</p></div>';
                 return;
             }
             container.innerHTML = filtered.map(h => {
@@ -2140,7 +2140,7 @@ const App = (() => {
             salesData = await res.json();
             renderSalesView();
         } catch (e) {
-            body.innerHTML = '<div class="empty-timeline"><div class="icon">🔄</div><p class="empty-title">연결이 불안정해요</p><p>잠시 후 다시 시도해주세요</p></div>';
+            body.innerHTML = '<div class="empty-timeline"><img src="/static/img/peep-error.png" alt="" aria-hidden="true" style="height:100px;width:auto;opacity:.7;margin-bottom:8px"><p class="empty-title">연결이 불안정해요</p><p>잠시 후 다시 시도해주세요</p></div>';
         }
     }
 
@@ -2382,4 +2382,89 @@ const App = (() => {
         changeSalesMonth, goTodaySales, showCustomAmount,
         toggleGoogle,
     };
+})();
+
+/* === PWA 설치 배너 === */
+(function() {
+    let deferredPrompt = null;
+
+    // 30일 이내 닫았으면 표시 안 함
+    function isDismissed() {
+        const ts = localStorage.getItem('pwa_dismiss');
+        if (!ts) return false;
+        return Date.now() - Number(ts) < 30 * 24 * 60 * 60 * 1000;
+    }
+
+    // 이미 standalone(설치됨)이면 표시 안 함
+    function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches
+            || navigator.standalone === true;
+    }
+
+    function createBanner(isIOS) {
+        if (isDismissed() || isStandalone()) return;
+        if (document.getElementById('pwaBanner')) return;
+
+        const banner = document.createElement('div');
+        banner.id = 'pwaBanner';
+        banner.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);' +
+            'background:#4F46E5;color:#fff;padding:10px 16px;border-radius:24px;' +
+            'font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;' +
+            'box-shadow:0 4px 20px rgba(79,70,229,.4);z-index:9999;max-width:calc(100% - 32px);' +
+            'animation:pwSlideUp .4s ease';
+
+        if (isIOS) {
+            banner.innerHTML =
+                '<span>🐾 홈 화면에 추가하면 앱처럼 사용할 수 있어요</span>' +
+                '<span style="font-size:11px;opacity:.8;white-space:nowrap">공유 ➜ 홈 화면에 추가</span>' +
+                '<button id="pwaDismiss" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:0 0 0 4px">&times;</button>';
+        } else {
+            banner.innerHTML =
+                '<span>🐾 홈 화면에 추가하면 더 빠르게 사용할 수 있어요</span>' +
+                '<button id="pwaInstall" style="background:#fff;color:#4F46E5;border:none;border-radius:16px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">설치</button>' +
+                '<button id="pwaDismiss" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:0 0 0 4px">&times;</button>';
+        }
+
+        // Animation keyframes
+        if (!document.getElementById('pwaStyle')) {
+            const style = document.createElement('style');
+            style.id = 'pwaStyle';
+            style.textContent = '@keyframes pwSlideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(banner);
+
+        // 닫기
+        document.getElementById('pwaDismiss').onclick = function() {
+            localStorage.setItem('pwa_dismiss', String(Date.now()));
+            banner.remove();
+        };
+
+        // 설치 버튼 (Android/Desktop)
+        var installBtn = document.getElementById('pwaInstall');
+        if (installBtn && deferredPrompt) {
+            installBtn.onclick = function() {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function() {
+                    deferredPrompt = null;
+                    banner.remove();
+                });
+            };
+        }
+    }
+
+    // Android/Desktop: beforeinstallprompt
+    window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        // 30초 후 배너 표시
+        setTimeout(function() { createBanner(false); }, 30000);
+    });
+
+    // iOS: beforeinstallprompt 미지원, 수동 안내
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS && !isStandalone()) {
+        setTimeout(function() { createBanner(true); }, 30000);
+    }
 })();

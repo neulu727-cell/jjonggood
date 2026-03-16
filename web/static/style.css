@@ -261,6 +261,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     font-size: 48px; margin-bottom: 16px;
     animation: gentlePulse 3s ease-in-out infinite;
 }
+.empty-timeline img {
+    animation: emptyFloat 3s ease-in-out infinite;
+}
+@keyframes emptyFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
 .empty-timeline .empty-title {
     font-size: 16px; font-weight: 700; color: var(--text-secondary);
     margin-bottom: 6px;

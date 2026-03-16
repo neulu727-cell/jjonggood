@@ -112,6 +112,25 @@ def create_app():
             return url_for('static', filename=filename) + '?v=' + _static_hashes[filename]
         return dict(static_url=static_url)
 
+    # --- PWA 라우트 ---
+    @app.route("/sw.js")
+    def service_worker():
+        response = app.send_static_file("sw.js")
+        response.headers["Content-Type"] = "application/javascript"
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Service-Worker-Allowed"] = "/"
+        return response
+
+    @app.route("/manifest.json")
+    def manifest():
+        response = app.send_static_file("manifest.json")
+        response.headers["Content-Type"] = "application/manifest+json"
+        return response
+
+    @app.route("/offline.html")
+    def offline():
+        return app.send_static_file("offline.html")
+
     @app.route("/health")
     def health():
         try:
@@ -162,6 +181,7 @@ def create_app():
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data:; "
             "connect-src 'self'; "
+            "worker-src 'self'; "
             "form-action 'self' https://accounts.google.com; "
             "frame-ancestors 'none'"
         )

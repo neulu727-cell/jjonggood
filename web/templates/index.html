@@ -6,6 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#4F46E5">
+<meta name="apple-mobile-web-app-title" content="쫑굿">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 <title>예약관리</title>
 <link rel="stylesheet" href="{{ static_url('style.css') }}">
 </head>
@@ -80,7 +83,7 @@
             <button onclick="App.changeCallDate(1)">&#8250;</button>
         </div>
         <div class="call-sidebar-list" id="callSidebarList">
-            <div class="empty-timeline" style="padding:40px 10px"><div class="icon">📞</div><p style="font-size:13px">수신 이력이 없어요</p></div>
+            <div class="empty-timeline" style="padding:30px 10px"><img src="{{ static_url('img/peep-nocall.png') }}" alt="" aria-hidden="true" style="height:80px;width:auto;opacity:.7;margin-bottom:4px"><p style="font-size:13px">수신 이력이 없어요</p></div>
         </div>
         <!-- 액션 버튼 -->
         <div class="action-buttons">
@@ -96,8 +99,9 @@
     <div class="timeline-section" id="timelineSection">
         <div id="timelineContent">
             <div class="empty-timeline">
-                <div class="icon">&#128197;</div>
-                <p>날짜를 선택하세요</p>
+                <img src="{{ static_url('img/peep-empty.png') }}" alt="" aria-hidden="true" style="height:120px;width:auto;opacity:.8;margin-bottom:8px">
+                <p class="empty-title">날짜를 선택해주세요</p>
+                <p>캘린더에서 날짜를 탭하면 예약 현황을 볼 수 있어요</p>
             </div>
         </div>
     </div>
@@ -280,5 +284,12 @@ const CONFIG = {
 </script>
 <script src="{{ static_url('app.js') }}"></script>
 <script src="{{ static_url('call.js') }}"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' });
+  });
+}
+</script>
 </body>
 </html>
