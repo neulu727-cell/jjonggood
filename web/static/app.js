@@ -23,7 +23,7 @@ const App = (() => {
     function isPC() { return window.innerWidth >= 900; }
 
     const WEEKDAYS_KR = ['일','월','화','수','목','금','토'];
-    const STATUS_LABEL = { confirmed: '📋 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
+    const STATUS_LABEL = { confirmed: '🕐 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
 
     // ==================== 초기화 ====================
 
@@ -253,7 +253,7 @@ const App = (() => {
                     const startLabel = formatTime(r.time);
                     const endLabel = formatTime(r.end_time);
                     const statusCls = r.status || 'confirmed';
-                    const TL_LABEL = { confirmed: '📋 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
+                    const TL_LABEL = { confirmed: '🕐 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
                     const statusText = TL_LABEL[statusCls] || statusCls;
                     const breedText = r.breed ? `(${r.breed})` : '';
                     const amtText = r.amount ? `${r.amount.toLocaleString()}원` : '';
@@ -499,7 +499,7 @@ const App = (() => {
             prevHtml = `
                 <div class="prev-services">
                     <button type="button" class="prev-services-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-                        📋 이전 서비스 이력 (${customer.reservations.length}건) <span>▼</span>
+                        🐾 이전 서비스 이력 (${customer.reservations.length}건) <span>▼</span>
                     </button>
                     <div class="prev-services-list" style="display:none">
                         ${recent.map(r => `<div class="prev-service-item" onclick="App.applyPrevService('${esc(r.service_type)}',${r.duration},${r.amount||0},'${esc(r.fur_length||'')}')">
@@ -854,7 +854,7 @@ const App = (() => {
             </div>
             <div class="ud-memo-banner">
                 <div class="ud-memo-banner-header">
-                    <span class="ud-memo-banner-icon">📋</span> 메모
+                    <span class="ud-memo-banner-icon">✏️</span> 메모
                 </div>
                 ${memoHtml}
                 <div class="ud-quick-memo">
@@ -866,7 +866,7 @@ const App = (() => {
                 <strong>${allReservations.length}</strong>건 이력${totalCount ? ` · 완료 <strong>${totalCount}</strong>건` : ''} · 매출 <strong>${salesText}</strong>
                 ${visitLine ? `<br>${visitLine}` : ''}
             </div>
-            <div class="ud-history-title">📋 이력 (${allReservations.length}건)</div>
+            <div class="ud-history-title">🐾 이력 (${allReservations.length}건)</div>
             <div class="ud-history-scroll">
                 ${historyHtml}
             </div>
@@ -1179,7 +1179,7 @@ const App = (() => {
 
     function renderCustomerList(container, customers, onClick) {
         if (!customers.length) {
-            container.innerHTML = '<div style="text-align:center;padding:30px 20px"><span class="empty-emoji" aria-hidden="true">🔍</span><p style="color:var(--text-light);margin-bottom:12px">찾는 고객이 없어요</p><button class="btn-primary-sm" onclick="App.showNewCustomerForm()" style="padding:10px 20px">🐾 신규 고객 등록</button></div>';
+            container.innerHTML = '<div style="text-align:center;padding:30px 20px"><span class="empty-emoji" aria-hidden="true">🐾</span><p style="color:var(--text-light);margin-bottom:12px">아직 등록된 친구가 없어요</p><button class="btn-primary-sm" onclick="App.showNewCustomerForm()" style="padding:10px 20px">🐾 신규 고객 등록</button></div>';
             return;
         }
 
@@ -1540,7 +1540,7 @@ const App = (() => {
             const res = await fetch('/api/call-history');
             const data = await res.json();
             if (!data.history || !data.history.length) {
-                content.innerHTML = '<div class="empty-timeline" style="padding:30px 10px"><span class="empty-emoji" aria-hidden="true" style="font-size:40px">📞</span><p style="font-size:13px">수신 이력이 없어요</p></div>';
+                content.innerHTML = '<div class="empty-timeline" style="padding:30px 10px"><span class="empty-emoji" aria-hidden="true" style="font-size:40px">🐕</span><p style="font-size:13px">아직 전화가 없어요</p></div>';
                 return;
             }
             content.innerHTML = data.history.map(h => {
@@ -1903,7 +1903,7 @@ const App = (() => {
             const data = await res.json();
             const filtered = data.history || [];
             if (!filtered.length) {
-                container.innerHTML = '<div class="empty-timeline" style="padding:30px 10px"><span class="empty-emoji" aria-hidden="true" style="font-size:40px">📞</span><p style="font-size:13px">수신 이력이 없어요</p></div>';
+                container.innerHTML = '<div class="empty-timeline" style="padding:30px 10px"><span class="empty-emoji" aria-hidden="true" style="font-size:40px">🐕</span><p style="font-size:13px">아직 전화가 없어요</p></div>';
                 return;
             }
             container.innerHTML = filtered.map(h => {
@@ -2027,7 +2027,7 @@ const App = (() => {
         moveMode = { reservationId, petName };
         bookingMode = null;
         closeSheet('unifiedDetailSheet');
-        showModeBar('moving', `📦 ${petName} 예약 이동 중 — 새 날짜/시간 선택`);
+        showModeBar('moving', `🐕 ${petName} 예약 이동 중 — 새 날짜/시간 선택`);
         toast('캘린더에서 날짜를 선택 후 빈 슬롯을 클릭하세요');
     }
 
@@ -2202,7 +2202,7 @@ const App = (() => {
                 ${_changeTag(s.completed_cnt, p.completed_cnt)}
             </div>
             <div class="sales-card">
-                <div class="sales-card-label">📊 건당 평균</div>
+                <div class="sales-card-label">🐾 건당 평균</div>
                 <div class="sales-card-value">${s.avg_amount.toLocaleString()}원</div>
                 ${_changeTag(s.avg_amount, p.avg_amount)}
             </div>
@@ -2315,7 +2315,7 @@ const App = (() => {
 
         // 요일별 매출
         if (salesData.by_dow && salesData.by_dow.length) {
-            html += '<div class="stats-section"><div class="stats-title">📊 요일별 매출</div><div class="stats-list">';
+            html += '<div class="stats-section"><div class="stats-title">📅 요일별 매출</div><div class="stats-list">';
             const maxTotal = Math.max(...salesData.by_dow.map(d => d.total));
             salesData.by_dow.forEach(d => {
                 const barW = maxTotal ? Math.round(d.total / maxTotal * 100) : 0;
