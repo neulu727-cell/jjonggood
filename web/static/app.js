@@ -96,7 +96,7 @@ const App = (() => {
     async function loadMonth() {
         updateMonthLabel();
         const grid = document.getElementById('calendarGrid');
-        grid.innerHTML = '<div class="loading" style="grid-column:1/-1">불러오는 중</div>';
+        grid.innerHTML = '<div class="loading" style="grid-column:1/-1;padding:20px"></div>';
 
         try {
             const res = await fetch(`/api/month?y=${currentYear}&m=${currentMonth}`);
@@ -184,7 +184,7 @@ const App = (() => {
             const data = await res.json();
             renderTimeline(data);
         } catch (e) {
-            content.innerHTML = '<div class="empty-timeline"><div class="icon">!</div><p>데이터를 불러올 수 없습니다</p><button class="btn-secondary" style="width:auto;margin-top:12px;padding:10px 24px" onclick="App.selectDate(\'' + dateStr + '\')">다시 시도</button></div>';
+            content.innerHTML = '<div class="empty-timeline"><div class="icon">🔄</div><p class="empty-title">연결이 불안정해요</p><p>잠시 후 다시 시도해주세요</p><button class="empty-cta" onclick="App.selectDate(\'' + dateStr + '\')">다시 시도</button></div>';
         }
         document.getElementById('timelineSection').scrollTop = 0;
     }
@@ -383,7 +383,7 @@ const App = (() => {
         renderCalendar();
         document.querySelector('.calendar-section')?.classList.remove('collapsed');
         document.getElementById('timelineContent').innerHTML =
-            '<div class="empty-timeline"><div class="icon">📅</div><p>날짜를 선택하세요</p></div>';
+            '<div class="empty-timeline"><div class="icon">📅</div><p class="empty-title">날짜를 선택해주세요</p><p>캘린더에서 날짜를 탭하면 예약 현황을 볼 수 있어요</p></div>';
     }
 
     // ==================== 빈 슬롯 클릭 → 고객 선택 → 예약 생성 ====================
@@ -402,13 +402,13 @@ const App = (() => {
                 body: JSON.stringify({ date: selectedDate, time: timeStr }),
             }).then(r => r.json()).then(result => {
                 if (result.ok) {
-                    toast('예약이 이동되었습니다');
+                    toast('예약이 이동되었습니다', 'success');
                     selectDate(selectedDate);
                     loadMonth();
                 } else {
-                    toast(result.error || '이동 실패');
+                    toast(result.error || '이동 실패', 'error');
                 }
-            }).catch(() => toast('이동 실패'));
+            }).catch(() => toast('이동 실패', 'error'));
             moveMode = null;
             hideModeBar();
             return;
@@ -673,14 +673,14 @@ const App = (() => {
                 });
                 cachedCustomers = null;
                 closeSheet('reservationSheet', true);
-                toast('예약이 저장되었습니다');
+                toast('예약이 저장되었습니다', 'success');
                 selectDate(selectedDate);
                 loadMonth();
             } else {
-                toast(result.error || '저장 실패');
+                toast(result.error || '저장 실패', 'error');
             }
         } catch (e) {
-            toast('저장 실패');
+            toast('저장 실패', 'error');
         }
     }
 
@@ -689,7 +689,7 @@ const App = (() => {
     // 예약 카드에서 진입: customer API 1회 호출, reservations 배열에서 activeRes 탐색
     async function showReservationDetail(rid, customerId) {
         const content = document.getElementById('unifiedDetailContent');
-        content.innerHTML = '<div class="loading">불러오는 중</div>';
+        content.innerHTML = '<div style="padding:16px">' + _skeletonCustomerList() + '</div>';
         document.getElementById('unifiedDetailTitle').textContent = '상세';
         openSheet('unifiedDetailSheet');
 
@@ -723,7 +723,7 @@ const App = (() => {
     // 고객 목록에서 진입: customer API만
     async function showCustomerDetail(cid) {
         const content = document.getElementById('unifiedDetailContent');
-        content.innerHTML = '<div class="loading">불러오는 중</div>';
+        content.innerHTML = '<div style="padding:16px">' + _skeletonCustomerList() + '</div>';
         document.getElementById('unifiedDetailTitle').textContent = '상세';
         openSheet('unifiedDetailSheet');
 
@@ -837,7 +837,7 @@ const App = (() => {
                     </div>`;
             }).join('');
         } else {
-            historyHtml = '<p style="text-align:center;color:var(--text-light);padding:8px;font-size:12px">이력 없음</p>';
+            historyHtml = '<div style="text-align:center;color:var(--text-light);padding:20px 8px;font-size:13px">✨ 첫 방문 고객이에요!</div>';
         }
 
         content.innerHTML = `
@@ -918,21 +918,21 @@ const App = (() => {
             });
             const result = await res.json();
             if (result.ok) {
-                toast('메모 추가됨');
+                toast('메모 추가됨', 'success');
                 cachedCustomers = null;
                 _reloadUnifiedDetail(customerId);
             } else {
-                toast(result.error || '저장 실패');
+                toast(result.error || '저장 실패', 'error');
             }
         } catch (e) {
-            toast('저장 실패');
+            toast('저장 실패', 'error');
         }
     }
 
     async function showEditReservation(rid) {
         try {
             const res = await fetch(`/api/reservation/${rid}`);
-            if (!res.ok) { toast('불러오기 실패'); return; }
+            if (!res.ok) { toast('불러오기 실패', 'error'); return; }
             const r = await res.json();
             closeSheet('unifiedDetailSheet');
 
@@ -1014,7 +1014,7 @@ const App = (() => {
             openSheet('reservationSheet');
             _setupFormDirtyTracking();
         } catch (e) {
-            toast('불러오기 실패');
+            toast('불러오기 실패', 'error');
         }
     }
 
@@ -1056,17 +1056,17 @@ const App = (() => {
                     cachedCustomers = null;
                 }
                 closeSheet('reservationSheet', true);
-                toast('수정되었습니다');
+                toast('수정되었습니다', 'success');
                 if (selectedDate) selectDate(selectedDate);
                 loadMonth();
                 if (custId) {
                     showReservationDetail(parseInt(rid), parseInt(custId));
                 }
             } else {
-                toast(result.error || '수정 실패');
+                toast(result.error || '수정 실패', 'error');
             }
         } catch (e) {
-            toast('수정 실패');
+            toast('수정 실패', 'error');
         }
     }
 
@@ -1106,11 +1106,11 @@ const App = (() => {
             const result = await res.json();
             if (result.ok) {
                 closeSheet('unifiedDetailSheet');
-                toast(`${labels[status]} 처리되었습니다`);
+                toast(`${labels[status]} 처리되었습니다`, 'success');
                 if (selectedDate) selectDate(selectedDate);
                 loadMonth();
             } else {
-                toast(result.error || '실패');
+                toast(result.error || '실패', 'error');
             }
         } catch (e) {
             toast('실패');
@@ -1419,7 +1419,7 @@ const App = (() => {
             if (result.ok || result.id) {
                 cachedCustomers = null;
                 closeSheet('customerFormSheet');
-                toast(isEdit ? '수정되었습니다' : '등록되었습니다');
+                toast(isEdit ? '수정되었습니다' : '등록되었습니다', 'success');
 
                 if (window._customerFormCallback) {
                     // 새로 생성된 고객 정보 가져오기
@@ -1432,7 +1432,7 @@ const App = (() => {
                     window._customerFormCallback = null;
                 }
             } else {
-                toast(result.error || '실패');
+                toast(result.error || '실패', 'error');
             }
         } catch (e) {
             toast('실패');
@@ -1448,10 +1448,10 @@ const App = (() => {
                 cachedCustomers = null;
                 closeSheet('customerFormSheet');
                 closeSheet('unifiedDetailSheet');
-                toast('삭제되었습니다');
+                toast('삭제되었습니다', 'success');
             }
         } catch (e) {
-            toast('삭제 실패');
+            toast('삭제 실패', 'error');
         }
     }
 
@@ -1489,14 +1489,14 @@ const App = (() => {
             });
             const result = await res.json();
             if (result.ok) {
-                toast('메모 저장됨');
+                toast('메모 저장됨', 'success');
                 cachedCustomers = null;
                 _reloadUnifiedDetail(mainCid);
             } else {
-                toast(result.error || '저장 실패');
+                toast(result.error || '저장 실패', 'error');
             }
         } catch (e) {
-            toast('저장 실패');
+            toast('저장 실패', 'error');
         }
     }
 
@@ -1514,12 +1514,12 @@ const App = (() => {
     async function showCustomerForm_edit(cid) {
         try {
             const res = await fetch(`/api/customer/${cid}`);
-            if (!res.ok) { toast('불러오기 실패'); return; }
+            if (!res.ok) { toast('불러오기 실패', 'error'); return; }
             const c = await res.json();
             closeSheet('unifiedDetailSheet');
             showCustomerForm(c);
         } catch (e) {
-            toast('불러오기 실패');
+            toast('불러오기 실패', 'error');
         }
     }
 
@@ -1527,14 +1527,14 @@ const App = (() => {
 
     async function toggleCallHistory() {
         const content = document.getElementById('callHistoryContent');
-        content.innerHTML = '<div class="loading">불러오는 중</div>';
+        content.innerHTML = '<div style="padding:0 16px">' + _skeletonCustomerList() + '</div>';
         openSheet('callHistorySheet');
 
         try {
             const res = await fetch('/api/call-history');
             const data = await res.json();
             if (!data.history || !data.history.length) {
-                content.innerHTML = '<p style="text-align:center;color:#999;padding:20px">전화 이력 없음</p>';
+                content.innerHTML = '<div class="empty-timeline" style="padding:40px 10px"><div class="icon">📞</div><p style="font-size:13px">수신 이력이 없어요</p></div>';
                 return;
             }
             content.innerHTML = data.history.map(h => {
@@ -1639,7 +1639,7 @@ const App = (() => {
             const c = await res.json();
             enterBookingMode(c);
         } catch (e) {
-            toast('고객 정보 로드 실패');
+            toast('고객 정보 로드 실패', 'error');
         }
     }
 
@@ -1823,12 +1823,17 @@ const App = (() => {
         window.location.href = '/api/backup';
     }
 
-    function toast(msg) {
+    function toast(msg, type) {
         const el = document.createElement('div');
-        el.className = 'toast';
+        el.className = 'toast' + (type ? ' toast-' + type : '');
+        el.setAttribute('role', 'alert');
         el.textContent = msg;
         document.body.appendChild(el);
-        setTimeout(() => el.remove(), 2500);
+        setTimeout(() => {
+            el.style.transition = 'opacity 0.3s ease';
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 300);
+        }, 2200);
     }
 
     // ==================== PC 전용 ====================
@@ -1873,7 +1878,7 @@ const App = (() => {
             const data = await res.json();
             const filtered = data.history || [];
             if (!filtered.length) {
-                container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;font-size:13px">전화 이력 없음</p>';
+                container.innerHTML = '<div class="empty-timeline" style="padding:40px 10px"><div class="icon">📞</div><p style="font-size:13px">수신 이력이 없어요</p></div>';
                 return;
             }
             container.innerHTML = filtered.map(h => {
@@ -1924,7 +1929,7 @@ const App = (() => {
                 toast('실패: ' + (result.error || ''));
             }
         } catch (e) {
-            toast('테스트 실패');
+            toast('테스트 실패', 'error');
         }
     }
 
@@ -2128,14 +2133,14 @@ const App = (() => {
         document.getElementById('salesMonthLabel').textContent =
             `${salesYear}.${String(salesMonth).padStart(2,'0')}`;
         const body = document.getElementById('salesBody');
-        body.innerHTML = '<div class="loading">불러오는 중</div>';
+        body.innerHTML = '<div style="padding:16px">' + _skeletonTimeline() + '</div>';
         try {
             const res = await fetch(`/api/sales/month?y=${salesYear}&m=${salesMonth}`);
             if (!res.ok) { window.location.href = '/login'; return; }
             salesData = await res.json();
             renderSalesView();
         } catch (e) {
-            body.innerHTML = '<div class="empty-timeline"><div class="icon">!</div><p>데이터를 불러올 수 없습니다</p></div>';
+            body.innerHTML = '<div class="empty-timeline"><div class="icon">🔄</div><p class="empty-title">연결이 불안정해요</p><p>잠시 후 다시 시도해주세요</p></div>';
         }
     }
 
