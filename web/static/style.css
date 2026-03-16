@@ -128,7 +128,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .cal-cell {
     display: flex; flex-direction: column; align-items: center;
-    padding: 6px 1px; min-height: 68px; cursor: pointer;
+    padding: 6px 1px; min-height: 78px; cursor: pointer;
     border-radius: var(--radius-sm); position: relative;
     transition: background var(--transition);
     overflow: hidden; min-width: 0;
@@ -152,6 +152,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .cal-badges {
     display: flex; flex-direction: column; align-items: center;
     gap: 2px; width: 100%; overflow: hidden;
+}
+.cal-dogs {
+    font-size: 13px; line-height: 1.2; letter-spacing: -1px;
+    text-align: center; word-break: break-all;
 }
 .cal-badge {
     font-size: 9px; padding: 1px 4px; border-radius: 4px;
@@ -882,10 +886,11 @@ textarea#quickMemo:focus {
     .calendar-section { background: #F8F9FB; }
     .weekday-row { background: #F8F9FB; border-bottom-color: var(--border-strong); padding: 3px 6px 2px; gap: 2px; font-size: 11px; }
     .calendar-grid { gap: 2px; padding: 2px 6px; }
-    .cal-cell { min-height: 62px; padding: 3px 2px; border-radius: var(--radius-md); }
+    .cal-cell { min-height: 72px; padding: 3px 2px; border-radius: var(--radius-md); }
     .cal-cell:hover { background: var(--primary-light); }
     .cal-cell.selected { background: var(--primary-light); box-shadow: inset 0 0 0 2px var(--primary-badge); }
     .cal-day { font-size: 14px; width: 26px; height: 26px; margin-bottom: 2px; }
+    .cal-dogs { font-size: 12px; letter-spacing: -1px; }
     .cal-badge { font-size: 9px; border-radius: 5px; padding: 1px 3px; }
     .cal-badges { gap: 1px; }
 

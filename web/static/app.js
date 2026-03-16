@@ -139,24 +139,21 @@ const App = (() => {
             if (dow === 6) cls += ' saturday';
 
             const names = monthData.names[dateStr] || [];
-            const maxBadges = 2;
             let badgesHtml = '';
-            for (let i = 0; i < Math.min(names.length, maxBadges); i++) {
-                const entry = names[i];
-                let label = entry.pet_name;
-                if (entry.breed) {
-                    const b = entry.breed.length > 2 ? entry.breed.substring(0,2) + '..' : entry.breed;
-                    label += `(${b})`;
+            if (names.length > 0) {
+                const completed = names.filter(n => n.status === 'completed').length;
+                const pending = names.length - completed;
+                const maxDogs = 5;
+                if (names.length <= maxDogs) {
+                    // 완료=🐾, 예약=🐕 으로 구분
+                    badgesHtml += '<span class="cal-dogs">';
+                    for (let i = 0; i < pending; i++) badgesHtml += '🐕';
+                    for (let i = 0; i < completed; i++) badgesHtml += '🐾';
+                    badgesHtml += '</span>';
+                } else {
+                    // 6마리 이상이면 아이콘 + 숫자
+                    badgesHtml += `<span class="cal-dogs">🐕×${names.length}</span>`;
                 }
-                if (label.length > 8) label = label.substring(0, 7) + '..';
-                const statusCls = entry.status === 'completed' ? 'completed' : 'confirmed';
-                badgesHtml += `<span class="cal-badge ${statusCls}">${esc(label)}</span>`;
-            }
-            if (names.length > maxBadges) {
-                badgesHtml += `<span class="cal-more">+${names.length - maxBadges} 더</span>`;
-            }
-            if (names.length > 0 && names.length <= maxBadges) {
-                badgesHtml += `<span class="cal-more">${names.length}건</span>`;
             }
 
             html += `<div class="${cls}" onclick="App.selectDate('${dateStr}')">
