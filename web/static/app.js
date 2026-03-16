@@ -2331,7 +2331,20 @@ const App = (() => {
             .then(r => r.json())
             .then(data => {
                 if (data.connected) {
-                    if (confirm('Google 연락처 연동을 해제하시겠습니까?')) {
+                    const choice = prompt('1: 기존 고객 전체 동기화\n2: 연동 해제\n\n번호를 입력하세요:');
+                    if (choice === '1') {
+                        if (confirm('기존 고객 전체를 Google 연락처에 동기화합니다.\n시간이 걸릴 수 있습니다. 진행하시겠습니까?')) {
+                            const el = document.getElementById('googleStatus');
+                            if (el) el.innerHTML = '&#9679; 동기화중...';
+                            fetch('/google/sync-all', {method: 'POST', credentials: 'same-origin'})
+                                .then(r => r.json())
+                                .then(res => {
+                                    alert('동기화 완료: 성공 ' + res.success + '건, 실패 ' + res.fail + '건');
+                                    loadGoogleStatus();
+                                })
+                                .catch(() => { alert('동기화 실패'); loadGoogleStatus(); });
+                        }
+                    } else if (choice === '2') {
                         fetch('/google/disconnect', {method: 'POST', credentials: 'same-origin'})
                             .then(() => loadGoogleStatus());
                     }

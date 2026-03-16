@@ -178,6 +178,35 @@ def google_disconnect():
     return jsonify({"ok": True})
 
 
+@google_bp.route("/google/sync-all", methods=["POST"])
+@require_auth
+def google_sync_all():
+    """기존 고객 전체를 Google 연락처에 일괄 동기화"""
+    if not GOOGLE_AVAILABLE:
+        return jsonify({"error": "Google API 패키지가 설치되지 않았습니다"}), 500
+
+    db = get_db()
+    creds = _get_credentials(db)
+    if not creds:
+        return jsonify({"error": "Google 연동이 필요합니다"}), 400
+
+    customers = db.fetch_all("SELECT * FROM customers ORDER BY id")
+    success = 0
+    fail = 0
+    for c in customers:
+        try:
+            sync_contact_to_google(
+                c["id"], c["pet_name"], c["weight"], c["breed"],
+                c["phone"], c.get("memo", ""), c.get("google_contact_id"),
+            )
+            success += 1
+        except Exception as e:
+            log.error("Bulk sync failed for customer %s: %s", c["id"], e)
+            fail += 1
+
+    return jsonify({"ok": True, "success": success, "fail": fail})
+
+
 # ==================== 연락처 동기화 ====================
 
 def _merge_notes(existing_notes: str, app_memo: str) -> str:

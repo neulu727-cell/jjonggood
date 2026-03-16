@@ -15,6 +15,7 @@ class Customer:
     age: Optional[str] = None
     notes: str = ""
     memo: str = ""
+    google_contact_id: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
