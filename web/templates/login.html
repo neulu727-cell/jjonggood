@@ -35,10 +35,7 @@ body {
 }
 .login-box input[type="password"]:focus { border-color: #4F46E5; }
 .login-illustration {
-    margin-bottom: 16px;
-}
-.login-illustration img {
-    height: 120px; width: auto; opacity: .85;
+    margin-bottom: 16px; font-size: 64px; line-height: 1;
 }
 .remember-row {
     display: flex; align-items: center; justify-content: center;
@@ -59,9 +56,7 @@ body {
 </head>
 <body>
 <form class="login-box" method="POST" action="/login">
-    <div class="login-illustration" aria-hidden="true">
-        <img src="/static/img/peep-login.png" alt="">
-    </div>
+    <div class="login-illustration" aria-hidden="true">🐾</div>
     <h1>&#128062; 쫑굿</h1>
     <p class="subtitle">비밀번호를 입력하세요</p>
     {% if error %}<p class="error">{{ error }}</p>{% endif %}

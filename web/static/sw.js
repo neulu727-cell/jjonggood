@@ -6,7 +6,6 @@ const OFFLINE_URL = '/offline.html';
 // 프리캐시: SW 설치 시 즉시 캐시할 리소스
 const PRECACHE_URLS = [
   OFFLINE_URL,
-  '/static/img/peep-offline.png',
 ];
 
 /* ── Install: 오프라인 페이지 프리캐시 ── */

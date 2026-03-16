@@ -261,7 +261,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     font-size: 48px; margin-bottom: 16px;
     animation: gentlePulse 3s ease-in-out infinite;
 }
-.empty-timeline img {
+.empty-emoji {
+    display: inline-block;
+    font-size: 56px;
+    line-height: 1;
+    margin-bottom: 12px;
     animation: emptyFloat 3s ease-in-out infinite;
 }
 @keyframes emptyFloat {

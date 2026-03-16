@@ -24,12 +24,9 @@
   }
   .illustration {
     margin-bottom: 16px;
+    font-size: 72px;
+    line-height: 1;
     animation: float 3s ease-in-out infinite;
-  }
-  .illustration img {
-    height: 160px;
-    width: auto;
-    opacity: 0.85;
   }
   @keyframes float {
     0%, 100% { transform: translateY(0); }
@@ -71,9 +68,7 @@
 </head>
 <body>
 <div class="container">
-  <div class="illustration" role="img" aria-label="기다리는 사람 일러스트">
-    <img src="/static/img/peep-offline.png" alt="" width="118" height="200">
-  </div>
+  <div class="illustration" role="img" aria-label="오프라인">🐾</div>
   <h1>인터넷 연결이 없습니다</h1>
   <p>네트워크에 연결되면 자동으로 다시 접속할게요.<br>Wi-Fi 또는 모바일 데이터를 확인해주세요.</p>
   <button class="retry-btn" onclick="location.reload()">다시 시도</button>

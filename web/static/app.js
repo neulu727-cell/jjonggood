@@ -184,7 +184,7 @@ const App = (() => {
             const data = await res.json();
             renderTimeline(data);
         } catch (e) {
-            content.innerHTML = '<div class="empty-timeline"><img src="/static/img/peep-error.png" alt="" aria-hidden="true" style="height:100px;width:auto;opacity:.7;margin-bottom:8px"><p class="empty-title">연결이 불안정해요</p><p>잠시 후 다시 시도해주세요</p><button class="empty-cta" onclick="App.selectDate(\'' + dateStr + '\')">다시 시도</button></div>';
+            content.innerHTML = '<div class="empty-timeline"><span class="empty-emoji" aria-hidden="true">🌧️</span><p class="empty-title">연결이 불안정해요</p><p>잠시 후 다시 시도해주세요</p><button class="empty-cta" onclick="App.selectDate(\'' + dateStr + '\')">다시 시도</button></div>';
         }
         document.getElementById('timelineSection').scrollTop = 0;
     }
@@ -383,7 +383,7 @@ const App = (() => {
         renderCalendar();
         document.querySelector('.calendar-section')?.classList.remove('collapsed');
         document.getElementById('timelineContent').innerHTML =
-            '<div class="empty-timeline"><img src="/static/img/peep-empty.png" alt="" aria-hidden="true" style="height:120px;width:auto;opacity:.8;margin-bottom:8px"><p class="empty-title">날짜를 선택해주세요</p><p>캘린더에서 날짜를 탭하면 예약 현황을 볼 수 있어요</p></div>';
+            '<div class="empty-timeline"><span class="empty-emoji" aria-hidden="true">🐾</span><p class="empty-title">날짜를 선택해주세요</p><p>캘린더에서 날짜를 탭하면 예약 현황을 볼 수 있어요</p></div>';
     }
 
     // ==================== 빈 슬롯 클릭 → 고객 선택 → 예약 생성 ====================
@@ -1150,7 +1150,7 @@ const App = (() => {
             if (!q) cachedCustomers = data.customers;
             renderCustomerList(container, data.customers, (c) => App.showCustomerDetail(c.id));
         } catch (e) {
-            container.innerHTML = '<div style="text-align:center;padding:30px 20px"><img src="/static/img/peep-error.png" alt="" aria-hidden="true" style="height:100px;width:auto;opacity:.7;margin-bottom:8px"><p style="color:#999;margin-bottom:12px">고객 목록을 불러올 수 없습니다</p><button class="btn-secondary" style="width:auto;margin-top:12px;padding:10px 24px" onclick="App.loadCustomerList(\'\',App.customerSort)">다시 시도</button></div>';
+            container.innerHTML = '<div style="text-align:center;padding:30px 20px"><span class="empty-emoji" aria-hidden="true">🌧️</span><p style="color:#999;margin-bottom:12px">고객 목록을 불러올 수 없습니다</p><button class="btn-secondary" style="width:auto;margin-top:12px;padding:10px 24px" onclick="App.loadCustomerList(\'\',App.customerSort)">다시 시도</button></div>';
         }
     }
 
@@ -1174,7 +1174,7 @@ const App = (() => {
 
     function renderCustomerList(container, customers, onClick) {
         if (!customers.length) {
-            container.innerHTML = '<div style="text-align:center;padding:30px 20px"><img src="/static/img/peep-notfound.png" alt="" aria-hidden="true" style="height:100px;width:auto;opacity:.7;margin-bottom:8px"><p style="color:var(--text-light);margin-bottom:12px">찾는 고객이 없어요</p><button class="btn-primary-sm" onclick="App.showNewCustomerForm()" style="padding:10px 20px">+ 신규 고객 등록</button></div>';
+            container.innerHTML = '<div style="text-align:center;padding:30px 20px"><span class="empty-emoji" aria-hidden="true">🔍</span><p style="color:var(--text-light);margin-bottom:12px">찾는 고객이 없어요</p><button class="btn-primary-sm" onclick="App.showNewCustomerForm()" style="padding:10px 20px">+ 신규 고객 등록</button></div>';
             return;
         }
 
@@ -1534,7 +1534,7 @@ const App = (() => {
             const res = await fetch('/api/call-history');
             const data = await res.json();
             if (!data.history || !data.history.length) {
-                content.innerHTML = '<div class="empty-timeline" style="padding:30px 10px"><img src="/static/img/peep-nocall.png" alt="" aria-hidden="true" style="height:80px;width:auto;opacity:.7;margin-bottom:4px"><p style="font-size:13px">수신 이력이 없어요</p></div>';
+                content.innerHTML = '<div class="empty-timeline" style="padding:30px 10px"><span class="empty-emoji" aria-hidden="true" style="font-size:40px">📞</span><p style="font-size:13px">수신 이력이 없어요</p></div>';
                 return;
             }
             content.innerHTML = data.history.map(h => {
@@ -1878,7 +1878,7 @@ const App = (() => {
             const data = await res.json();
             const filtered = data.history || [];
             if (!filtered.length) {
-                container.innerHTML = '<div class="empty-timeline" style="padding:30px 10px"><img src="/static/img/peep-nocall.png" alt="" aria-hidden="true" style="height:80px;width:auto;opacity:.7;margin-bottom:4px"><p style="font-size:13px">수신 이력이 없어요</p></div>';
+                container.innerHTML = '<div class="empty-timeline" style="padding:30px 10px"><span class="empty-emoji" aria-hidden="true" style="font-size:40px">📞</span><p style="font-size:13px">수신 이력이 없어요</p></div>';
                 return;
             }
             container.innerHTML = filtered.map(h => {
@@ -2140,7 +2140,7 @@ const App = (() => {
             salesData = await res.json();
             renderSalesView();
         } catch (e) {
-            body.innerHTML = '<div class="empty-timeline"><img src="/static/img/peep-error.png" alt="" aria-hidden="true" style="height:100px;width:auto;opacity:.7;margin-bottom:8px"><p class="empty-title">연결이 불안정해요</p><p>잠시 후 다시 시도해주세요</p></div>';
+            body.innerHTML = '<div class="empty-timeline"><span class="empty-emoji" aria-hidden="true">🌧️</span><p class="empty-title">연결이 불안정해요</p><p>잠시 후 다시 시도해주세요</p></div>';
         }
     }
 
