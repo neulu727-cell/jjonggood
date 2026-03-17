@@ -2035,8 +2035,49 @@ const App = (() => {
 
     function onQuickReserve() {
         if (!selectedDate) {
-            selectedDate = fmtDate(new Date());
+            showDatePicker();
+            return;
         }
+        showTimeSlotPicker();
+    }
+
+    function showDatePicker() {
+        const today = new Date();
+        const y = today.getFullYear();
+        const m = today.getMonth(); // 0-based
+        let html = '';
+
+        // 2주치 날짜 (오늘부터 14일)
+        html += `<p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;font-weight:600">📅 날짜를 선택하세요</p>`;
+        html += '<div class="date-picker-grid">';
+        for (let i = 0; i < 14; i++) {
+            const d = new Date(y, m, today.getDate() + i);
+            const dateStr = fmtDate(d);
+            const dow = WEEKDAYS_KR[d.getDay()];
+            const dayNum = d.getDate();
+            const isToday = i === 0;
+            const isSun = d.getDay() === 0;
+            const isSat = d.getDay() === 6;
+            const dowCls = isSun ? 'sun' : isSat ? 'sat' : '';
+            html += `<button class="date-pick-btn ${dowCls}${isToday ? ' today' : ''}" onclick="App.onDatePick('${dateStr}')">
+                <span class="date-pick-day">${dayNum}</span>
+                <span class="date-pick-dow">${isToday ? '오늘' : dow}</span>
+            </button>`;
+        }
+        html += '</div>';
+
+        // 직접 입력
+        html += `<div style="margin-top:12px;text-align:center">
+            <input type="date" id="customDateInput" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px"
+                   min="${fmtDate(today)}" onchange="App.onDatePick(this.value)">
+        </div>`;
+
+        document.getElementById('timeSlotContent').innerHTML = html;
+        openSheet('timeSlotSheet');
+    }
+
+    function onDatePick(dateStr) {
+        selectedDate = dateStr;
         showTimeSlotPicker();
     }
 
@@ -2050,6 +2091,7 @@ const App = (() => {
         document.getElementById('timeSlotContent').innerHTML = `
             <p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;font-weight:600">
                 📅 ${selectedDate} — 시간을 선택하세요
+                <button onclick="App.showDatePicker()" style="margin-left:8px;font-size:12px;color:var(--primary);background:var(--primary-light);border:none;border-radius:6px;padding:3px 8px;cursor:pointer">날짜변경</button>
             </p>
             ${html}
         `;
@@ -2547,7 +2589,7 @@ const App = (() => {
         reserveFromCall, registerFromCall, downloadBackup,
         openSheet, closeSheet,
         showCustomerForm, showReservationForm,
-        changeCallDate, refresh, onQuickReserve, showTimeSlotPicker, testCall,
+        changeCallDate, refresh, onQuickReserve, showTimeSlotPicker, showDatePicker, onDatePick, testCall,
         selectGridBtn, applyPrevService,
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode, formatPhoneInput,
         updateBridgeStatus,

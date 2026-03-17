@@ -492,6 +492,25 @@ textarea#quickMemo:focus {
 .time-slot-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
 .time-slot-btn:active { transform: scale(0.96); }
 
+/* 날짜 피커 */
+.date-picker-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+.date-pick-btn {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 10px 4px; border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm); background: var(--card);
+    cursor: pointer; transition: all var(--transition);
+}
+.date-pick-btn:hover { border-color: var(--primary); background: var(--primary-light); }
+.date-pick-btn:active { transform: scale(0.96); }
+.date-pick-btn.today { border-color: var(--primary); background: var(--primary-light); }
+.date-pick-btn.sun .date-pick-day { color: #EF4444; }
+.date-pick-btn.sat .date-pick-day { color: #3B82F6; }
+.date-pick-day { font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.date-pick-dow { font-size: 11px; color: var(--text-light); }
+
 /* 버튼 - Toss style */
 .btn-primary {
     width: 100%; padding: 14px; background: var(--primary);
