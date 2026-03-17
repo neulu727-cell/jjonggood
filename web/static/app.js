@@ -205,14 +205,9 @@ const App = (() => {
             return;
         }
 
-        // 모바일: 캘린더 접고 타임라인 표시
-        if (!isPC()) {
-            document.querySelector('.calendar-section')?.classList.add('collapsed');
-            document.getElementById('timelineSection').style.display = 'flex';
-        } else {
-            // PC: 타임라인 전체 화면으로 전환
-            showView('timeline');
-        }
+        // PC/모바일 통합: 캘린더 접고 타임라인 표시
+        document.querySelector('.calendar-section')?.classList.add('collapsed');
+        document.getElementById('timelineSection').style.display = 'flex';
 
         const content = document.getElementById('timelineContent');
         content.innerHTML = _skeletonTimeline();
@@ -262,7 +257,7 @@ const App = (() => {
                     <span class="timeline-count">${items.length}건</span>
                 </div>
                 <div class="timeline-actions">
-                    ${isPC() ? '<button class="timeline-back" onclick="App.showView(\'calendar\')">← 캘린더</button>' : '<button class="timeline-close" onclick="App.closeTimeline()">&times;</button>'}
+                    <button class="timeline-close" onclick="App.closeTimeline()">&times;</button>
                 </div>
             </div>
         `;
@@ -281,7 +276,7 @@ const App = (() => {
                 <p class="empty-title" style="font-size:18px;font-weight:600;margin-bottom:8px">예약이 없어요!</p>
                 <p style="color:var(--text-light);font-size:14px;margin-bottom:24px">이 날짜에 첫 예약을 등록해보세요</p>
                 <button class="empty-cta" onclick="App.onQuickReserve()" style="padding:14px 32px;font-size:15px;font-weight:600">✂️ 예약 등록하기</button>
-                <p style="color:var(--text-light);font-size:12px;margin-top:32px">↓ 아래로 스와이프하면 캘린더로 돌아갑니다</p>
+                <p class="mobile-only" style="color:var(--text-light);font-size:12px;margin-top:32px">↓ 아래로 스와이프하면 캘린더로 돌아갑니다</p>
             </div>`;
         }
         const TL_LABEL = { confirmed: '🕐 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
@@ -323,9 +318,7 @@ const App = (() => {
         selectedDate = null;
         renderCalendar();
         document.querySelector('.calendar-section')?.classList.remove('collapsed');
-        if (!isPC()) {
-            document.getElementById('timelineSection').style.display = 'none';
-        }
+        document.getElementById('timelineSection').style.display = 'none';
     }
 
     // 모바일 타임라인 스와이프 다운 → 캘린더로 복귀
