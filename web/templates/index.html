@@ -17,6 +17,14 @@
     <!-- PC 헤더 -->
     <div class="pc-header pc-only">
         <span class="pc-title">&#128062; 예약관리</span>
+        <div class="pc-header-actions">
+            <button class="pc-action-btn" onclick="App.showView('customers')">🔍 고객검색</button>
+            <button class="pc-action-btn green" onclick="App.onQuickReserve()">✂️ 예약등록</button>
+            <button class="pc-action-btn purple" onclick="App.showNewCustomerForm()">🐾 고객등록</button>
+            <button class="pc-action-btn" onclick="App.toggleCallHistory()">📞 수신기록</button>
+            <button class="pc-action-btn" onclick="App.showView('sales')">💰 매출</button>
+            <button class="pc-action-btn" onclick="App.refresh()">🔄</button>
+        </div>
         <div style="display:flex;align-items:center;gap:8px">
             <span id="googleStatus" style="font-size:12px;padding:3px 10px;border-radius:5px;font-weight:600;background:#374151;color:#9CA3AF;cursor:pointer" onclick="App.toggleGoogle()" title="Google 연락처 연동">&#9679; Google</span>
             <span id="bridgeStatus" style="font-size:12px;padding:3px 10px;border-radius:5px;font-weight:600;background:#374151;color:#9CA3AF;cursor:pointer" onclick="window.open('/setup','_blank')" title="클릭하여 설치 페이지 열기">&#9679; ADB</span>

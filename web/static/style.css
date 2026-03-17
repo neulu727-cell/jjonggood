@@ -865,14 +865,29 @@ textarea#quickMemo:focus {
         min-height: 0;
     }
     .pc-title { font-size: 14px; font-weight: 700; }
+    .pc-header-actions {
+        display: flex; gap: 4px; align-items: center;
+    }
+    .pc-action-btn {
+        background: rgba(255,255,255,0.15); color: #fff;
+        border: none; border-radius: var(--radius-sm);
+        padding: 5px 12px; font-size: 12px; font-weight: 600;
+        cursor: pointer; transition: all var(--transition);
+        white-space: nowrap;
+    }
+    .pc-action-btn:hover { background: rgba(255,255,255,0.25); }
+    .pc-action-btn.green { background: rgba(34,197,94,0.3); }
+    .pc-action-btn.green:hover { background: rgba(34,197,94,0.5); }
+    .pc-action-btn.purple { background: rgba(139,92,246,0.3); }
+    .pc-action-btn.purple:hover { background: rgba(139,92,246,0.5); }
     .pc-clock { font-size: 13px; color: #A5B4FC; }
 
-    .main-content { flex-direction: row; flex: 1; }
+    .main-content { flex-direction: column; flex: 1; }
 
     .left-panel {
-        width: 420px; min-width: 340px; flex-shrink: 0;
+        flex: 1;
         display: flex; flex-direction: column;
-        background: #F8F9FB; border-right: 1px solid var(--border-strong);
+        background: #F8F9FB;
         overflow: hidden; height: 100%;
     }
 
@@ -880,25 +895,34 @@ textarea#quickMemo:focus {
         background: #F8F9FB; border-bottom: 1px solid var(--border-strong);
         padding: 6px 14px;
     }
-    .month-label { font-size: 16px; min-width: 80px; }
-    .month-nav button { font-size: 20px; padding: 4px 8px; }
-    .btn-today { font-size: 12px; padding: 4px 10px; }
-    .calendar-section { background: #F8F9FB; }
-    .weekday-row { background: #F8F9FB; border-bottom-color: var(--border-strong); padding: 3px 6px 2px; gap: 2px; font-size: 11px; }
-    .calendar-grid { gap: 2px; padding: 2px 6px; }
-    .cal-cell { min-height: 72px; padding: 3px 2px; border-radius: var(--radius-md); }
+    .month-label { font-size: 18px; min-width: 100px; font-weight: 800; }
+    .month-nav button { font-size: 22px; padding: 4px 10px; }
+    .btn-today { font-size: 13px; padding: 5px 14px; }
+    .calendar-section { background: #F8F9FB; flex: 1; overflow-y: auto; }
+    .weekday-row { background: #F8F9FB; border-bottom-color: var(--border-strong); padding: 6px 12px 4px; gap: 2px; font-size: 13px; }
+    .calendar-grid { gap: 3px; padding: 4px 12px; }
+    .cal-cell { min-height: 100px; padding: 6px 4px; border-radius: var(--radius-md); }
     .cal-cell:hover { background: var(--primary-light); }
     .cal-cell.selected { background: var(--primary-light); box-shadow: inset 0 0 0 2px var(--primary-badge); }
-    .cal-day { font-size: 14px; width: 26px; height: 26px; margin-bottom: 2px; }
-    .cal-dogs { font-size: 12px; letter-spacing: -1px; }
-    .cal-badge { font-size: 9px; border-radius: 5px; padding: 1px 3px; }
-    .cal-badges { gap: 1px; }
+    .cal-day { font-size: 16px; width: 30px; height: 30px; margin-bottom: 4px; }
+    .cal-dogs { font-size: 14px; letter-spacing: 0px; }
+    .cal-badge { font-size: 10px; border-radius: 5px; padding: 2px 5px; }
+    .cal-badges { gap: 2px; }
 
+    /* 타임라인: 전체화면 뷰 (날짜 클릭 시) */
     .timeline-section {
         flex: 1; min-width: 0; border-top: none;
-        border-left: 2px solid var(--primary-badge);
         overflow-y: auto; background: var(--card);
     }
+
+    /* 타임라인 뒤로가기 버튼 */
+    .timeline-back {
+        background: var(--primary-light); color: var(--primary);
+        border: none; border-radius: var(--radius-sm);
+        padding: 6px 14px; font-size: 13px; font-weight: 600;
+        cursor: pointer; transition: all var(--transition);
+    }
+    .timeline-back:hover { background: var(--primary); color: #fff; }
 
     /* 통계 바 (call-sidebar 내부) */
     .stats-bar {
@@ -928,12 +952,9 @@ textarea#quickMemo:focus {
     .action-btn:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .action-btn:active { opacity: 0.85; transform: translateY(0); }
 
-    /* 수신기록 (중간 컬럼) */
+    /* 수신기록 — PC에서도 기본 숨김 (버튼으로 시트 열기) */
     .call-sidebar {
-        width: 220px; min-width: 160px; flex-shrink: 1;
-        display: flex !important; flex-direction: column;
-        background: #F8F9FB; border-right: 1px solid var(--border-strong);
-        overflow: hidden; height: 100%;
+        display: none !important;
     }
     .call-sidebar-header {
         display: flex; align-items: center; justify-content: space-between;
@@ -1041,10 +1062,11 @@ textarea#quickMemo:focus {
     .res-form-grid .res-form-full { grid-column: 1 / -1; }
     .wide-sheet .sheet-body { padding: 16px 24px; }
 
-    /* PC 고객 뷰 패널 */
+    /* PC 고객 뷰 패널 — 전체 화면 */
     .view-panel {
-        max-width: 520px; left: 50%; transform: translateX(-50%);
-        box-shadow: 0 12px 40px rgba(0,0,0,0.15); border-radius: 0 0 20px 20px;
+        max-width: 100%; width: 100%; left: 0; transform: none;
+        box-shadow: none; border-radius: 0;
+        height: 100%;
     }
 
     .wide-sheet .sheet-body { padding: 12px 20px; }

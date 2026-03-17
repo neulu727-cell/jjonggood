@@ -34,7 +34,9 @@ const App = (() => {
         setupSwipe();
         if (isPC()) {
             startClock();
-            loadCallSidebar();
+            // PC: 캘린더만 표시, 타임라인/수신기록 숨김
+            document.getElementById('timelineSection').style.display = 'none';
+            document.getElementById('callSidebar').style.display = 'none';
             goToday();
             loadBridgeStatus();
             loadGoogleStatus();
@@ -54,22 +56,34 @@ const App = (() => {
         const tlSec = document.getElementById('timelineSection');
         const custView = document.getElementById('customerView');
         const salesView = document.getElementById('salesView');
-
-        // PC에서 캘린더로 돌아올 때 복원
         const leftPanel = document.querySelector('.left-panel');
-        const callSb = document.getElementById('callSidebar');
 
         if (view === 'calendar') {
             calSec.style.display = '';
-            tlSec.style.display = '';
             if (leftPanel) leftPanel.style.display = '';
-            if (callSb) callSb.style.display = '';
+            // PC: 타임라인은 기본 숨김 (날짜 클릭 시만 표시)
+            if (isPC()) {
+                tlSec.style.display = 'none';
+            } else {
+                tlSec.style.display = '';
+            }
+            custView.style.display = 'none';
+            salesView.style.display = 'none';
+        } else if (view === 'timeline') {
+            // PC 전용: 타임라인 전체 화면
+            calSec.style.display = 'none';
+            if (leftPanel) leftPanel.style.display = 'none';
+            tlSec.style.display = '';
             custView.style.display = 'none';
             salesView.style.display = 'none';
         } else if (view === 'customers') {
             if (!isPC()) {
                 calSec.style.display = 'none';
                 tlSec.style.display = 'none';
+            } else {
+                calSec.style.display = 'none';
+                tlSec.style.display = 'none';
+                if (leftPanel) leftPanel.style.display = 'none';
             }
             custView.style.display = 'flex';
             salesView.style.display = 'none';
@@ -79,7 +93,6 @@ const App = (() => {
             calSec.style.display = 'none';
             tlSec.style.display = 'none';
             if (leftPanel) leftPanel.style.display = 'none';
-            if (callSb) callSb.style.display = 'none';
             custView.style.display = 'none';
             salesView.style.display = 'flex';
             if (!salesData) {
@@ -139,21 +152,21 @@ const App = (() => {
             if (dow === 6) cls += ' saturday';
 
             const names = monthData.names[dateStr] || [];
+            const maxBadges = 2;
             let badgesHtml = '';
-            if (names.length > 0) {
-                const completed = names.filter(n => n.status === 'completed').length;
-                const pending = names.length - completed;
-                const maxDogs = 5;
-                if (names.length <= maxDogs) {
-                    // 완료=🐾, 예약=🐕 으로 구분
-                    badgesHtml += '<span class="cal-dogs">';
-                    for (let i = 0; i < pending; i++) badgesHtml += '🐕';
-                    for (let i = 0; i < completed; i++) badgesHtml += '🐾';
-                    badgesHtml += '</span>';
-                } else {
-                    // 6마리 이상이면 아이콘 + 숫자
-                    badgesHtml += `<span class="cal-dogs">🐕×${names.length}</span>`;
+            for (let i = 0; i < Math.min(names.length, maxBadges); i++) {
+                const entry = names[i];
+                let label = entry.pet_name;
+                if (entry.breed) {
+                    const b = entry.breed.length > 2 ? entry.breed.substring(0,2) + '..' : entry.breed;
+                    label += `(${b})`;
                 }
+                if (label.length > 8) label = label.substring(0, 7) + '..';
+                const statusCls = entry.status === 'completed' ? 'completed' : 'confirmed';
+                badgesHtml += `<span class="cal-badge ${statusCls}">${esc(label)}</span>`;
+            }
+            if (names.length > 0) {
+                badgesHtml += `<span class="cal-dogs">${'🐕'.repeat(names.length)}</span>`;
             }
 
             html += `<div class="${cls}" onclick="App.selectDate('${dateStr}')">
@@ -171,8 +184,11 @@ const App = (() => {
         renderCalendar();
 
         // 모바일: 캘린더 접어서 타임라인 공간 확보
-        if (window.innerWidth < 900) {
+        if (!isPC()) {
             document.querySelector('.calendar-section')?.classList.add('collapsed');
+        } else {
+            // PC: 타임라인 전체 화면으로 전환
+            showView('timeline');
         }
 
         const content = document.getElementById('timelineContent');
@@ -223,7 +239,7 @@ const App = (() => {
                     <span class="timeline-count">${items.length}건</span>
                 </div>
                 <div class="timeline-actions">
-                    ${isPC() ? '' : '<button class="timeline-close" onclick="App.closeTimeline()">&times;</button>'}
+                    ${isPC() ? '<button class="timeline-back" onclick="App.showView(\'calendar\')">← 캘린더</button>' : '<button class="timeline-close" onclick="App.closeTimeline()">&times;</button>'}
                 </div>
             </div>
         `;
@@ -1671,7 +1687,12 @@ const App = (() => {
         const todayStr = fmtDate(now);
         selectedDate = todayStr;
         showView('calendar');
-        loadMonth().then(() => selectDate(todayStr));
+        // PC: 캘린더만 표시, 날짜 선택만 하고 타임라인으로 이동 안 함
+        if (isPC()) {
+            loadMonth();
+        } else {
+            loadMonth().then(() => selectDate(todayStr));
+        }
     }
 
     // ==================== 스와이프 ====================
