@@ -878,18 +878,16 @@ textarea#quickMemo:focus {
 }
 .mode-bar button:hover { background: rgba(0,0,0,0.15); }
 
-/* === 모바일 캘린더 접기 === */
-@media (max-width: 899px) {
-    .calendar-section .calendar-grid {
-        transition: max-height 0.3s ease;
-        max-height: 600px;
-    }
-    .calendar-section.collapsed .calendar-grid {
-        max-height: 0; overflow: hidden;
-    }
-    .calendar-section.collapsed .weekday-row {
-        display: none;
-    }
+/* === 캘린더 접기 (PC/모바일 공통) === */
+.calendar-section .calendar-grid {
+    transition: max-height 0.3s ease;
+    max-height: 800px;
+}
+.calendar-section.collapsed .calendar-grid {
+    max-height: 0; overflow: hidden;
+}
+.calendar-section.collapsed .weekday-row {
+    display: none;
 }
 
 /* === 반응형: PC/모바일 === */
@@ -968,10 +966,16 @@ textarea#quickMemo:focus {
     .cal-badge { font-size: 10px; border-radius: 5px; padding: 2px 5px; }
     .cal-badges { gap: 2px; }
 
-    /* 타임라인: 전체화면 뷰 (날짜 클릭 시) */
+    /* 타임라인: 날짜 클릭 시 캘린더 아래 표시 */
     .timeline-section {
-        flex: 1; min-width: 0; border-top: none;
+        flex: 1; min-width: 0; border-top: 3px solid var(--primary);
         overflow-y: auto; background: var(--card);
+    }
+    .calendar-section.collapsed .calendar-grid {
+        max-height: 0; overflow: hidden;
+    }
+    .calendar-section.collapsed .weekday-row {
+        display: none;
     }
 
     /* 타임라인 뒤로가기 버튼 */
