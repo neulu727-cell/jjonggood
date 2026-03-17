@@ -169,6 +169,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 /* === 타임라인 === */
 .timeline-section {
+    display: none;
     flex: 1; overflow-y: auto; overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     border-top: 3px solid var(--primary);

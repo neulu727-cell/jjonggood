@@ -188,9 +188,10 @@ const App = (() => {
             return;
         }
 
-        // 모바일: 캘린더 접어서 타임라인 공간 확보
+        // 모바일: 캘린더 접고 타임라인 표시
         if (!isPC()) {
             document.querySelector('.calendar-section')?.classList.add('collapsed');
+            document.getElementById('timelineSection').style.display = '';
         } else {
             // PC: 타임라인 전체 화면으로 전환
             showView('timeline');
@@ -439,8 +440,9 @@ const App = (() => {
         selectedDate = null;
         renderCalendar();
         document.querySelector('.calendar-section')?.classList.remove('collapsed');
-        document.getElementById('timelineContent').innerHTML =
-            '<div class="empty-timeline"><span class="empty-emoji" aria-hidden="true">🐾</span><p class="empty-title">날짜를 선택해주세요</p><p>캘린더에서 날짜를 탭하면 예약 현황을 볼 수 있어요</p></div>';
+        if (!isPC()) {
+            document.getElementById('timelineSection').style.display = 'none';
+        }
     }
 
     // 모바일 타임라인 스와이프 다운 → 캘린더로 복귀
