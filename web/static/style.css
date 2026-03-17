@@ -909,7 +909,7 @@ textarea#quickMemo:focus {
         display: flex; flex-direction: column;
         margin: 0 auto;
         box-shadow: 0 0 40px rgba(0,0,0,0.06);
-        padding-bottom: 0;
+        padding-bottom: 52px;
     }
 
     .pc-header {
@@ -934,6 +934,11 @@ textarea#quickMemo:focus {
     .pc-action-btn.purple { background: rgba(139,92,246,0.3); }
     .pc-action-btn.purple:hover { background: rgba(139,92,246,0.5); }
     .pc-clock { font-size: 13px; color: #A5B4FC; }
+
+    .bottom-nav {
+        max-width: 1366px; left: 50%; transform: translateX(-50%);
+        padding-bottom: 0;
+    }
 
     .main-content { flex-direction: column; flex: 1; }
 
@@ -1094,7 +1099,7 @@ textarea#quickMemo:focus {
     }
 
     /* PC 바텀시트 → 중앙 모달 */
-    .bottom-sheet-overlay { align-items: center; bottom: 0; }
+    .bottom-sheet-overlay { align-items: center; bottom: 52px; }
     .bottom-sheet {
         max-width: 520px; border-radius: 20px; max-height: 80vh;
         box-shadow: 0 12px 40px rgba(0,0,0,0.15);
