@@ -299,146 +299,6 @@ const App = (() => {
         return html;
     }
 
-    function renderTimelineList(slots, booked, bookedIsStart) {
-        const isPast = selectedDate < fmtDate(new Date());
-        let html = '<div class="timeline-list">';
-        const rendered = new Set();
-        for (const slot of slots) {
-            if (rendered.has(slot)) continue;
-            const r = booked[slot];
-            if (r) {
-                if (bookedIsStart[slot]) {
-                    const startLabel = formatTime(r.time);
-                    const endLabel = formatTime(r.end_time);
-                    const statusCls = r.status || 'confirmed';
-                    const TL_LABEL = { confirmed: '🕐 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
-                    const statusText = TL_LABEL[statusCls] || statusCls;
-                    const breedText = r.breed ? `(${r.breed})` : '';
-                    const amtText = r.amount ? `${r.amount.toLocaleString()}원` : '';
-                    const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
-                    const weightText = r.weight ? `${r.weight}kg` : '';
-                    const petMeta = [breedText, weightText].filter(Boolean).join(' · ');
-                    const memoSrc = r.customer_memo || r.groomer_memo || r.request || '';
-                    const memoText = memoSrc ? `<div class="res-memo">${esc(memoSrc)}</div>` : '';
-                    html += `
-                        <div class="res-card ${statusCls}" onclick="App.showReservationDetail(${r.id},${r.customer_id})">
-                            <div class="res-time-col">
-                                <div class="res-time-start">${startLabel}</div>
-                                <div class="res-time-end">${endLabel}</div>
-                            </div>
-                            <div class="res-info">
-                                <div class="res-pet">
-                                    ${esc(r.pet_name)}
-                                    <span class="breed">${esc(petMeta)}</span>
-                                </div>
-                                <div class="res-service">${esc(r.service)}${furText}${amtText ? ' · ' + amtText : ''}</div>
-                                ${memoText}
-                            </div>
-                            <span class="res-status ${statusCls}">${statusText}</span>
-                        </div>`;
-                }
-                rendered.add(slot);
-            } else if (!isPast) {
-                html += `
-                    <div class="slot-item" onclick="App.onSlotClick('${slot}')">
-                        <span class="slot-time">${formatTime(slot)}</span>
-                        <span class="slot-label">빈 슬롯</span>
-                        <span class="slot-add">+</span>
-                    </div>`;
-            }
-        }
-        html += '</div>';
-        return html;
-    }
-
-    function renderTimelineGrid(slots, booked, bookedIsStart) {
-        const isPast = selectedDate < fmtDate(new Date());
-
-        // 과거 날짜: 완료된 예약만 리스트로 표시 (그리드 아닌 리스트)
-        if (isPast) {
-            return renderTimelineList(slots, booked, bookedIsStart);
-        }
-
-        const STATUS_COLORS = {
-            confirmed: { bg: '#DBEAFE', border: '#93C5FD', text: '#1E40AF' },
-            completed: { bg: '#DCFCE7', border: '#86EFAC', text: '#166534' },
-            cancelled: { bg: '#FEE2E2', border: '#FCA5A5', text: '#991B1B' },
-            no_show:   { bg: '#FEF3C7', border: '#FDE68A', text: '#92400E' },
-        };
-
-        const mid = Math.ceil(slots.length / 2);
-        const leftSlots = slots.slice(0, mid);
-        const rightSlots = slots.slice(mid);
-        const maxRows = Math.max(leftSlots.length, rightSlots.length);
-
-        let html = '<div class="tl-grid">';
-
-        for (let col = 0; col < 2; col++) {
-            const colSlots = col === 0 ? leftSlots : rightSlots;
-            html += `<div class="tl-col">`;
-            const skip = new Set();
-
-            for (let i = 0; i < colSlots.length; i++) {
-                if (skip.has(i)) continue;
-                const ts = colSlots[i];
-                const r = booked[ts];
-
-                if (r) {
-                    const isStart = bookedIsStart[ts];
-                    let span = 1;
-                    for (let j = i + 1; j < colSlots.length; j++) {
-                        if (booked[colSlots[j]] === r) { span++; skip.add(j); }
-                        else break;
-                    }
-
-                    const sc = STATUS_COLORS[r.status] || STATUS_COLORS.confirmed;
-                    const height = span * 48 - 2;
-                    const weightTag = r.weight ? `${r.weight}kg` : '';
-                    const petParts = [r.breed, weightTag].filter(Boolean).join('/');
-                    const petInfo = petParts ? `${esc(r.pet_name)}(${esc(petParts)})` : esc(r.pet_name);
-
-                    if (span === 1) {
-                        html += `<div class="tl-slot tl-booked" style="height:${height}px;background:${sc.bg};border-color:${sc.border};color:${sc.text}" onclick="App.showReservationDetail(${r.id},${r.customer_id})">
-                            <span class="tl-time">${formatTime(ts)}</span>`;
-                        if (isStart) {
-                            const fur = r.fur_length ? `/${esc(r.fur_length)}` : '';
-                            html += `<span class="tl-info">${petInfo} ${esc(r.service)}${fur}</span>`;
-                            if (r.amount) html += `<span class="tl-amount">${r.amount.toLocaleString()}</span>`;
-                        } else {
-                            html += `<span class="tl-info">~ ${petInfo}</span>`;
-                        }
-                        html += `</div>`;
-                    } else {
-                        html += `<div class="tl-slot tl-booked tl-merged" style="height:${height}px;background:${sc.bg};border-color:${sc.border};color:${sc.text}" onclick="App.showReservationDetail(${r.id},${r.customer_id})">`;
-                        if (isStart) {
-                            const [rh, rm] = r.time.split(':').map(Number);
-                            const endMin = rh * 60 + rm + r.duration;
-                            const endStr = `${String(Math.floor(endMin/60)).padStart(2,'0')}:${String(endMin%60).padStart(2,'0')}`;
-                            const fur = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
-                            const amtText = r.amount ? `  ${r.amount.toLocaleString()}원` : '';
-                            html += `<div class="tl-row"><span class="tl-time">${formatTime(ts)}~${formatTime(endStr)}</span> <span class="tl-info">${petInfo}</span></div>`;
-                            html += `<div class="tl-row"><span class="tl-detail">${esc(r.service)}${fur}${amtText}</span></div>`;
-                            const memoSrc2 = r.customer_memo || r.groomer_memo || r.request || '';
-                            if (memoSrc2) html += `<div class="tl-row"><span class="tl-memo">${esc(memoSrc2)}</span></div>`;
-                        } else {
-                            html += `<div class="tl-row"><span class="tl-info">~ ${petInfo}</span></div>`;
-                        }
-                        html += `</div>`;
-                    }
-                } else {
-                    html += `<div class="tl-slot tl-empty" onclick="App.onSlotClick('${ts}')">
-                        <span class="tl-time">${formatTime(ts)}</span>
-                        <span class="tl-hint">✂️ 예약</span>
-                    </div>`;
-                }
-            }
-            html += '</div>';
-        }
-
-        html += '</div>';
-        return html;
-    }
-
     function closeTimeline() {
         selectedDate = null;
         renderCalendar();
@@ -746,6 +606,10 @@ const App = (() => {
     }
 
     async function saveReservation() {
+        if (!selectedDate || !pendingSlotTime) {
+            toast('날짜와 시간을 선택해주세요', 'error');
+            return;
+        }
         const memoText = document.getElementById('resMemo').value.trim();
         const customerId = parseInt(document.getElementById('resCustomerId').value);
         const data = {
@@ -1787,9 +1651,9 @@ const App = (() => {
         currentYear = now.getFullYear();
         currentMonth = now.getMonth() + 1;
         const todayStr = fmtDate(now);
-        selectedDate = todayStr;
         showView('calendar');
-        // PC: 캘린더만 표시, 날짜 선택만 하고 타임라인으로 이동 안 함
+        // showView가 selectedDate를 null로 초기화하므로 이후 재설정
+        selectedDate = todayStr;
         if (isPC()) {
             loadMonth();
         } else {
@@ -1900,11 +1764,21 @@ const App = (() => {
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
 
+    const _closeTimers = {};
+
     function openSheet(id) {
+        if (_closeTimers[id]) {
+            clearTimeout(_closeTimers[id]);
+            delete _closeTimers[id];
+        }
         const overlay = document.getElementById(id);
         overlay.style.display = 'flex';
         const sheet = overlay.querySelector('.bottom-sheet');
-        if (sheet) _setupSheetSwipe(overlay, sheet);
+        if (sheet) {
+            sheet.style.transform = '';
+            sheet.style.transition = '';
+            _setupSheetSwipe(overlay, sheet);
+        }
     }
 
     function closeSheet(id, force) {
@@ -1920,10 +1794,11 @@ const App = (() => {
         if (sheet) {
             sheet.style.transition = 'transform 0.2s ease';
             sheet.style.transform = 'translateY(100%)';
-            setTimeout(() => {
+            _closeTimers[id] = setTimeout(() => {
                 overlay.style.display = 'none';
                 sheet.style.transform = '';
                 sheet.style.transition = '';
+                delete _closeTimers[id];
             }, 200);
         } else {
             overlay.style.display = 'none';
@@ -2548,7 +2423,9 @@ const App = (() => {
             html += '</div>';
 
             const sheet = document.getElementById('salesDaySheet');
-            sheet.querySelector('.bottom-sheet').innerHTML = html;
+            const sheetInner = sheet.querySelector('.bottom-sheet');
+            sheetInner._swipeSetup = false;
+            sheetInner.innerHTML = html;
             openSheet('salesDaySheet');
         } catch (e) {
             toast('불러오기 실패', 'error');
