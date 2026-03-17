@@ -491,15 +491,35 @@ textarea#quickMemo:focus {
 }
 .time-slot-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
 .time-slot-btn:active { transform: scale(0.96); }
-.time-slot-btn.booked {
-    background: #FEF3C7; border-color: #F59E0B; color: #92400E;
-    position: relative;
+/* 예약 합쳐진 블록 */
+.booked-block {
+    background: linear-gradient(135deg, #EEF2FF, #E0E7FF) !important;
+    border: 2px solid var(--primary) !important;
+    border-radius: var(--radius-sm);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px 6px; cursor: pointer;
+    transition: all var(--transition);
+    min-height: 52px;
 }
-.time-slot-btn.booked:hover { background: #FDE68A; border-color: #D97706; }
-.slot-booked-label {
-    display: block; font-size: 10px; color: #B45309;
-    margin-top: 2px; font-weight: 500;
+.booked-block:hover { background: linear-gradient(135deg, #E0E7FF, #C7D2FE) !important; }
+.booked-block.cont {
+    border-top: none !important;
+    border-top-left-radius: 0; border-top-right-radius: 0;
+    min-height: 36px; opacity: 0.7;
+}
+.booked-time {
+    font-size: 12px; font-weight: 700; color: var(--primary);
+    margin-bottom: 2px;
+}
+.booked-name {
+    font-size: 13px; font-weight: 700; color: var(--text);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%;
+}
+.booked-service {
+    font-size: 11px; color: var(--text-light);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 /* 날짜 피커 */

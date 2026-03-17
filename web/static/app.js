@@ -2131,16 +2131,16 @@ const App = (() => {
 
     async function showTimeSlotPicker() {
         const slots = generateTimeSlots();
+        const COLS = 4;
 
-        // 기존 예약 조회
+        // 기존 예약 조회 → 슬롯별 매핑
         let existingRes = [];
-        const bookedSlots = {};
+        const slotMap = {}; // slot -> { res, isFirst }
         try {
             const res = await fetch(`/api/day?date=${selectedDate}`);
             if (res.ok) {
                 const data = await res.json();
                 existingRes = data.reservations || [];
-                // 예약된 슬롯 마킹
                 for (const r of existingRes) {
                     const [sh, sm] = r.time.split(':').map(Number);
                     const startMin = sh * 60 + sm;
@@ -2148,37 +2148,60 @@ const App = (() => {
                     for (let s = 0; s < nSlots; s++) {
                         const t = startMin + s * CONFIG.slotInterval;
                         const ts = `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
-                        bookedSlots[ts] = r.pet_name;
+                        if (slots.includes(ts)) {
+                            slotMap[ts] = { res: r, isFirst: s === 0, resId: r.id };
+                        }
                     }
                 }
             }
         } catch (e) { /* 네트워크 오류 시 빈 슬롯으로 진행 */ }
 
-        // 기존 예약 목록
-        let existingHtml = '';
-        if (existingRes.length) {
-            existingHtml = `<div style="margin-bottom:14px;padding:10px 12px;background:var(--primary-light);border-radius:10px">
-                <p style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:6px">📋 기존 예약 ${existingRes.length}건</p>`;
-            for (const r of existingRes) {
-                const timeLabel = formatTime(r.time);
-                const endLabel = formatTime(r.end_time);
-                existingHtml += `<div style="font-size:13px;color:var(--text);padding:3px 0">
-                    ${timeLabel}~${endLabel} <b>${esc(r.pet_name)}</b> ${esc(r.service || '')}
-                </div>`;
-            }
-            existingHtml += '</div>';
-        }
-
-        // 시간 슬롯 그리드
+        // 그리드 렌더링 — 예약된 칸 합치기
         let slotHtml = '<div class="time-slot-grid">';
-        for (const slot of slots) {
-            if (bookedSlots[slot]) {
-                slotHtml += `<button class="time-slot-btn booked" onclick="App.onSlotClick('${slot}');App.closeSheet('timeSlotSheet')">
-                    ${formatTime(slot)}
-                    <span class="slot-booked-label">${esc(bookedSlots[slot])}</span>
-                </button>`;
-            } else {
-                slotHtml += `<button class="time-slot-btn" onclick="App.onSlotClick('${slot}');App.closeSheet('timeSlotSheet')">${formatTime(slot)}</button>`;
+        const rendered = new Set();
+
+        for (let row = 0; row * COLS < slots.length; row++) {
+            const rowStart = row * COLS;
+            const rowEnd = Math.min(rowStart + COLS, slots.length);
+            let col = rowStart;
+
+            while (col < rowEnd) {
+                const slot = slots[col];
+
+                if (rendered.has(slot)) { col++; continue; }
+
+                const info = slotMap[slot];
+                if (info) {
+                    // 같은 예약의 연속 슬롯 수 계산 (이 행 내에서)
+                    let span = 0;
+                    for (let j = col; j < rowEnd; j++) {
+                        const si = slotMap[slots[j]];
+                        if (si && si.resId === info.resId) {
+                            span++;
+                            rendered.add(slots[j]);
+                        } else break;
+                    }
+
+                    const r = info.res;
+                    if (info.isFirst) {
+                        // 예약 시작 블록 — 전체 정보 표시
+                        slotHtml += `<div class="time-slot-btn booked-block" style="grid-column:span ${span}" onclick="App.onSlotClick('${slot}');App.closeSheet('timeSlotSheet')">
+                            <span class="booked-time">${formatTime(r.time)}~${formatTime(r.end_time)}</span>
+                            <span class="booked-name">${esc(r.pet_name)}</span>
+                            <span class="booked-service">${esc(r.service || '')}</span>
+                        </div>`;
+                    } else {
+                        // 예약 연속 블록 (다음 행으로 넘어간 경우)
+                        slotHtml += `<div class="time-slot-btn booked-block cont" style="grid-column:span ${span}">
+                            <span class="booked-name">${esc(r.pet_name)}</span>
+                        </div>`;
+                    }
+                    col += span;
+                } else {
+                    // 빈 슬롯
+                    slotHtml += `<button class="time-slot-btn" onclick="App.onSlotClick('${slot}');App.closeSheet('timeSlotSheet')">${formatTime(slot)}</button>`;
+                    col++;
+                }
             }
         }
         slotHtml += '</div>';
@@ -2188,7 +2211,6 @@ const App = (() => {
                 📅 ${selectedDate} — 시간을 선택하세요
                 <button onclick="App.showDatePicker()" style="margin-left:8px;font-size:12px;color:var(--primary);background:var(--primary-light);border:none;border-radius:6px;padding:3px 8px;cursor:pointer">날짜변경</button>
             </p>
-            ${existingHtml}
             ${slotHtml}
         `;
         openSheet('timeSlotSheet');
