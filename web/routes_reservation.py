@@ -129,7 +129,8 @@ def update_status(rid):
         return jsonify({"error": "invalid status"}), 400
 
     if status == "cancelled":
-        queries.delete_reservation(db, rid)
+        # DB 삭제 대신 상태만 cancelled로 변경 (데이터 보존)
+        queries.update_reservation_status(db, rid, "cancelled")
     else:
         queries.update_reservation_status(db, rid, status)
         # 완료 시 결제방법 저장

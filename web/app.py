@@ -42,14 +42,11 @@ def get_db() -> DatabaseManager:
 
 
 def require_auth(f):
-    """로그인 필요 데코레이터"""
+    """로그인 필요 데코레이터 — 비밀번호 없이 자동 인증"""
     from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not session.get("authenticated"):
-            if request.path.startswith("/api/"):
-                return jsonify({"error": "unauthorized"}), 401
-            return redirect(url_for("auth.login"))
+        session["authenticated"] = True
         return f(*args, **kwargs)
     return decorated
 
@@ -59,9 +56,7 @@ def create_app():
     if not config.DATABASE_URL:
         log.critical("DATABASE_URL 환경변수를 설정하세요.")
         sys.exit(1)
-    if config.VIEWER_PASSWORD in ("0000", ""):
-        log.critical("VIEWER_PASSWORD를 안전한 비밀번호로 설정하세요.")
-        sys.exit(1)
+    # 비밀번호 인증 비활성화 — 자동 접근 허용
     if config.SECRET_KEY == "dev-secret-change-me":
         log.warning("SECRET_KEY가 기본값입니다. 프로덕션에서는 반드시 변경하세요.")
 
@@ -142,8 +137,7 @@ def create_app():
 
     @app.route("/")
     def index():
-        if not session.get("authenticated"):
-            return redirect(url_for("auth.login"))
+        session["authenticated"] = True
         return render_template("index.html",
                                services=config.DEFAULT_SERVICES,
                                fur_lengths=config.FUR_LENGTHS,
@@ -156,8 +150,6 @@ def create_app():
     @app.route("/api/config")
     def api_config():
         """프론트엔드에서 필요한 설정 반환"""
-        if not session.get("authenticated"):
-            return jsonify({"error": "unauthorized"}), 401
         return jsonify({
             "services": [{"name": s[0], "duration": s[1], "price": s[2]}
                          for s in config.DEFAULT_SERVICES],

@@ -222,9 +222,8 @@ def update_customer(cid):
 @customer_bp.route("/api/customer/<int:cid>", methods=["DELETE"])
 @require_auth
 def delete_customer(cid):
-    db = get_db()
-    queries.delete_customer(db, cid)
-    return jsonify({"ok": True})
+    # URL 유출 대비: 고객 삭제 비활성화
+    return jsonify({"error": "삭제 기능이 비활성화되어 있습니다"}), 403
 
 
 @customer_bp.route("/api/customer/by-phone")
