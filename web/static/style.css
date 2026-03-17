@@ -63,6 +63,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     max-width: 480px; margin: 0 auto;
     background: var(--card);
     position: relative;
+    padding-bottom: calc(52px + max(8px, env(safe-area-inset-bottom)));
 }
 
 /* === 헤더 === */
@@ -294,6 +295,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     display: flex; border-top: 1px solid var(--border);
     background: var(--card); flex-shrink: 0;
     padding-bottom: max(8px, env(safe-area-inset-bottom));
+    position: fixed; bottom: 0; left: 0; right: 0;
+    z-index: 150;
 }
 .nav-item {
     flex: 1; display: flex; flex-direction: column;
@@ -319,7 +322,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 /* === 바텀시트 - Toss style === */
 .bottom-sheet-overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    position: fixed; top: 0; left: 0; right: 0;
+    bottom: calc(52px + max(8px, env(safe-area-inset-bottom)));
     background: rgba(0,0,0,0.45); z-index: 100;
     display: flex; align-items: flex-end; justify-content: center;
     animation: fadeIn 0.2s ease-out;
@@ -905,6 +909,7 @@ textarea#quickMemo:focus {
         display: flex; flex-direction: column;
         margin: 0 auto;
         box-shadow: 0 0 40px rgba(0,0,0,0.06);
+        padding-bottom: 0;
     }
 
     .pc-header {
@@ -1089,7 +1094,7 @@ textarea#quickMemo:focus {
     }
 
     /* PC 바텀시트 → 중앙 모달 */
-    .bottom-sheet-overlay { align-items: center; }
+    .bottom-sheet-overlay { align-items: center; bottom: 0; }
     .bottom-sheet {
         max-width: 520px; border-radius: 20px; max-height: 80vh;
         box-shadow: 0 12px 40px rgba(0,0,0,0.15);
