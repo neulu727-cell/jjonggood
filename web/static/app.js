@@ -258,7 +258,7 @@ const App = (() => {
 
     function renderReservationList(items) {
         if (!items || !items.length) {
-            return '<div class="empty-timeline" style="padding:40px 20px"><span class="empty-emoji" aria-hidden="true">🐾</span><p class="empty-title">예약이 없어요</p><p>✂️ 예약등록 버튼으로 새 예약을 추가해보세요</p></div>';
+            return '<div class="empty-timeline" style="padding:40px 20px"><span class="empty-emoji" aria-hidden="true">🐾</span><p class="empty-title">예약이 없어요</p><button class="empty-cta" onclick="App.onQuickReserve()">✂️ 예약등록</button></div>';
         }
         const TL_LABEL = { confirmed: '🕐 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
         let html = '<div class="timeline-list">';
@@ -442,6 +442,53 @@ const App = (() => {
         document.getElementById('timelineContent').innerHTML =
             '<div class="empty-timeline"><span class="empty-emoji" aria-hidden="true">🐾</span><p class="empty-title">날짜를 선택해주세요</p><p>캘린더에서 날짜를 탭하면 예약 현황을 볼 수 있어요</p></div>';
     }
+
+    // 모바일 타임라인 스와이프 다운 → 캘린더로 복귀
+    (function setupTimelineSwipe() {
+        const tl = document.getElementById('timelineSection');
+        if (!tl) return;
+        let startY = 0, currentY = 0, dragging = false;
+        tl.addEventListener('touchstart', (e) => {
+            if (tl.scrollTop <= 0) {
+                startY = e.touches[0].clientY;
+                currentY = 0;
+            }
+        }, { passive: true });
+        tl.addEventListener('touchmove', (e) => {
+            if (isPC()) return;
+            const dy = e.touches[0].clientY - startY;
+            if (tl.scrollTop <= 0 && dy > 10 && !dragging) {
+                dragging = true;
+            }
+            if (dragging && dy > 0) {
+                currentY = dy;
+                tl.style.transition = 'none';
+                tl.style.transform = `translateY(${Math.min(dy, 200)}px)`;
+                tl.style.opacity = Math.max(0.3, 1 - dy / 300);
+                e.preventDefault();
+            }
+        }, { passive: false });
+        tl.addEventListener('touchend', () => {
+            if (!dragging) return;
+            dragging = false;
+            if (currentY > 80) {
+                tl.style.transition = 'transform 0.2s, opacity 0.2s';
+                tl.style.transform = 'translateY(100%)';
+                tl.style.opacity = '0';
+                setTimeout(() => {
+                    tl.style.transform = '';
+                    tl.style.opacity = '';
+                    tl.style.transition = '';
+                    closeTimeline();
+                }, 200);
+            } else {
+                tl.style.transition = 'transform 0.2s, opacity 0.2s';
+                tl.style.transform = '';
+                tl.style.opacity = '';
+            }
+            currentY = 0;
+        }, { passive: true });
+    })();
 
     // ==================== 빈 슬롯 클릭 → 고객 선택 → 예약 생성 ====================
 
