@@ -946,7 +946,7 @@ textarea#quickMemo:focus {
     .main-content { flex-direction: column; flex: 1; overflow: hidden; }
 
     .left-panel {
-        flex: 0 0 auto;
+        flex: 1;
         display: flex; flex-direction: column;
         background: #F8F9FB;
         overflow: hidden;
@@ -959,7 +959,7 @@ textarea#quickMemo:focus {
     .month-label { font-size: 18px; min-width: 100px; font-weight: 800; }
     .month-nav button { font-size: 22px; padding: 4px 10px; }
     .btn-today { font-size: 13px; padding: 5px 14px; }
-    .calendar-section { background: #F8F9FB; flex: 0 0 auto; overflow-y: auto; }
+    .calendar-section { background: #F8F9FB; flex: 1; overflow-y: auto; }
     .weekday-row { background: #F8F9FB; border-bottom-color: var(--border-strong); padding: 6px 12px 4px; gap: 2px; font-size: 13px; }
     .calendar-grid { gap: 3px; padding: 4px 12px; }
     .cal-cell { min-height: 100px; padding: 6px 4px; border-radius: var(--radius-md); }
@@ -970,10 +970,28 @@ textarea#quickMemo:focus {
     .cal-badge { font-size: 10px; border-radius: 5px; padding: 2px 5px; }
     .cal-badges { gap: 2px; }
 
-    /* 타임라인: 날짜 클릭 시 캘린더 아래 표시 */
+    /* 타임라인: 기본은 아래 표시 */
     .timeline-section {
         flex: 1; min-width: 0; border-top: 3px solid var(--primary);
         overflow-y: auto; background: var(--card);
+    }
+
+    /* PC 분할 뷰: 캘린더 좌 + 타임라인 우 */
+    .main-content.split-view {
+        flex-direction: row;
+    }
+    .main-content.split-view .left-panel {
+        flex: 1 1 58%;
+        overflow-y: auto;
+        border-right: 1px solid var(--border);
+    }
+    .main-content.split-view .call-sidebar {
+        display: none !important;
+    }
+    .main-content.split-view .timeline-section {
+        flex: 1 1 42%;
+        border-top: none;
+        border-left: 3px solid var(--primary);
     }
 
     /* 타임라인 뒤로가기 버튼 */

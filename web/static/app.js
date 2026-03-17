@@ -76,7 +76,8 @@ const App = (() => {
             tlSec.style.display = 'none';
             custView.style.display = 'none';
             salesView.style.display = 'none';
-            // 모바일: collapsed 상태 해제 + 선택 초기화
+            // collapsed/split-view 해제 + 선택 초기화
+            document.querySelector('.main-content')?.classList.remove('split-view');
             document.querySelector('.calendar-section')?.classList.remove('collapsed');
             selectedDate = null;
             loadMonth();
@@ -205,8 +206,10 @@ const App = (() => {
             return;
         }
 
-        // 모바일: 캘린더 접기 / PC: 캘린더 유지
-        if (!isPC()) {
+        // 모바일: 캘린더 접기 / PC: 좌우 분할
+        if (isPC()) {
+            document.querySelector('.main-content')?.classList.add('split-view');
+        } else {
             document.querySelector('.calendar-section')?.classList.add('collapsed');
         }
         document.getElementById('timelineSection').style.display = 'flex';
@@ -319,6 +322,7 @@ const App = (() => {
     function closeTimeline() {
         selectedDate = null;
         renderCalendar();
+        document.querySelector('.main-content')?.classList.remove('split-view');
         document.querySelector('.calendar-section')?.classList.remove('collapsed');
         document.getElementById('timelineSection').style.display = 'none';
     }
@@ -1690,6 +1694,7 @@ const App = (() => {
         tlSec.style.display = 'none';
         custView.style.display = 'none';
         salesView.style.display = 'none';
+        document.querySelector('.main-content')?.classList.remove('split-view');
         document.querySelector('.calendar-section')?.classList.remove('collapsed');
         selectedDate = todayStr;
         if (isPC()) {
