@@ -497,7 +497,7 @@ textarea#quickMemo:focus {
     border: 1.5px solid var(--primary) !important;
     border-radius: var(--radius-sm);
     display: flex; align-items: center; justify-content: center; gap: 4px;
-    padding: 0 6px; cursor: pointer;
+    padding: 12px 6px; cursor: pointer;
     transition: all var(--transition);
     overflow: hidden;
 }
