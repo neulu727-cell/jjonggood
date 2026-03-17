@@ -262,7 +262,13 @@ const App = (() => {
 
     function renderReservationList(items) {
         if (!items || !items.length) {
-            return '<div class="empty-timeline" style="padding:40px 20px"><span class="empty-emoji" aria-hidden="true">🐾</span><p class="empty-title">예약이 없어요</p><button class="empty-cta" onclick="App.onQuickReserve()">✂️ 예약등록</button></div>';
+            return `<div class="empty-timeline" style="min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px">
+                <span class="empty-emoji" aria-hidden="true" style="font-size:56px;margin-bottom:16px">🐾</span>
+                <p class="empty-title" style="font-size:18px;font-weight:600;margin-bottom:8px">예약이 없어요!</p>
+                <p style="color:var(--text-light);font-size:14px;margin-bottom:24px">이 날짜에 첫 예약을 등록해보세요</p>
+                <button class="empty-cta" onclick="App.onQuickReserve()" style="padding:14px 32px;font-size:15px;font-weight:600">✂️ 예약 등록하기</button>
+                <p style="color:var(--text-light);font-size:12px;margin-top:32px">↓ 아래로 스와이프하면 캘린더로 돌아갑니다</p>
+            </div>`;
         }
         const TL_LABEL = { confirmed: '🕐 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
         let html = '<div class="timeline-list">';
