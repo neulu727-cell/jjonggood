@@ -205,8 +205,10 @@ const App = (() => {
             return;
         }
 
-        // PC/모바일 통합: 캘린더 접고 타임라인 표시
-        document.querySelector('.calendar-section')?.classList.add('collapsed');
+        // 모바일: 캘린더 접기 / PC: 캘린더 유지
+        if (!isPC()) {
+            document.querySelector('.calendar-section')?.classList.add('collapsed');
+        }
         document.getElementById('timelineSection').style.display = 'flex';
 
         const content = document.getElementById('timelineContent');
@@ -271,12 +273,12 @@ const App = (() => {
 
     function renderReservationList(items) {
         if (!items || !items.length) {
-            return `<div class="empty-timeline" style="min-height:50vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;margin:0 auto;width:100%">
-                <span class="empty-emoji" aria-hidden="true" style="font-size:64px;margin-bottom:20px">🐾</span>
-                <p class="empty-title" style="font-size:20px;font-weight:700;margin-bottom:10px;color:var(--text)">예약이 없어요!</p>
-                <p style="color:var(--text-light);font-size:15px;margin-bottom:28px">이 날짜에 첫 예약을 등록해보세요</p>
-                <button class="empty-cta" onclick="App.onQuickReserve()" style="padding:14px 36px;font-size:15px;font-weight:600;border-radius:12px">✂️ 예약 등록하기</button>
-                <p class="mobile-only" style="color:var(--text-light);font-size:12px;margin-top:32px">↓ 아래로 스와이프하면 캘린더로 돌아갑니다</p>
+            return `<div class="empty-timeline">
+                <span class="empty-emoji" aria-hidden="true">🐾</span>
+                <p class="empty-title">예약이 없어요!</p>
+                <p>이 날짜에 첫 예약을 등록해보세요</p>
+                <button class="empty-cta" onclick="App.onQuickReserve()">✂️ 예약 등록하기</button>
+                <p class="mobile-only" style="font-size:12px;margin-top:24px">↓ 아래로 스와이프하면 캘린더로 돌아갑니다</p>
             </div>`;
         }
         const TL_LABEL = { confirmed: '🕐 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };

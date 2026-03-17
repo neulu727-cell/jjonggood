@@ -170,6 +170,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* === 타임라인 === */
 .timeline-section {
     display: none;
+    flex-direction: column;
     flex: 1; overflow-y: auto; overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     border-top: 3px solid var(--primary);
@@ -192,6 +193,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     color: var(--text-light); cursor: pointer; padding: 4px;
 }
 
+#timelineContent { display: flex; flex-direction: column; flex: 1; }
 .timeline-list { padding: 0 16px 80px; }
 
 /* 빈 슬롯 */
@@ -260,7 +262,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .empty-timeline {
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    padding: 80px 20px; color: var(--text-light);
+    flex: 1;
+    padding: 40px 20px; color: var(--text-light);
     animation: fadeIn 0.4s ease;
 }
 .empty-timeline .icon {
@@ -269,9 +272,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .empty-emoji {
     display: inline-block;
-    font-size: 56px;
+    font-size: 64px;
     line-height: 1;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
     animation: emptyFloat 3s ease-in-out infinite;
 }
 @keyframes emptyFloat {
@@ -279,17 +282,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     50% { transform: translateY(-6px); }
 }
 .empty-timeline .empty-title {
-    font-size: 16px; font-weight: 700; color: var(--text-secondary);
-    margin-bottom: 6px;
+    font-size: 20px; font-weight: 700; color: var(--text);
+    margin-bottom: 8px;
 }
-.empty-timeline p { font-size: 14px; color: var(--text-light); }
+.empty-timeline p { font-size: 15px; color: var(--text-light); margin-bottom: 4px; }
 .empty-timeline .empty-cta {
-    margin-top: 16px; padding: 10px 24px; border-radius: 20px;
-    background: var(--primary-light); color: var(--primary);
-    border: none; font-size: 14px; font-weight: 600; cursor: pointer;
+    margin-top: 20px; padding: 14px 36px; border-radius: 14px;
+    background: var(--primary); color: #fff;
+    border: none; font-size: 15px; font-weight: 600; cursor: pointer;
     transition: all var(--transition);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
 }
-.empty-timeline .empty-cta:hover { background: var(--primary); color: #fff; }
+.empty-timeline .empty-cta:hover { background: #4338CA; color: #fff; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4); }
 
 /* === 하단 네비 === */
 .bottom-nav {
@@ -939,13 +943,13 @@ textarea#quickMemo:focus {
         padding-bottom: 0;
     }
 
-    .main-content { flex-direction: column; flex: 1; }
+    .main-content { flex-direction: column; flex: 1; overflow: hidden; }
 
     .left-panel {
-        flex: 1;
+        flex: 0 0 auto;
         display: flex; flex-direction: column;
         background: #F8F9FB;
-        overflow: hidden; height: 100%;
+        overflow: hidden;
     }
 
     .header {
@@ -955,7 +959,7 @@ textarea#quickMemo:focus {
     .month-label { font-size: 18px; min-width: 100px; font-weight: 800; }
     .month-nav button { font-size: 22px; padding: 4px 10px; }
     .btn-today { font-size: 13px; padding: 5px 14px; }
-    .calendar-section { background: #F8F9FB; flex: 1; overflow-y: auto; }
+    .calendar-section { background: #F8F9FB; flex: 0 0 auto; overflow-y: auto; }
     .weekday-row { background: #F8F9FB; border-bottom-color: var(--border-strong); padding: 6px 12px 4px; gap: 2px; font-size: 13px; }
     .calendar-grid { gap: 3px; padding: 4px 12px; }
     .cal-cell { min-height: 100px; padding: 6px 4px; border-radius: var(--radius-md); }
@@ -970,12 +974,6 @@ textarea#quickMemo:focus {
     .timeline-section {
         flex: 1; min-width: 0; border-top: 3px solid var(--primary);
         overflow-y: auto; background: var(--card);
-    }
-    .calendar-section.collapsed .calendar-grid {
-        max-height: 0; overflow: hidden;
-    }
-    .calendar-section.collapsed .weekday-row {
-        display: none;
     }
 
     /* 타임라인 뒤로가기 버튼 */
