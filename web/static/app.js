@@ -52,9 +52,17 @@ const App = (() => {
         document.querySelectorAll('.nav-item').forEach(el => {
             el.classList.toggle('active', el.dataset.view === view);
         });
-        // 열린 시트 모두 닫기 (애니메이션 포함)
+        // 열린 시트 모두 닫기 (즉시)
         document.querySelectorAll('.bottom-sheet-overlay').forEach(el => {
-            if (el.style.display !== 'none' && el.id) closeSheet(el.id, true);
+            if (el.style.display !== 'none') {
+                el.style.display = 'none';
+                const sh = el.querySelector('.bottom-sheet');
+                if (sh) { sh.style.transform = ''; sh.style.transition = ''; }
+                if (el.id && _closeTimers[el.id]) {
+                    clearTimeout(_closeTimers[el.id]);
+                    delete _closeTimers[el.id];
+                }
+            }
         });
         const calSec = document.getElementById('calendarSection');
         const tlSec = document.getElementById('timelineSection');
@@ -71,8 +79,6 @@ const App = (() => {
             // 모바일: collapsed 상태 해제 + 선택 초기화
             document.querySelector('.calendar-section')?.classList.remove('collapsed');
             selectedDate = null;
-            renderCalendar();
-            // 백그라운드 데이터 갱신 (다른 뷰에서 변경 후 복귀 시)
             loadMonth();
         } else if (view === 'timeline') {
             // PC 전용: 타임라인 전체 화면 (nav에서 calendar 활성 유지)
@@ -81,7 +87,7 @@ const App = (() => {
             });
             calSec.style.display = 'none';
             if (leftPanel) leftPanel.style.display = 'none';
-            tlSec.style.display = '';
+            tlSec.style.display = 'flex';
             custView.style.display = 'none';
             salesView.style.display = 'none';
         } else if (view === 'customers') {
@@ -202,7 +208,7 @@ const App = (() => {
         // 모바일: 캘린더 접고 타임라인 표시
         if (!isPC()) {
             document.querySelector('.calendar-section')?.classList.add('collapsed');
-            document.getElementById('timelineSection').style.display = '';
+            document.getElementById('timelineSection').style.display = 'flex';
         } else {
             // PC: 타임라인 전체 화면으로 전환
             showView('timeline');
@@ -1671,8 +1677,25 @@ const App = (() => {
         currentYear = now.getFullYear();
         currentMonth = now.getMonth() + 1;
         const todayStr = fmtDate(now);
-        showView('calendar');
-        // showView가 selectedDate를 null로 초기화하므로 이후 재설정
+        // showView 대신 직접 뷰 전환 (loadMonth 중복 방지)
+        currentView = 'calendar';
+        document.querySelectorAll('.nav-item').forEach(el => {
+            el.classList.toggle('active', el.dataset.view === 'calendar');
+        });
+        document.querySelectorAll('.bottom-sheet-overlay').forEach(el => {
+            if (el.style.display !== 'none' && el.id) closeSheet(el.id, true);
+        });
+        const calSec = document.getElementById('calendarSection');
+        const tlSec = document.getElementById('timelineSection');
+        const custView = document.getElementById('customerView');
+        const salesView = document.getElementById('salesView');
+        const leftPanel = document.querySelector('.left-panel');
+        calSec.style.display = '';
+        if (leftPanel) leftPanel.style.display = '';
+        tlSec.style.display = 'none';
+        custView.style.display = 'none';
+        salesView.style.display = 'none';
+        document.querySelector('.calendar-section')?.classList.remove('collapsed');
         selectedDate = todayStr;
         if (isPC()) {
             loadMonth();
