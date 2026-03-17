@@ -52,9 +52,9 @@ const App = (() => {
         document.querySelectorAll('.nav-item').forEach(el => {
             el.classList.toggle('active', el.dataset.view === view);
         });
-        // 열린 시트 모두 닫기
+        // 열린 시트 모두 닫기 (애니메이션 포함)
         document.querySelectorAll('.bottom-sheet-overlay').forEach(el => {
-            if (el.style.display !== 'none') el.style.display = 'none';
+            if (el.style.display !== 'none' && el.id) closeSheet(el.id, true);
         });
         const calSec = document.getElementById('calendarSection');
         const tlSec = document.getElementById('timelineSection');
@@ -72,8 +72,13 @@ const App = (() => {
             document.querySelector('.calendar-section')?.classList.remove('collapsed');
             selectedDate = null;
             renderCalendar();
+            // 백그라운드 데이터 갱신 (다른 뷰에서 변경 후 복귀 시)
+            loadMonth();
         } else if (view === 'timeline') {
-            // PC 전용: 타임라인 전체 화면
+            // PC 전용: 타임라인 전체 화면 (nav에서 calendar 활성 유지)
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.view === 'calendar');
+            });
             calSec.style.display = 'none';
             if (leftPanel) leftPanel.style.display = 'none';
             tlSec.style.display = '';
@@ -111,7 +116,10 @@ const App = (() => {
     async function loadMonth() {
         updateMonthLabel();
         const grid = document.getElementById('calendarGrid');
-        grid.innerHTML = '<div class="loading" style="grid-column:1/-1;padding:20px"></div>';
+        // 이미 렌더링된 캘린더가 있으면 스켈레톤 생략 (깜빡임 방지)
+        if (!grid.querySelector('.cal-cell')) {
+            grid.innerHTML = '<div class="loading" style="grid-column:1/-1;padding:20px"></div>';
+        }
 
         try {
             const res = await fetch(`/api/month?y=${currentYear}&m=${currentMonth}`);
@@ -1378,6 +1386,8 @@ const App = (() => {
                 cachedCustomers = null;
                 closeSheet('customerFormSheet');
                 toast(isEdit ? '수정되었습니다' : '등록되었습니다', 'success');
+                // 고객 목록 자동 갱신
+                if (currentView === 'customers') loadCustomerList('', customerSort);
 
                 if (window._customerFormCallback) {
                     // 새로 생성된 고객 정보 가져오기
@@ -1407,6 +1417,10 @@ const App = (() => {
                 closeSheet('customerFormSheet');
                 closeSheet('unifiedDetailSheet');
                 toast('삭제되었습니다', 'success');
+                // 고객 목록 갱신
+                if (currentView === 'customers') loadCustomerList('', customerSort);
+                // 캘린더 데이터도 갱신 (삭제된 고객 예약 반영)
+                loadMonth();
             }
         } catch (e) {
             toast('삭제 실패', 'error');
