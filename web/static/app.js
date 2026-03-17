@@ -52,6 +52,10 @@ const App = (() => {
         document.querySelectorAll('.nav-item').forEach(el => {
             el.classList.toggle('active', el.dataset.view === view);
         });
+        // 열린 시트 모두 닫기
+        document.querySelectorAll('.bottom-sheet-overlay').forEach(el => {
+            if (el.style.display !== 'none') el.style.display = 'none';
+        });
         const calSec = document.getElementById('calendarSection');
         const tlSec = document.getElementById('timelineSection');
         const custView = document.getElementById('customerView');
@@ -61,14 +65,13 @@ const App = (() => {
         if (view === 'calendar') {
             calSec.style.display = '';
             if (leftPanel) leftPanel.style.display = '';
-            // PC: 타임라인은 기본 숨김 (날짜 클릭 시만 표시)
-            if (isPC()) {
-                tlSec.style.display = 'none';
-            } else {
-                tlSec.style.display = '';
-            }
+            tlSec.style.display = 'none';
             custView.style.display = 'none';
             salesView.style.display = 'none';
+            // 모바일: collapsed 상태 해제 + 선택 초기화
+            document.querySelector('.calendar-section')?.classList.remove('collapsed');
+            selectedDate = null;
+            renderCalendar();
         } else if (view === 'timeline') {
             // PC 전용: 타임라인 전체 화면
             calSec.style.display = 'none';
@@ -451,10 +454,9 @@ const App = (() => {
         if (!tl) return;
         let startY = 0, currentY = 0, dragging = false;
         tl.addEventListener('touchstart', (e) => {
-            if (tl.scrollTop <= 0) {
-                startY = e.touches[0].clientY;
-                currentY = 0;
-            }
+            startY = e.touches[0].clientY;
+            currentY = 0;
+            dragging = false;
         }, { passive: true });
         tl.addEventListener('touchmove', (e) => {
             if (isPC()) return;
@@ -893,6 +895,7 @@ const App = (() => {
         const mergedMemoText = mergedMemoLines.join('\n');
         const mergedMemoDisplay = mergedMemoLines.map(line => esc(line) || '<span class="memo-empty">메모를 입력하세요</span>').join('<br>');
         const petIdsAttr = allPets.map(p => p.id).join(',');
+        const petNamesAttr = allPets.map(p => p.pet_name).join(',');
         const memoHtml = `
             <div class="ud-merged-memo" id="mergedMemoView_${c.id}" onclick="App.startMemoEdit(${c.id})" title="클릭하여 편집">
                 <div class="memo-text clickable">${mergedMemoDisplay}</div>
@@ -900,7 +903,7 @@ const App = (() => {
             <div id="mergedMemoEdit_${c.id}" style="display:none">
                 <textarea id="mergedMemoTA_${c.id}" class="memo-edit-ta merged">${esc(mergedMemoText)}</textarea>
                 <div style="display:flex;gap:4px;margin-top:4px">
-                    <button class="btn-primary-sm" style="padding:6px 14px;font-size:13px" onclick="App.saveMergedMemo(${c.id}, '${petIdsAttr}', ${hasSiblings})">저장</button>
+                    <button class="btn-primary-sm" style="padding:6px 14px;font-size:13px" onclick="App.saveMergedMemo(${c.id}, '${petIdsAttr}', '${esc(petNamesAttr)}', ${hasSiblings})">저장</button>
                     <button class="btn-cancel-sm" onclick="App.cancelMemoEdit(${c.id})">취소</button>
                 </div>
             </div>`;
@@ -1558,24 +1561,45 @@ const App = (() => {
         editEl.style.display = 'none';
     }
 
-    async function saveMergedMemo(mainCid, petIdsStr, hasSiblings) {
+    async function saveMergedMemo(mainCid, petIdsStr, petNamesStr, hasSiblings) {
         const ta = document.getElementById('mergedMemoTA_' + mainCid);
         if (!ta) return;
         const petIds = petIdsStr.split(',').map(Number);
-        const lines = ta.value.split('\n');
+        const petNames = petNamesStr.split(',');
+        const text = ta.value;
 
         try {
             if (hasSiblings) {
-                for (let i = 0; i < petIds.length; i++) {
-                    let memo = (lines[i] || '').trim();
-                    const dashIdx = memo.indexOf(' - ');
-                    if (dashIdx !== -1) {
-                        memo = memo.substring(dashIdx + 3);
+                // 펫 이름 기반 파싱: "바니 - 메모\n꾸꾸 - 메모" 형식
+                const memos = {};
+                petIds.forEach((id, i) => { memos[id] = ''; });
+
+                // 각 펫 이름의 시작 위치를 찾아서 해당 구간의 메모 추출
+                const lines = text.split('\n');
+                let currentPetIdx = -1;
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    // 이 줄이 어떤 펫 이름으로 시작하는지 확인
+                    let matched = false;
+                    for (let i = 0; i < petNames.length; i++) {
+                        if (trimmed.startsWith(petNames[i] + ' - ')) {
+                            currentPetIdx = i;
+                            memos[petIds[i]] = trimmed.substring(petNames[i].length + 3);
+                            matched = true;
+                            break;
+                        }
                     }
-                    await fetch(`/api/customer/${petIds[i]}`, {
+                    if (!matched && currentPetIdx >= 0 && trimmed) {
+                        // 현재 펫의 추가 줄
+                        memos[petIds[currentPetIdx]] += (memos[petIds[currentPetIdx]] ? '\n' : '') + trimmed;
+                    }
+                }
+
+                for (const id of petIds) {
+                    await fetch(`/api/customer/${id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ memo }),
+                        body: JSON.stringify({ memo: memos[id] }),
                     });
                 }
             } else {
@@ -1657,9 +1681,11 @@ const App = (() => {
         // 전화 뱃지 업데이트 (SSE 수신 시에만 - type이 있을 때)
         if (data.type === 'incoming_call') {
             const badge = document.getElementById('callBadge');
-            const count = parseInt(badge.textContent || '0') + 1;
-            badge.textContent = count;
-            badge.style.display = 'flex';
+            if (badge) {
+                const count = parseInt(badge.textContent || '0') + 1;
+                badge.textContent = count;
+                badge.style.display = 'flex';
+            }
         }
 
         if (data.is_existing) {
@@ -1941,7 +1967,7 @@ const App = (() => {
             }
             if (dragSource === 'body' && sheet.scrollTop <= 0) {
                 currentY = e.touches[0].clientY - startY;
-                if (currentY > 10 && !isDragging) {
+                if (currentY > 30 && !isDragging) {
                     isDragging = true;
                     sheet.style.transition = 'none';
                 }
@@ -2498,7 +2524,7 @@ const App = (() => {
             const data = await res.json();
             const items = (data.reservations || []).filter(r => r.status === 'completed' && r.amount > 0);
 
-            let html = `<div class="sheet-header"><h3>📅 ${dateLabel} 매출 상세</h3><button class="sheet-close" onclick="App.closeSheet('salesDaySheet')" aria-label="닫기">&times;</button></div>`;
+            let html = `<div class="sheet-handle"></div><div class="sheet-header"><h3>📅 ${dateLabel} 매출 상세</h3><button class="sheet-close" onclick="App.closeSheet('salesDaySheet')" aria-label="닫기">&times;</button></div>`;
             html += '<div class="sheet-body">';
 
             if (!items.length) {
