@@ -446,6 +446,25 @@ textarea#quickMemo:focus {
 .prev-service-item:hover { color: var(--primary); }
 .prev-service-item:last-child { border-bottom: none; }
 
+/* 매출 일별 상세 */
+.sales-day-list { display: flex; flex-direction: column; gap: 8px; }
+.sales-day-item {
+    padding: 12px; border-radius: var(--radius-sm);
+    background: var(--bg); cursor: pointer;
+    transition: background var(--transition);
+}
+.sales-day-item:hover { background: var(--primary-light); }
+.sales-day-pet { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.sales-day-pet .breed { font-weight: 400; color: var(--text-light); font-size: 13px; }
+.sales-day-info { font-size: 13px; color: var(--text-secondary); margin-bottom: 2px; }
+.sales-day-amount { font-size: 15px; font-weight: 700; color: var(--primary); }
+.sales-day-total {
+    margin-top: 12px; padding: 12px; text-align: center;
+    font-size: 16px; color: var(--text-secondary);
+    border-top: 2px solid var(--border-strong);
+}
+.sales-day-total strong { color: var(--text); font-size: 18px; }
+
 /* 시간 선택 그리드 */
 .time-slot-grid {
     display: grid; grid-template-columns: repeat(4, 1fr);
@@ -618,6 +637,17 @@ textarea#quickMemo:focus {
     font-size: 10px; font-weight: 700;
     color: var(--primary); background: var(--primary-light);
     padding: 1px 6px; border-radius: 8px; margin-left: 2px;
+}
+.sibling-tag {
+    font-size: 12px; font-weight: 600;
+    color: var(--text-secondary); margin-left: 4px;
+}
+.sibling-tag .breed {
+    font-weight: 400; color: var(--text-light); font-size: 11px;
+    margin-left: 1px;
+}
+.sibling-tag::before {
+    content: '·'; margin-right: 4px; color: var(--text-light);
 }
 
 /* === 전화 알림 팝업 === */
@@ -1298,11 +1328,11 @@ textarea#quickMemo:focus {
     padding: 14px 12px; text-align: center;
 }
 .sales-card-label {
-    font-size: 11px; font-weight: 600; color: var(--text-light);
+    font-size: 13px; font-weight: 600; color: var(--text-light);
     margin-bottom: 4px;
 }
 .sales-card-value {
-    font-size: 16px; font-weight: 800; color: var(--primary);
+    font-size: 20px; font-weight: 800; color: var(--primary);
 }
 .sales-change {
     display: inline-block; font-size: 10px; font-weight: 700;
@@ -1320,7 +1350,17 @@ textarea#quickMemo:focus {
     gap: 1px; padding: 4px;
 }
 .sales-calendar-section .cal-cell {
-    min-height: 60px;
+    min-height: 70px; cursor: pointer;
+}
+.sales-calendar-section .cal-cell:hover { background: var(--primary-light); }
+.sales-calendar-section .cal-badge {
+    font-size: 11px; padding: 2px 5px;
+}
+.sales-calendar-section .cal-more {
+    font-size: 11px;
+}
+.sales-calendar-section .cal-day {
+    font-size: 15px;
 }
 .stats-grid {
     display: grid; grid-template-columns: 1fr; gap: 0;

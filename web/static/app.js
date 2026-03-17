@@ -87,7 +87,6 @@ const App = (() => {
             }
             custView.style.display = 'flex';
             salesView.style.display = 'none';
-            document.getElementById('customerSearchInput').focus();
             loadCustomerList('', customerSort);
         } else if (view === 'sales') {
             calSec.style.display = 'none';
@@ -396,7 +395,7 @@ const App = (() => {
 
                     if (span === 1) {
                         html += `<div class="tl-slot tl-booked" style="height:${height}px;background:${sc.bg};border-color:${sc.border};color:${sc.text}" onclick="App.showReservationDetail(${r.id},${r.customer_id})">
-                            <span class="tl-time">${ts}</span>`;
+                            <span class="tl-time">${formatTime(ts)}</span>`;
                         if (isStart) {
                             const fur = r.fur_length ? `/${esc(r.fur_length)}` : '';
                             html += `<span class="tl-info">${petInfo} ${esc(r.service)}${fur}</span>`;
@@ -413,7 +412,7 @@ const App = (() => {
                             const endStr = `${String(Math.floor(endMin/60)).padStart(2,'0')}:${String(endMin%60).padStart(2,'0')}`;
                             const fur = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
                             const amtText = r.amount ? `  ${r.amount.toLocaleString()}원` : '';
-                            html += `<div class="tl-row"><span class="tl-time">${ts}~${endStr}</span> <span class="tl-info">${petInfo}</span></div>`;
+                            html += `<div class="tl-row"><span class="tl-time">${formatTime(ts)}~${formatTime(endStr)}</span> <span class="tl-info">${petInfo}</span></div>`;
                             html += `<div class="tl-row"><span class="tl-detail">${esc(r.service)}${fur}${amtText}</span></div>`;
                             const memoSrc2 = r.customer_memo || r.groomer_memo || r.request || '';
                             if (memoSrc2) html += `<div class="tl-row"><span class="tl-memo">${esc(memoSrc2)}</span></div>`;
@@ -424,7 +423,7 @@ const App = (() => {
                     }
                 } else {
                     html += `<div class="tl-slot tl-empty" onclick="App.onSlotClick('${ts}')">
-                        <span class="tl-time">${ts}</span>
+                        <span class="tl-time">${formatTime(ts)}</span>
                         <span class="tl-hint">✂️ 예약</span>
                     </div>`;
                 }
@@ -578,7 +577,7 @@ const App = (() => {
                 </div>
                 <div class="form-group">
                     <label>시간</label>
-                    <input type="text" value="${formatTime(pendingSlotTime)} (${pendingSlotTime})" disabled>
+                    <input type="text" value="${formatTime(pendingSlotTime)}" disabled>
                 </div>
                 ${prevHtml ? `<div class="res-form-full">${prevHtml}</div>` : ''}
                 <div class="form-group res-form-full">
@@ -889,7 +888,6 @@ const App = (() => {
                                     <button class="btn-status yellow" data-pet="${esc(r._pet||c.pet_name)}" onclick="App.enterMoveMode(${r.id},this.dataset.pet)">날짜변경</button>
                                     <button class="btn-status green" onclick="App.changeStatus(${r.id},'completed')">완료</button>
                                 ` : ''}
-                                ${r.status === 'completed' ? `<button class="btn-secondary" onclick="App.changeStatus(${r.id},'confirmed')">되돌리기</button>` : ''}
                             </div>
                         </div>
                     </div>`;
@@ -1238,10 +1236,13 @@ const App = (() => {
             return;
         }
 
-        // 같은 전화번호 펫 수 카운트 (뱃지용)
-        const phoneCounts = {};
+        // 같은 전화번호 반려견 그룹 (이름 표시용)
+        const phonePets = {};
         for (const c of customers) {
-            if (c.phone) phoneCounts[c.phone] = (phoneCounts[c.phone] || 0) + 1;
+            if (c.phone) {
+                if (!phonePets[c.phone]) phonePets[c.phone] = [];
+                phonePets[c.phone].push({ pet_name: c.pet_name, breed: c.breed || '' });
+            }
         }
 
         container.innerHTML = customers.map((c, i) => {
@@ -1251,8 +1252,11 @@ const App = (() => {
             if (c.phone_display) meta.push(c.phone_display);
             if (c.last_visit) meta.push(`마지막 방문: ${c.last_visit}`);
             if (c.visit_count) meta.push(`${c.visit_count}회 방문`);
-            const siblingBadge = (phoneCounts[c.phone] || 0) > 1
-                ? `<span class="sibling-badge">+${phoneCounts[c.phone] - 1}</span>` : '';
+            // 같은 집 다른 반려견 표시
+            const siblings = (phonePets[c.phone] || []).filter(p => p.pet_name !== c.pet_name);
+            const siblingHtml = siblings.map(s =>
+                `<span class="sibling-tag">${esc(s.pet_name)}<span class="breed">${esc(s.breed)}</span></span>`
+            ).join('');
             return `
                 <div class="customer-card" data-idx="${i}">
                     <div class="customer-avatar" style="background:${ac.bg};color:${ac.fg}">${esc(initial)}</div>
@@ -1260,7 +1264,7 @@ const App = (() => {
                         <div class="customer-name">
                             ${esc(c.pet_name)}
                             <span class="breed">${esc(c.breed || '')}</span>
-                            ${siblingBadge}
+                            ${siblingHtml}
                         </div>
                         <div class="customer-meta">${esc(meta.join(' | '))}</div>
                     </div>
@@ -1601,11 +1605,12 @@ const App = (() => {
             content.innerHTML = data.history.map(h => {
                 const name = h.c_pet_name || h.pet_name || '';
                 const breed = h.breed || '';
-                const time = h.created_at ? h.created_at.substring(5, 16) : '';
+                const datePart = h.created_at ? h.created_at.substring(5, 10) : '';
+                const timePart = h.created_at ? formatTime(h.created_at.substring(11, 16)) : '';
                 const phone = esc(h.phone || '');
                 return `
                     <div class="history-item" onclick="App.closeSheet('callHistorySheet');App.onCallHistoryClick('${phone}')" style="cursor:pointer">
-                        <span class="history-date">${esc(time)}</span>
+                        <span class="history-date">${esc(datePart)} ${esc(timePart)}</span>
                         <span class="history-service">${esc(h.phone_display)} ${name ? esc(name) : '(미등록)'}</span>
                         ${breed ? `<span class="history-amount">${esc(breed)}</span>` : ''}
                     </div>
@@ -1969,7 +1974,8 @@ const App = (() => {
             container.innerHTML = filtered.map(h => {
                 const isKnown = !!(h.c_pet_name || h.pet_name);
                 const name = h.c_pet_name || h.pet_name || '';
-                const time = h.created_at ? h.created_at.substring(11, 16) : '';
+                const rawTime = h.created_at ? h.created_at.substring(11, 16) : '';
+                const time = rawTime ? formatTime(rawTime) : '';
                 const cls = isKnown ? 'known' : 'unknown';
                 const phone = esc(h.phone || '');
                 return '<div class="call-sidebar-item ' + cls + '" onclick="App.onCallHistoryClick(\'' + phone + '\')">' +
@@ -2326,7 +2332,7 @@ const App = (() => {
                 badgeHtml += '</div>';
             }
 
-            html += `<div class="${cls}"><div class="cal-day">${d}</div>${badgeHtml}</div>`;
+            html += `<div class="${cls}" onclick="App.showSalesDayDetail('${dateStr}')"><div class="cal-day">${d}</div>${badgeHtml}</div>`;
         }
 
         html += '</div></div>';
@@ -2416,6 +2422,48 @@ const App = (() => {
         loadSalesMonth();
     }
 
+    async function showSalesDayDetail(dateStr) {
+        const d = new Date(dateStr + 'T00:00:00');
+        const dow = WEEKDAYS_KR[d.getDay()];
+        const parts = dateStr.split('-');
+        const dateLabel = `${parts[1]}/${parts[2]}(${dow})`;
+
+        try {
+            const res = await fetch(`/api/day?date=${dateStr}`);
+            const data = await res.json();
+            const items = (data.reservations || []).filter(r => r.status === 'completed' && r.amount > 0);
+
+            let html = `<div class="sheet-header"><h3>📅 ${dateLabel} 매출 상세</h3><button class="sheet-close" onclick="App.closeSheet('salesDaySheet')" aria-label="닫기">&times;</button></div>`;
+            html += '<div class="sheet-body">';
+
+            if (!items.length) {
+                html += '<div class="empty-timeline" style="padding:30px"><span class="empty-emoji" aria-hidden="true">🐾</span><p class="empty-title">매출 내역이 없어요</p></div>';
+            } else {
+                let total = 0;
+                html += '<div class="sales-day-list">';
+                for (const r of items) {
+                    total += r.amount || 0;
+                    const timeStr = r.time ? formatTime(r.time) : '';
+                    const pm = r.payment_method || '-';
+                    html += `<div class="sales-day-item" onclick="App.showReservationDetail(${r.id},${r.customer_id})">
+                        <div class="sales-day-pet">${esc(r.pet_name)} <span class="breed">${esc(r.breed || '')}</span></div>
+                        <div class="sales-day-info">${timeStr} · ${esc(r.service)} · ${esc(pm)}</div>
+                        <div class="sales-day-amount">${(r.amount || 0).toLocaleString()}원</div>
+                    </div>`;
+                }
+                html += '</div>';
+                html += `<div class="sales-day-total">합계 <strong>${total.toLocaleString()}원</strong> (${items.length}건)</div>`;
+            }
+            html += '</div>';
+
+            const sheet = document.getElementById('salesDaySheet');
+            sheet.querySelector('.bottom-sheet').innerHTML = html;
+            openSheet('salesDaySheet');
+        } catch (e) {
+            toast('불러오기 실패', 'error');
+        }
+    }
+
     function goTodaySales() {
         const now = new Date();
         salesYear = now.getFullYear();
@@ -2493,7 +2541,7 @@ const App = (() => {
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode, formatPhoneInput,
         updateBridgeStatus,
         showImportForm, submitImport,
-        changeSalesMonth, goTodaySales, showCustomAmount,
+        changeSalesMonth, goTodaySales, showSalesDayDetail, showCustomAmount,
         toggleGoogle,
     };
 })();
