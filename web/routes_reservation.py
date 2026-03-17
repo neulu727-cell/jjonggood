@@ -145,7 +145,6 @@ def update_status(rid):
 def delete_reservation(rid):
     db = get_db()
     db.execute("DELETE FROM reservations WHERE id = ?", (rid,))
-    db.commit()
     return jsonify({"ok": True})
 
 
