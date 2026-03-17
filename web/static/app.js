@@ -2184,14 +2184,11 @@ const App = (() => {
 
                     const r = info.res;
                     if (info.isFirst) {
-                        // 예약 시작 블록 — 전체 정보 표시
                         slotHtml += `<div class="time-slot-btn booked-block" style="grid-column:span ${span}" onclick="App.onSlotClick('${slot}');App.closeSheet('timeSlotSheet')">
                             <span class="booked-time">${formatTime(r.time)}~${formatTime(r.end_time)}</span>
                             <span class="booked-name">${esc(r.pet_name)}</span>
-                            <span class="booked-service">${esc(r.service || '')}</span>
                         </div>`;
                     } else {
-                        // 예약 연속 블록 (다음 행으로 넘어간 경우)
                         slotHtml += `<div class="time-slot-btn booked-block cont" style="grid-column:span ${span}">
                             <span class="booked-name">${esc(r.pet_name)}</span>
                         </div>`;
