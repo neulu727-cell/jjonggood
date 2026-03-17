@@ -491,6 +491,16 @@ textarea#quickMemo:focus {
 }
 .time-slot-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
 .time-slot-btn:active { transform: scale(0.96); }
+.time-slot-btn.booked {
+    background: #FEF3C7; border-color: #F59E0B; color: #92400E;
+    position: relative;
+}
+.time-slot-btn.booked:hover { background: #FDE68A; border-color: #D97706; }
+.slot-booked-label {
+    display: block; font-size: 10px; color: #B45309;
+    margin-top: 2px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
 /* 날짜 피커 */
 .date-picker-grid {
