@@ -183,6 +183,12 @@ const App = (() => {
         selectedDate = dateStr;
         renderCalendar();
 
+        // 북킹/이동모드: 날짜 선택 시 바로 시간 선택 시트 열기
+        if (bookingMode || moveMode) {
+            showTimeSlotPicker();
+            return;
+        }
+
         // 모바일: 캘린더 접어서 타임라인 공간 확보
         if (!isPC()) {
             document.querySelector('.calendar-section')?.classList.add('collapsed');
@@ -244,14 +250,50 @@ const App = (() => {
             </div>
         `;
 
-        if (isPC()) {
-            html += renderTimelineGrid(slots, booked, bookedIsStart);
-        } else {
-            html += renderTimelineList(slots, booked, bookedIsStart);
-        }
+        // 예약 내역만 표시 (빈 슬롯 제거)
+        html += renderReservationList(items);
 
         content.innerHTML = html;
         updateStatsBar(data);
+    }
+
+    function renderReservationList(items) {
+        if (!items || !items.length) {
+            return '<div class="empty-timeline" style="padding:40px 20px"><span class="empty-emoji" aria-hidden="true">🐾</span><p class="empty-title">예약이 없어요</p><p>✂️ 예약등록 버튼으로 새 예약을 추가해보세요</p></div>';
+        }
+        const TL_LABEL = { confirmed: '🕐 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
+        let html = '<div class="timeline-list">';
+        for (const r of items) {
+            const startLabel = formatTime(r.time);
+            const endLabel = formatTime(r.end_time);
+            const statusCls = r.status || 'confirmed';
+            const statusText = TL_LABEL[statusCls] || statusCls;
+            const breedText = r.breed ? `(${r.breed})` : '';
+            const amtText = r.amount ? `${r.amount.toLocaleString()}원` : '';
+            const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
+            const weightText = r.weight ? `${r.weight}kg` : '';
+            const petMeta = [breedText, weightText].filter(Boolean).join(' · ');
+            const memoSrc = r.customer_memo || r.groomer_memo || r.request || '';
+            const memoText = memoSrc ? `<div class="res-memo">${esc(memoSrc)}</div>` : '';
+            html += `
+                <div class="res-card ${statusCls}" onclick="App.showReservationDetail(${r.id},${r.customer_id})">
+                    <div class="res-time-col">
+                        <div class="res-time-start">${startLabel}</div>
+                        <div class="res-time-end">${endLabel}</div>
+                    </div>
+                    <div class="res-info">
+                        <div class="res-pet">
+                            ${esc(r.pet_name)}
+                            <span class="breed">${esc(petMeta)}</span>
+                        </div>
+                        <div class="res-service">${esc(r.service)}${furText}${amtText ? ' · ' + amtText : ''}</div>
+                        ${memoText}
+                    </div>
+                    <span class="res-status ${statusCls}">${statusText}</span>
+                </div>`;
+        }
+        html += '</div>';
+        return html;
     }
 
     function renderTimelineList(slots, booked, bookedIsStart) {
@@ -1978,9 +2020,25 @@ const App = (() => {
 
     function onQuickReserve() {
         if (!selectedDate) {
-            goToday();
+            selectedDate = fmtDate(new Date());
         }
-        toast('타임라인에서 빈 슬롯을 선택하세요');
+        showTimeSlotPicker();
+    }
+
+    function showTimeSlotPicker() {
+        const slots = generateTimeSlots();
+        let html = '<div class="time-slot-grid">';
+        for (const slot of slots) {
+            html += `<button class="time-slot-btn" onclick="App.onSlotClick('${slot}');App.closeSheet('timeSlotSheet')">${formatTime(slot)}</button>`;
+        }
+        html += '</div>';
+        document.getElementById('timeSlotContent').innerHTML = `
+            <p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;font-weight:600">
+                📅 ${selectedDate} — 시간을 선택하세요
+            </p>
+            ${html}
+        `;
+        openSheet('timeSlotSheet');
     }
 
     // ==================== 수신기록 클릭 ====================
@@ -2035,18 +2093,18 @@ const App = (() => {
     function enterBookingMode(customer) {
         bookingMode = { customer };
         moveMode = null;
-        showModeBar('booking', `✂️ ${customer.pet_name || '고객'} 예약 중 — 날짜 선택 → 빈 슬롯 클릭`);
+        showModeBar('booking', `✂️ ${customer.pet_name || '고객'} 예약 중 — 날짜 선택 → 시간 선택`);
         showView('calendar');
         if (!selectedDate) goToday();
-        toast('캘린더에서 날짜를 선택 후 빈 슬롯을 클릭하세요');
+        toast('캘린더에서 날짜를 선택하세요');
     }
 
     function enterMoveMode(reservationId, petName) {
         moveMode = { reservationId, petName };
         bookingMode = null;
         closeSheet('unifiedDetailSheet');
-        showModeBar('moving', `🐕 ${petName} 예약 이동 중 — 새 날짜/시간 선택`);
-        toast('캘린더에서 날짜를 선택 후 빈 슬롯을 클릭하세요');
+        showModeBar('moving', `🐕 ${petName} 예약 이동 중 — 날짜 선택 → 시간 선택`);
+        toast('캘린더에서 날짜를 선택하세요');
     }
 
     function cancelMode() {
@@ -2430,7 +2488,7 @@ const App = (() => {
         reserveFromCall, registerFromCall, downloadBackup,
         openSheet, closeSheet,
         showCustomerForm, showReservationForm, saveQuickMemo,
-        changeCallDate, refresh, onQuickReserve, testCall,
+        changeCallDate, refresh, onQuickReserve, showTimeSlotPicker, testCall,
         selectGridBtn, applyPrevService,
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode, formatPhoneInput,
         updateBridgeStatus,

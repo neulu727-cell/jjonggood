@@ -252,6 +252,18 @@
     </div>
 </div>
 
+<!-- 시간 선택 바텀시트 (예약등록 시) -->
+<div class="bottom-sheet-overlay" id="timeSlotSheet" style="display:none">
+    <div class="bottom-sheet">
+        <div class="sheet-handle" onclick="App.closeSheet('timeSlotSheet')"></div>
+        <div class="sheet-header">
+            <h3>🕐 시간 선택</h3>
+            <button class="sheet-close" onclick="App.closeSheet('timeSlotSheet')" aria-label="닫기">&times;</button>
+        </div>
+        <div class="sheet-body" id="timeSlotContent"></div>
+    </div>
+</div>
+
 <!-- 데이터 임포트 바텀시트 -->
 <div class="bottom-sheet-overlay" id="importSheet" style="display:none">
     <div class="bottom-sheet tall">

@@ -446,6 +446,20 @@ textarea#quickMemo:focus {
 .prev-service-item:hover { color: var(--primary); }
 .prev-service-item:last-child { border-bottom: none; }
 
+/* 시간 선택 그리드 */
+.time-slot-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+.time-slot-btn {
+    padding: 12px 4px; border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm); background: var(--card);
+    font-size: 14px; font-weight: 600; color: var(--text);
+    cursor: pointer; transition: all var(--transition);
+}
+.time-slot-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+.time-slot-btn:active { transform: scale(0.96); }
+
 /* 버튼 - Toss style */
 .btn-primary {
     width: 100%; padding: 14px; background: var(--primary);
