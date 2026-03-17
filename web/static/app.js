@@ -115,7 +115,7 @@ const App = (() => {
 
         try {
             const res = await fetch(`/api/month?y=${currentYear}&m=${currentMonth}`);
-            if (!res.ok) { window.location.href = '/login'; return; }
+            if (!res.ok) { toast('서버 연결 실패', 'error'); return; }
             monthData = await res.json();
         } catch (e) {
             monthData = { counts: {}, names: {} };
@@ -205,7 +205,7 @@ const App = (() => {
 
         try {
             const res = await fetch(`/api/day?date=${dateStr}`);
-            if (!res.ok) { window.location.href = '/login'; return; }
+            if (!res.ok) { toast('서버 연결 실패', 'error'); return; }
             const data = await res.json();
             renderTimeline(data);
         } catch (e) {
@@ -2209,7 +2209,7 @@ const App = (() => {
         body.innerHTML = '<div style="padding:16px">' + _skeletonTimeline() + '</div>';
         try {
             const res = await fetch(`/api/sales/month?y=${salesYear}&m=${salesMonth}`);
-            if (!res.ok) { window.location.href = '/login'; return; }
+            if (!res.ok) { toast('서버 연결 실패', 'error'); return; }
             salesData = await res.json();
             renderSalesView();
         } catch (e) {
