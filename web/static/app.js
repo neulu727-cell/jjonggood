@@ -1943,6 +1943,39 @@ const App = (() => {
         window.location.href = '/api/backup';
     }
 
+    function copyIntakeForm() {
+        const text = `안녕하세요~ 쫑긋입니다!
+
+첫 방문 고객님, 아래 내용을 알려주시면 상담 도와드리겠습니다.
+
+- 희망하시는 미용 스타일:
+- 반려견 종류 / 나이 / 체중:
+- 참고 사진: (첨부해 주시면 더 좋아요!)
+- 특이사항 & 질환:
+- 원하시는 날짜, 시간:
+- 연락처:
+
+확인 후 빠르게 연락드릴게요!
+감사합니다.
+
+재방문 고객님께서는 원하시는 날짜, 시간만 부탁드리겠습니다!`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            toast('예약 양식이 복사되었습니다!');
+        }).catch(() => {
+            // fallback for older browsers
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            toast('예약 양식이 복사되었습니다!');
+        });
+    }
+
     function toast(msg, type) {
         const prefix = type === 'success' ? '✅ ' : type === 'error' ? '❌ ' : '';
         const el = document.createElement('div');
@@ -2724,7 +2757,7 @@ const App = (() => {
         showCustomerForm_edit, addSiblingPet, startMemoEdit, cancelMemoEdit, saveMergedMemo,
         saveCustomer, deleteCustomer, onBreedInput, onBreedKeydown, selectBreed,
         toggleCallHistory, showCallPopup, closeCallPopup,
-        reserveFromCall, registerFromCall, downloadBackup,
+        reserveFromCall, registerFromCall, downloadBackup, copyIntakeForm,
         openSheet, closeSheet,
         showCustomerForm, showReservationForm,
         changeCallDate, refresh, onQuickReserve, onQuickReserveForDate, showTimeSlotPicker, showDatePicker, onDatePick, changePickerMonth, testCall,
