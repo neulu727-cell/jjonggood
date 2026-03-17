@@ -836,22 +836,25 @@ const App = (() => {
         if (cycleDays) vp.push(`주기 ${cycleDays}일`);
         if (vp.length) visitLine = vp.join(' · ');
 
-        // 통합 메모: 모든 펫의 메모를 하나의 배너로 표시
-        const memoHtml = allPets.map(p => {
-            const petLabel = hasSiblings ? `<span class="pet-label">${esc(p.pet_name)}</span>` : '';
-            return `<div class="ud-memo-pet">
-                ${petLabel}
-                <button type="button" class="memo-edit-btn" onclick="App.toggleMemoEdit(${p.id}, ${c.id})" aria-label="${esc(p.pet_name)} 메모 편집">✎</button>
-                <div id="petMemoView_${p.id}" class="memo-text">${p.memo ? esc(p.memo) : '<span class="memo-empty">메모를 입력하세요</span>'}</div>
-                <div id="petMemoEdit_${p.id}" style="display:none;margin-top:4px">
-                    <textarea id="petMemoTA_${p.id}" class="memo-edit-ta">${esc(p.memo || '')}</textarea>
-                    <div style="display:flex;gap:4px;margin-top:4px">
-                        <button class="btn-primary-sm" style="padding:6px 14px;font-size:13px" onclick="App.savePetMemo(${p.id}, ${c.id})">저장</button>
-                        <button class="btn-cancel-sm" onclick="App.toggleMemoEdit(${p.id}, ${c.id})">취소</button>
-                    </div>
+        // 통합 메모: 모든 펫의 메모를 하나의 클릭-편집 영역으로 표시
+        const mergedMemoLines = allPets.map(p => {
+            const prefix = hasSiblings ? `${p.pet_name} - ` : '';
+            return prefix + (p.memo || '');
+        });
+        const mergedMemoText = mergedMemoLines.join('\n');
+        const mergedMemoDisplay = mergedMemoLines.map(line => esc(line) || '<span class="memo-empty">메모를 입력하세요</span>').join('<br>');
+        const petIdsAttr = allPets.map(p => p.id).join(',');
+        const memoHtml = `
+            <div class="ud-merged-memo" id="mergedMemoView_${c.id}" onclick="App.startMemoEdit(${c.id})" title="클릭하여 편집">
+                <div class="memo-text clickable">${mergedMemoDisplay}</div>
+            </div>
+            <div id="mergedMemoEdit_${c.id}" style="display:none">
+                <textarea id="mergedMemoTA_${c.id}" class="memo-edit-ta merged">${esc(mergedMemoText)}</textarea>
+                <div style="display:flex;gap:4px;margin-top:4px">
+                    <button class="btn-primary-sm" style="padding:6px 14px;font-size:13px" onclick="App.saveMergedMemo(${c.id}, '${petIdsAttr}', ${hasSiblings})">저장</button>
+                    <button class="btn-cancel-sm" onclick="App.cancelMemoEdit(${c.id})">취소</button>
                 </div>
             </div>`;
-        }).join('');
 
         // 아코디언 이력 (모든 예약 표시, activeRes는 자동 펼침+강조)
         const activeResId = activeRes ? activeRes.id : null;
@@ -910,10 +913,6 @@ const App = (() => {
                     <span class="ud-memo-banner-icon">✏️</span> 메모
                 </div>
                 ${memoHtml}
-                <div class="ud-quick-memo">
-                    <textarea id="quickMemo" rows="1" placeholder="메모 추가"></textarea>
-                    <button class="btn-primary-sm" style="flex-shrink:0;padding:8px 16px;font-size:14px" onclick="App.saveQuickMemo(${c.id})">추가</button>
-                </div>
             </div>
             <div class="ud-stats">
                 <strong>${allReservations.length}</strong>건 이력${totalCount ? ` · 완료 <strong>${totalCount}</strong>건` : ''} · 매출 <strong>${salesText}</strong>
@@ -956,34 +955,6 @@ const App = (() => {
         if (btn) btn.setAttribute('aria-expanded', el.classList.contains('open'));
     }
 
-    async function saveQuickMemo(customerId) {
-        const newMemo = document.getElementById('quickMemo').value.trim();
-        if (!newMemo) { toast('메모를 입력하세요'); return; }
-
-        try {
-            const cres = await fetch(`/api/customer/${customerId}`);
-            if (!cres.ok) throw new Error('fetch failed');
-            const cdata = await cres.json();
-            const existing = (cdata.memo || '').trim();
-            const memo = existing ? existing + ', ' + newMemo : newMemo;
-
-            const res = await fetch(`/api/customer/${customerId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ memo }),
-            });
-            const result = await res.json();
-            if (result.ok) {
-                toast('메모 추가됨', 'success');
-                cachedCustomers = null;
-                _reloadUnifiedDetail(customerId);
-            } else {
-                toast(result.error || '저장 실패', 'error');
-            }
-        } catch (e) {
-            toast('저장 실패', 'error');
-        }
-    }
 
     async function showEditReservation(rid) {
         try {
@@ -1520,46 +1491,55 @@ const App = (() => {
         }
     }
 
-    function toggleMemoEdit(petId, mainCid) {
-        const viewEl = document.getElementById('petMemoView_' + petId);
-        const editEl = document.getElementById('petMemoEdit_' + petId);
+    function startMemoEdit(mainCid) {
+        const viewEl = document.getElementById('mergedMemoView_' + mainCid);
+        const editEl = document.getElementById('mergedMemoEdit_' + mainCid);
         if (!viewEl || !editEl) return;
-        const isEditing = editEl.style.display !== 'none';
-        viewEl.style.display = isEditing ? '' : 'none';
-        editEl.style.display = isEditing ? 'none' : '';
-        const ta = document.getElementById('petMemoTA_' + petId);
-        if (!isEditing) {
-            if (ta) ta.focus();
-        } else {
-            // 취소 시 원래 값 복원
-            if (ta) {
-                const viewText = viewEl.textContent.trim();
-                ta.value = viewText === '메모 없음' ? '' : viewText;
-            }
-        }
+        viewEl.style.display = 'none';
+        editEl.style.display = '';
+        const ta = document.getElementById('mergedMemoTA_' + mainCid);
+        if (ta) ta.focus();
     }
 
-    async function savePetMemo(petId, mainCid) {
-        const ta = document.getElementById('petMemoTA_' + petId);
+    function cancelMemoEdit(mainCid) {
+        const viewEl = document.getElementById('mergedMemoView_' + mainCid);
+        const editEl = document.getElementById('mergedMemoEdit_' + mainCid);
+        if (!viewEl || !editEl) return;
+        viewEl.style.display = '';
+        editEl.style.display = 'none';
+    }
+
+    async function saveMergedMemo(mainCid, petIdsStr, hasSiblings) {
+        const ta = document.getElementById('mergedMemoTA_' + mainCid);
         if (!ta) return;
-        const memo = ta.value;
-        if (memo.length > 500) {
-            if (!confirm(`메모가 ${memo.length}자입니다. 500자까지만 저장됩니다. 계속하시겠습니까?`)) return;
-        }
+        const petIds = petIdsStr.split(',').map(Number);
+        const lines = ta.value.split('\n');
+
         try {
-            const res = await fetch(`/api/customer/${petId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ memo }),
-            });
-            const result = await res.json();
-            if (result.ok) {
-                toast('메모 저장됨', 'success');
-                cachedCustomers = null;
-                _reloadUnifiedDetail(mainCid);
+            if (hasSiblings) {
+                for (let i = 0; i < petIds.length; i++) {
+                    let memo = (lines[i] || '').trim();
+                    const dashIdx = memo.indexOf(' - ');
+                    if (dashIdx !== -1) {
+                        memo = memo.substring(dashIdx + 3);
+                    }
+                    await fetch(`/api/customer/${petIds[i]}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ memo }),
+                    });
+                }
             } else {
-                toast(result.error || '저장 실패', 'error');
+                const memo = ta.value.trim();
+                await fetch(`/api/customer/${petIds[0]}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ memo }),
+                });
             }
+            toast('메모 저장됨', 'success');
+            cachedCustomers = null;
+            _reloadUnifiedDetail(mainCid);
         } catch (e) {
             toast('저장 실패', 'error');
         }
@@ -1876,36 +1856,72 @@ const App = (() => {
     }
 
     function _setupSheetSwipe(overlay, sheet) {
-        let startY = 0, currentY = 0, isDragging = false;
-        const handle = sheet.querySelector('.sheet-handle');
-        if (!handle || handle._swipeSetup) return;
-        handle._swipeSetup = true;
+        if (sheet._swipeSetup) return;
+        sheet._swipeSetup = true;
 
-        handle.addEventListener('touchstart', (e) => {
-            startY = e.touches[0].clientY;
-            isDragging = true;
-            sheet.style.transition = 'none';
-        }, { passive: true });
+        let startY = 0, currentY = 0, isDragging = false, dragSource = '';
 
-        handle.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
-            currentY = e.touches[0].clientY - startY;
-            if (currentY > 0) {
-                sheet.style.transform = `translateY(${currentY}px)`;
+        // 헤더 + 핸들 영역에서 드래그 시작
+        const header = sheet.querySelector('.sheet-header') || sheet.querySelector('.sheet-handle');
+        if (header) {
+            header.classList.add('sheet-drag-area');
+            header.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+                isDragging = true;
+                dragSource = 'header';
+                sheet.style.transition = 'none';
+            }, { passive: true });
+        }
+
+        // 시트 본문: 스크롤이 맨 위일 때만 아래 스와이프로 닫기
+        sheet.addEventListener('touchstart', (e) => {
+            if (isDragging) return;
+            if (sheet.scrollTop <= 0) {
+                startY = e.touches[0].clientY;
+                dragSource = 'body';
             }
         }, { passive: true });
 
-        handle.addEventListener('touchend', () => {
-            if (!isDragging) return;
+        sheet.addEventListener('touchmove', (e) => {
+            if (dragSource === 'header' && isDragging) {
+                currentY = e.touches[0].clientY - startY;
+                if (currentY > 0) {
+                    sheet.style.transform = `translateY(${currentY}px)`;
+                }
+                return;
+            }
+            if (dragSource === 'body' && sheet.scrollTop <= 0) {
+                currentY = e.touches[0].clientY - startY;
+                if (currentY > 10 && !isDragging) {
+                    isDragging = true;
+                    sheet.style.transition = 'none';
+                }
+                if (isDragging && currentY > 0) {
+                    e.preventDefault();
+                    sheet.style.transform = `translateY(${currentY}px)`;
+                }
+            }
+        }, { passive: false });
+
+        sheet.addEventListener('touchend', () => {
+            if (!isDragging) { currentY = 0; dragSource = ''; return; }
             isDragging = false;
             sheet.style.transition = 'transform 0.2s ease';
-            if (currentY > 100) {
+            if (currentY > 80) {
                 closeSheet(overlay.id);
             } else {
                 sheet.style.transform = '';
             }
             currentY = 0;
+            dragSource = '';
         }, { passive: true });
+
+        // 오버레이 배경 탭으로 닫기
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeSheet(overlay.id);
+            }
+        });
     }
 
     function downloadBackup() {
@@ -2530,12 +2546,12 @@ const App = (() => {
         showReservationDetail, showEditReservation, toggleHistoryAccordion,
         updateReservation, changeStatus,
         searchCustomers, setCustomerSort, showCustomerDetail,
-        showCustomerForm_edit, addSiblingPet, toggleMemoEdit, savePetMemo,
+        showCustomerForm_edit, addSiblingPet, startMemoEdit, cancelMemoEdit, saveMergedMemo,
         saveCustomer, deleteCustomer, onBreedInput, onBreedKeydown, selectBreed,
         toggleCallHistory, showCallPopup, closeCallPopup,
         reserveFromCall, registerFromCall, downloadBackup,
         openSheet, closeSheet,
-        showCustomerForm, showReservationForm, saveQuickMemo,
+        showCustomerForm, showReservationForm,
         changeCallDate, refresh, onQuickReserve, showTimeSlotPicker, testCall,
         selectGridBtn, applyPrevService,
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode, formatPhoneInput,
