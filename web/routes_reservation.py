@@ -140,6 +140,15 @@ def update_status(rid):
     return jsonify({"ok": True})
 
 
+@reservation_bp.route("/api/reservation/<int:rid>", methods=["DELETE"])
+@require_auth
+def delete_reservation(rid):
+    db = get_db()
+    db.execute("DELETE FROM reservations WHERE id = ?", (rid,))
+    db.commit()
+    return jsonify({"ok": True})
+
+
 @reservation_bp.route("/api/reservation/<int:rid>/memo", methods=["PUT"])
 @require_auth
 def update_memo(rid):

@@ -971,6 +971,9 @@ const App = (() => {
                     <div class="res-form-full">
                         <button class="btn-primary" onclick="App.updateReservation()">수정 저장</button>
                     </div>
+                    <div class="res-form-full" style="margin-top:8px">
+                        <button class="btn-danger" onclick="App.deleteReservation(${rid})">예약 삭제</button>
+                    </div>
                 </div>
             `;
             openSheet('reservationSheet');
@@ -1029,6 +1032,25 @@ const App = (() => {
             }
         } catch (e) {
             toast('수정 실패', 'error');
+        }
+    }
+
+    async function deleteReservation(rid) {
+        if (!confirm('이 예약을 삭제하시겠습니까?\n삭제하면 복구할 수 없습니다.')) return;
+        try {
+            const res = await fetch(`/api/reservation/${rid}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.ok) {
+                toast('예약이 삭제되었습니다');
+                closeSheet('reservationSheet');
+                closeSheet('unifiedDetailSheet');
+                if (selectedDate) selectDate(selectedDate);
+                loadMonth();
+            } else {
+                toast(result.error || '삭제 실패', 'error');
+            }
+        } catch (e) {
+            toast('삭제 실패', 'error');
         }
     }
 
@@ -2189,7 +2211,8 @@ const App = (() => {
                             <span class="booked-name">${esc(r.pet_name)}</span>
                         </div>`;
                     } else {
-                        slotHtml += `<div class="time-slot-btn booked-block cont" style="grid-column:span ${span}">
+                        slotHtml += `<div class="time-slot-btn booked-block cont" style="grid-column:span ${span}" onclick="App.onSlotClick('${slot}');App.closeSheet('timeSlotSheet')">
+                            <span class="booked-time">${formatTime(r.time)}~${formatTime(r.end_time)}</span>
                             <span class="booked-name">${esc(r.pet_name)}</span>
                         </div>`;
                     }
@@ -2695,7 +2718,7 @@ const App = (() => {
         showView, onSlotClick, searchCustomersForSlot,
         showNewCustomerFormForSlot, showNewCustomerForm,
         onServiceChange, saveReservation,
-        showReservationDetail, showEditReservation, toggleHistoryAccordion,
+        showReservationDetail, showEditReservation, deleteReservation, toggleHistoryAccordion,
         updateReservation, changeStatus,
         searchCustomers, setCustomerSort, showCustomerDetail,
         showCustomerForm_edit, addSiblingPet, startMemoEdit, cancelMemoEdit, saveMergedMemo,
