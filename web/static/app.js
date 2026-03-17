@@ -2041,39 +2041,84 @@ const App = (() => {
         showTimeSlotPicker();
     }
 
-    function showDatePicker() {
-        const today = new Date();
-        const y = today.getFullYear();
-        const m = today.getMonth(); // 0-based
-        let html = '';
+    let _datePickerOffset = 0; // 0 = 이번달~, 1 = 다음달~, ...
 
-        // 2주치 날짜 (오늘부터 14일)
-        html += `<p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;font-weight:600">📅 날짜를 선택하세요</p>`;
-        html += '<div class="date-picker-grid">';
-        for (let i = 0; i < 14; i++) {
-            const d = new Date(y, m, today.getDate() + i);
-            const dateStr = fmtDate(d);
-            const dow = WEEKDAYS_KR[d.getDay()];
-            const dayNum = d.getDate();
-            const isToday = i === 0;
-            const isSun = d.getDay() === 0;
-            const isSat = d.getDay() === 6;
-            const dowCls = isSun ? 'sun' : isSat ? 'sat' : '';
-            html += `<button class="date-pick-btn ${dowCls}${isToday ? ' today' : ''}" onclick="App.onDatePick('${dateStr}')">
-                <span class="date-pick-day">${dayNum}</span>
-                <span class="date-pick-dow">${isToday ? '오늘' : dow}</span>
-            </button>`;
+    function showDatePicker(monthOffset) {
+        if (monthOffset !== undefined) _datePickerOffset = monthOffset;
+        else _datePickerOffset = 0;
+        _renderDatePicker();
+    }
+
+    function _renderDatePicker() {
+        const today = new Date();
+        const todayStr = fmtDate(today);
+        // 표시할 월 계산
+        const baseMonth = new Date(today.getFullYear(), today.getMonth() + _datePickerOffset, 1);
+        const year = baseMonth.getFullYear();
+        const month = baseMonth.getMonth(); // 0-based
+        const monthLabel = `${year}.${String(month + 1).padStart(2, '0')}`;
+
+        // 월의 첫날, 마지막날
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+
+        let html = `<p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;font-weight:600">📅 날짜를 선택하세요</p>`;
+
+        // 월 네비게이션
+        html += `<div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:10px">`;
+        if (_datePickerOffset > 0) {
+            html += `<button onclick="App.changePickerMonth(-1)" style="font-size:18px;background:none;border:none;cursor:pointer;padding:4px 8px;color:var(--text)">‹</button>`;
+        } else {
+            html += `<span style="width:30px"></span>`;
+        }
+        html += `<span style="font-size:16px;font-weight:700;min-width:80px;text-align:center">${monthLabel}</span>`;
+        html += `<button onclick="App.changePickerMonth(1)" style="font-size:18px;background:none;border:none;cursor:pointer;padding:4px 8px;color:var(--text)">›</button>`;
+        html += `</div>`;
+
+        // 요일 헤더
+        html += '<div class="date-picker-grid" style="margin-bottom:4px">';
+        for (const dow of WEEKDAYS_KR) {
+            const cls = dow === '일' ? 'sun' : dow === '토' ? 'sat' : '';
+            html += `<div class="date-pick-dow-header ${cls}">${dow}</div>`;
         }
         html += '</div>';
 
-        // 직접 입력
-        html += `<div style="margin-top:12px;text-align:center">
-            <input type="date" id="customDateInput" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px"
-                   min="${fmtDate(today)}" onchange="App.onDatePick(this.value)">
-        </div>`;
+        // 날짜 그리드
+        html += '<div class="date-picker-grid">';
+        // 빈 칸 (첫째 날 요일까지)
+        for (let i = 0; i < firstDay.getDay(); i++) {
+            html += `<div></div>`;
+        }
+        for (let day = 1; day <= lastDay.getDate(); day++) {
+            const d = new Date(year, month, day);
+            const dateStr = fmtDate(d);
+            const isPast = dateStr < todayStr;
+            const isToday = dateStr === todayStr;
+            const isSun = d.getDay() === 0;
+            const isSat = d.getDay() === 6;
+            const dowCls = isSun ? 'sun' : isSat ? 'sat' : '';
+
+            if (isPast) {
+                html += `<button class="date-pick-btn disabled ${dowCls}" disabled>
+                    <span class="date-pick-day">${day}</span>
+                </button>`;
+            } else {
+                html += `<button class="date-pick-btn ${dowCls}${isToday ? ' today' : ''}" onclick="App.onDatePick('${dateStr}')">
+                    <span class="date-pick-day">${day}</span>
+                    ${isToday ? '<span class="date-pick-dow">오늘</span>' : ''}
+                </button>`;
+            }
+        }
+        html += '</div>';
 
         document.getElementById('timeSlotContent').innerHTML = html;
         openSheet('timeSlotSheet');
+    }
+
+    function changePickerMonth(dir) {
+        _datePickerOffset += dir;
+        if (_datePickerOffset < 0) _datePickerOffset = 0;
+        _renderDatePicker();
     }
 
     function onDatePick(dateStr) {
@@ -2589,7 +2634,7 @@ const App = (() => {
         reserveFromCall, registerFromCall, downloadBackup,
         openSheet, closeSheet,
         showCustomerForm, showReservationForm,
-        changeCallDate, refresh, onQuickReserve, showTimeSlotPicker, showDatePicker, onDatePick, testCall,
+        changeCallDate, refresh, onQuickReserve, showTimeSlotPicker, showDatePicker, onDatePick, changePickerMonth, testCall,
         selectGridBtn, applyPrevService,
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode, formatPhoneInput,
         updateBridgeStatus,
