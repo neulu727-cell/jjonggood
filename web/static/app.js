@@ -280,7 +280,7 @@ const App = (() => {
                 <span class="empty-emoji" aria-hidden="true">🐾</span>
                 <p class="empty-title">예약이 없어요!</p>
                 <p>이 날짜에 첫 예약을 등록해보세요</p>
-                <button class="empty-cta" onclick="App.onQuickReserve()">✂️ 예약 등록하기</button>
+                <button class="empty-cta" onclick="App.onQuickReserveForDate()">✂️ 예약 등록하기</button>
                 <p class="mobile-only" style="font-size:12px;margin-top:24px">↓ 아래로 스와이프하면 캘린더로 돌아갑니다</p>
             </div>`;
         }
@@ -2034,10 +2034,13 @@ const App = (() => {
     }
 
     function onQuickReserve() {
-        if (!selectedDate) {
-            showDatePicker();
-            return;
-        }
+        // 항상 날짜 선택부터 시작
+        showDatePicker();
+    }
+
+    function onQuickReserveForDate() {
+        // 빈 타임라인에서 호출: 이미 선택된 날짜로 바로 시간 선택
+        if (!selectedDate) selectedDate = fmtDate(new Date());
         showTimeSlotPicker();
     }
 
@@ -2634,7 +2637,7 @@ const App = (() => {
         reserveFromCall, registerFromCall, downloadBackup,
         openSheet, closeSheet,
         showCustomerForm, showReservationForm,
-        changeCallDate, refresh, onQuickReserve, showTimeSlotPicker, showDatePicker, onDatePick, changePickerMonth, testCall,
+        changeCallDate, refresh, onQuickReserve, onQuickReserveForDate, showTimeSlotPicker, showDatePicker, onDatePick, changePickerMonth, testCall,
         selectGridBtn, applyPrevService,
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode, formatPhoneInput,
         updateBridgeStatus,
