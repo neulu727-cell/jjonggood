@@ -120,6 +120,7 @@ def create_app():
     def manifest():
         response = app.send_static_file("manifest.json")
         response.headers["Content-Type"] = "application/manifest+json"
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         return response
 
     @app.route("/offline.html")
