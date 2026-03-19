@@ -647,7 +647,15 @@ textarea#quickMemo:focus {
     display: flex; align-items: center; gap: 6px;
 }
 .customer-name .breed { font-size: 12px; font-weight: 400; color: var(--text-light); }
+.customer-detail { font-size: 12px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
 .customer-meta { font-size: 12px; color: var(--text-light); }
+
+/* 예약 폼 고객 정보 */
+.res-customer-info { background: var(--primary-light); border-radius: var(--radius-sm); padding: 10px 12px; }
+.res-customer-main { font-weight: 600; font-size: 14px; color: var(--text); }
+.res-customer-main .breed { font-weight: 400; color: var(--text-secondary); font-size: 13px; }
+.res-customer-main .customer-sub { font-weight: 400; color: var(--text-light); font-size: 13px; }
+.res-customer-detail { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 
 .btn-new-customer-inline {
     width: 100%; padding: 14px; border: 2px dashed var(--primary-badge);

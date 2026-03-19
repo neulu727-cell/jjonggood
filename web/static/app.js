@@ -501,9 +501,12 @@ const App = (() => {
             <input type="hidden" id="resAmount" value="${svc0[2]}">
             <input type="hidden" id="resFurLength" value="">
             <div class="res-form-grid">
-                <div class="form-group">
+                <div class="form-group res-form-full">
                     <label>고객</label>
-                    <input type="text" value="${esc(customer.pet_name)} (${esc(customer.breed || '')}) - ${esc(customer.name || customer.phone_display || '')}" disabled>
+                    <div class="res-customer-info">
+                        <div class="res-customer-main">${esc(customer.pet_name)} <span class="breed">${esc(customer.breed || '')}</span> <span class="customer-sub">- ${esc(customer.name || customer.phone_display || '')}</span></div>
+                        ${customer.weight || customer.notes ? `<div class="res-customer-detail">${[customer.weight ? customer.weight + 'kg' : '', customer.notes || ''].filter(Boolean).map(esc).join(' · ')}</div>` : ''}
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>시간</label>
@@ -1185,6 +1188,14 @@ const App = (() => {
             const siblingHtml = siblings.map(s =>
                 `<span class="sibling-tag">${esc(s.pet_name)}<span class="breed">${esc(s.breed)}</span></span>`
             ).join('');
+            // 몸무게·메모 라인
+            const petDetail = [];
+            if (c.weight) petDetail.push(`${c.weight}kg`);
+            if (c.notes) petDetail.push(c.notes);
+            if (c.memo) petDetail.push(c.memo);
+            const detailHtml = petDetail.length
+                ? `<div class="customer-detail">${esc(petDetail.join(' · '))}</div>` : '';
+
             return `
                 <div class="customer-card" data-idx="${i}">
                     <div class="customer-avatar" style="background:${ac.bg};color:${ac.fg}">${esc(initial)}</div>
@@ -1194,6 +1205,7 @@ const App = (() => {
                             <span class="breed">${esc(c.breed || '')}</span>
                             ${siblingHtml}
                         </div>
+                        ${detailHtml}
                         <div class="customer-meta">${esc(meta.join(' | '))}</div>
                     </div>
                 </div>
