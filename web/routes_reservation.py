@@ -2,7 +2,7 @@
 
 import re
 from flask import Blueprint, jsonify, request
-from web.app import get_db, require_auth
+from web.app import get_db, require_auth, bump_update
 from web import queries
 
 reservation_bp = Blueprint("reservation", __name__)
@@ -56,6 +56,7 @@ def create_reservation():
         payment_method=data.get("payment_method", "")[:30],
         groomer_memo=data.get("groomer_memo", "")[:500],
     )
+    bump_update()
     return jsonify({"ok": True, "id": rid})
 
 
@@ -116,6 +117,7 @@ def update_reservation(rid):
         data["service_type"] = str(data["service_type"])[:50]
 
     queries.update_reservation_with_history(db, rid, **data)
+    bump_update()
     return jsonify({"ok": True})
 
 
@@ -137,6 +139,7 @@ def update_status(rid):
         payment_method = data.get("payment_method", "")
         if payment_method:
             queries.update_reservation_with_history(db, rid, payment_method=payment_method)
+    bump_update()
     return jsonify({"ok": True})
 
 
@@ -145,6 +148,7 @@ def update_status(rid):
 def delete_reservation(rid):
     db = get_db()
     db.execute("DELETE FROM reservations WHERE id = ?", (rid,))
+    bump_update()
     return jsonify({"ok": True})
 
 

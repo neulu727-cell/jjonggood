@@ -21,6 +21,13 @@ logging.basicConfig(
 log = logging.getLogger("jjonggood")
 
 db = None
+_last_update = time.time()  # 예약/고객 변경 시 갱신되는 타임스탬프
+
+
+def bump_update():
+    """데이터 변경 시 호출 → 다른 기기에서 감지"""
+    global _last_update
+    _last_update = time.time()
 
 
 def get_db() -> DatabaseManager:
@@ -147,6 +154,11 @@ def create_app():
                                business_end=config.BUSINESS_HOURS_END,
                                slot_interval=config.TIME_SLOT_INTERVAL,
                                tasker_key=config.TASKER_API_KEY)
+
+    @app.route("/api/last-update")
+    @require_auth
+    def last_update():
+        return jsonify({"ts": _last_update})
 
     @app.route("/api/config")
     def api_config():

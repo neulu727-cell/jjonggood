@@ -2067,12 +2067,31 @@ const App = (() => {
         loadCallSidebar();
     }
 
-    function refresh() {
+    function refresh(silent) {
         loadMonth();
         if (selectedDate) selectDate(selectedDate);
         if (isPC()) loadCallSidebar();
-        toast('새로고침');
+        if (!silent) toast('새로고침');
     }
+
+    // ── 다른 기기 변경 감지 (폴링) ──
+    let _lastUpdateTs = 0;
+    (function pollUpdates() {
+        const INTERVAL = 15000; // 15초
+        async function check() {
+            try {
+                const res = await fetch('/api/last-update');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (_lastUpdateTs && data.ts > _lastUpdateTs) {
+                    refresh(true); // 조용히 새로고침
+                }
+                _lastUpdateTs = data.ts;
+            } catch (e) { /* 네트워크 오류 무시 */ }
+        }
+        check(); // 초기값 세팅
+        setInterval(check, INTERVAL);
+    })();
 
     async function testCall() {
         const phone = prompt('테스트 전화번호 입력:', '01084247395');
