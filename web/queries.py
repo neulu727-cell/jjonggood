@@ -25,16 +25,16 @@ def find_customers_by_phone(db: DatabaseManager, phone: str) -> List[Customer]:
 
 
 def create_customer(db: DatabaseManager, name: str, phone: str, pet_name: str,
-                    breed: str, weight=None, age=None, notes="", memo="") -> int:
+                    breed: str, weight=None, age=None, notes="", memo="", channel="") -> int:
     cursor = db.execute(
-        """INSERT INTO customers (name, phone, pet_name, breed, weight, age, notes, memo)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (name, phone, pet_name, breed, weight, age, notes, memo)
+        """INSERT INTO customers (name, phone, pet_name, breed, weight, age, notes, memo, channel)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (name, phone, pet_name, breed, weight, age, notes, memo, channel)
     )
     return cursor.lastrowid
 
 
-_CUSTOMER_FIELDS = {"name", "phone", "pet_name", "breed", "weight", "age", "notes", "memo"}
+_CUSTOMER_FIELDS = {"name", "phone", "pet_name", "breed", "weight", "age", "notes", "memo", "channel"}
 
 def update_customer(db: DatabaseManager, customer_id: int, **fields) -> None:
     if not fields:

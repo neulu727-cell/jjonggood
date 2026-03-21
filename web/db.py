@@ -172,6 +172,7 @@ class DatabaseManager:
                         age         TEXT,
                         notes       TEXT DEFAULT '',
                         memo        TEXT DEFAULT '',
+                        channel     TEXT DEFAULT '',
                         created_at  TIMESTAMP DEFAULT NOW(),
                         updated_at  TIMESTAMP DEFAULT NOW()
                     );
@@ -287,6 +288,18 @@ class DatabaseManager:
                             WHERE table_name = 'customers' AND column_name = 'google_contact_id'
                         ) THEN
                             ALTER TABLE customers ADD COLUMN google_contact_id TEXT;
+                        END IF;
+                    END $$;
+                """)
+                # 마이그레이션: 유입경로(channel) 필드
+                cur.execute("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'customers' AND column_name = 'channel'
+                        ) THEN
+                            ALTER TABLE customers ADD COLUMN channel TEXT DEFAULT '';
                         END IF;
                     END $$;
                 """)

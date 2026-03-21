@@ -1264,8 +1264,17 @@ const App = (() => {
                 <button class="btn-danger" onclick="App.deleteCustomer(${c.id})">삭제</button>
             `;
         } else {
-            // 신규 폼: 4개 필드로 간소화
+            // 신규 폼: 유입경로 + 기본 필드
             formHtml = `
+                <div class="form-group">
+                    <label>유입경로</label>
+                    <input type="hidden" id="cfChannel" value="">
+                    <div class="btn-grid channel-grid">
+                        ${['방문','카카오','네이버톡톡','전화','인스타DM','문자'].map(ch =>
+                            `<button type="button" class="btn-grid-item" onclick="App.selectChannel(this,'${ch}')">${ch}</button>`
+                        ).join('')}
+                    </div>
+                </div>
                 <div class="form-group">
                     <label>전화번호 *</label>
                     <input type="tel" id="cfPhone" value="${esc(c.phone_display || c.phone || '')}" placeholder="010-0000-0000" inputmode="tel" oninput="App.formatPhoneInput(this)">
@@ -1350,6 +1359,12 @@ const App = (() => {
         }
     }
 
+    function selectChannel(btn, value) {
+        btn.parentElement.querySelectorAll('.btn-grid-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('cfChannel').value = value;
+    }
+
     function _parsePetBreed(input) {
         const val = (input || '').trim();
         if (!val) return { pet_name: '', breed: '' };
@@ -1403,6 +1418,7 @@ const App = (() => {
                 age: '',
                 notes: '',
                 memo: document.getElementById('cfMemo').value,
+                channel: (document.getElementById('cfChannel') || {}).value || '',
             };
         }
 
@@ -2785,7 +2801,7 @@ const App = (() => {
         toggleCallHistory, showCallPopup, closeCallPopup,
         reserveFromCall, registerFromCall, downloadBackup, copyIntakeForm,
         openSheet, closeSheet,
-        showCustomerForm, showReservationForm,
+        showCustomerForm, showReservationForm, selectChannel,
         changeCallDate, refresh, onQuickReserve, onQuickReserveForDate, showTimeSlotPicker, showDatePicker, onDatePick, changePickerMonth, testCall,
         selectGridBtn, applyPrevService,
         onCallHistoryClick, enterBookingMode, enterMoveMode, cancelMode, formatPhoneInput,

@@ -105,7 +105,11 @@ def create_customer():
             return jsonify({"error": "이미 등록된 전화번호+반려동물입니다", "customer_id": existing.id}), 409
 
     weight = _safe_float(data.get("weight"))
+    channel = data.get("channel", "").strip()[:20]
     memo = data.get("memo", "")[:500]
+    # 유입경로 → 메모에 자동 추가
+    if channel and not memo.startswith(f"[{channel}]"):
+        memo = f"[{channel}] {memo}".strip() if memo else f"[{channel}]"
 
     cid = queries.create_customer(
         db,
@@ -117,6 +121,7 @@ def create_customer():
         age=data.get("age", "")[:20],
         notes=data.get("notes", "")[:500],
         memo=memo,
+        channel=channel,
     )
 
     # Google 연락처 동기화
