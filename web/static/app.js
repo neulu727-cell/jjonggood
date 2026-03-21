@@ -659,13 +659,13 @@ const App = (() => {
             });
             const result = await res.json();
             if (result.ok) {
-                // 통합 메모: customers.memo도 동기화
-                await fetch(`/api/customer/${customerId}`, {
+                // 통합 메모: 기다리지 않고 백그라운드 동기화
+                fetch(`/api/customer/${customerId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ memo: memoText }),
-                });
-                cachedCustomers = null;
+                }).then(() => { cachedCustomers = null; });
+                // 즉시 화면 갱신
                 closeSheet('reservationSheet', true);
                 toast('예약이 저장되었습니다', 'success');
                 selectDate(selectedDate);
@@ -1013,16 +1013,16 @@ const App = (() => {
             });
             const result = await res.json();
             if (result.ok) {
-                // 통합 메모: customers.memo도 동기화
+                // 통합 메모: 기다리지 않고 백그라운드 동기화
                 const custId = document.getElementById('editResCustId')?.value;
                 if (custId) {
-                    await fetch(`/api/customer/${custId}`, {
+                    fetch(`/api/customer/${custId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ memo: memoText }),
-                    });
-                    cachedCustomers = null;
+                    }).then(() => { cachedCustomers = null; });
                 }
+                // 즉시 화면 갱신
                 closeSheet('reservationSheet', true);
                 toast('수정되었습니다', 'success');
                 if (selectedDate) selectDate(selectedDate);
