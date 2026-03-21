@@ -435,7 +435,8 @@ textarea#quickMemo:focus {
     border-color: var(--primary); font-weight: 600;
 }
 .btn-grid-item.active:hover { opacity: 0.9; }
-.channel-grid .btn-grid-item { flex: 1 1 calc(33% - 6px); text-align: center; padding: 8px 4px; font-size: 13px; }
+.channel-grid .btn-grid-item { flex: 1 1 calc(33% - 6px); text-align: center; padding: 5px 4px; font-size: 12px; }
+.channel-grid { gap: 5px; }
 .form-group .sub-label {
     font-size: 12px; color: var(--text-light); font-weight: 400; margin-left: 4px;
 }
