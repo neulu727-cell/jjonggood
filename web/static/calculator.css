@@ -110,31 +110,52 @@ html, body {
     min-height: 80px;
 }
 
-/* 견종 자동완성 */
-.breed-input-wrap {
-    position: relative;
+/* 견종 버튼 */
+.breed-btn-group {
+    display: flex;
+    gap: 8px;
 }
-.breed-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0; right: 0;
-    background: var(--card);
+.breed-btn {
+    flex: 1;
+    padding: 14px 12px;
     border: 1.5px solid var(--border-strong);
-    border-top: none;
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 100;
-    box-shadow: var(--shadow-md);
-}
-.breed-option {
-    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--card);
     font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
     cursor: pointer;
-    transition: background 0.1s;
+    transition: all var(--transition);
+    text-align: center;
 }
-.breed-option:hover, .breed-option.highlighted {
+.breed-btn.active {
+    border-color: var(--primary);
     background: var(--primary-light);
+    color: var(--primary);
+}
+
+/* 몸무게 버튼 */
+.weight-btn-group {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+.weight-btn {
+    padding: 11px 4px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition);
+    text-align: center;
+}
+.weight-btn.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
 }
 
 /* 서비스 탭 */
