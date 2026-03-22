@@ -457,6 +457,7 @@ const App = (() => {
         let serviceGrid = CONFIG.services.map((s, i) =>
             `<button type="button" class="btn-grid-item${i===0?' active':''}" data-field="resService" data-value="${esc(s[0])}" data-dur="${s[1]}" data-price="${s[2]}" onclick="App.selectGridBtn(this)">${esc(s[0])}</button>`
         ).join('');
+        serviceGrid += `<button type="button" class="btn-grid-item" data-field="resService" data-value="상담 후 결정" data-dur="0" data-price="0" onclick="App.selectGridBtn(this)">상담 후 결정</button>`;
 
         let furGrid = `<button type="button" class="btn-grid-item active" data-field="resFurLength" data-value="" onclick="App.selectGridBtn(this)">없음</button>` +
             CONFIG.furLengths.map(f =>
@@ -561,20 +562,27 @@ const App = (() => {
         const input = document.getElementById(field);
         if (input) input.value = btn.dataset.value;
         // 서비스 선택 시 연동
-        if ((field === 'resService' || field === 'editResService') && btn.dataset.dur) {
+        if ((field === 'resService' || field === 'editResService') && btn.dataset.dur !== undefined) {
             const prefix = field.startsWith('edit') ? 'editRes' : 'res';
+            const isConsult = btn.dataset.value === '상담 후 결정';
             document.getElementById(prefix + 'Duration').value = btn.dataset.dur;
             document.getElementById(prefix + 'Amount').value = btn.dataset.price;
             const dur = parseInt(btn.dataset.dur);
             const price = parseInt(btn.dataset.price);
-            document.querySelectorAll('[data-field="'+prefix+'Duration"]').forEach(b =>
-                b.classList.toggle('active', parseInt(b.dataset.value) === dur));
-            document.querySelectorAll('[data-field="'+prefix+'Amount"]').forEach(b =>
-                b.classList.toggle('active', parseInt(b.dataset.value) === price));
+            document.querySelectorAll('[data-field="'+prefix+'Duration"]').forEach(b => {
+                b.classList.toggle('active', parseInt(b.dataset.value) === dur);
+                b.disabled = isConsult;
+                b.style.opacity = isConsult ? '0.4' : '';
+            });
+            document.querySelectorAll('[data-field="'+prefix+'Amount"]').forEach(b => {
+                b.classList.toggle('active', parseInt(b.dataset.value) === price);
+                b.disabled = isConsult;
+                b.style.opacity = isConsult ? '0.4' : '';
+            });
             const durLabel = document.getElementById('durLabel');
             const priceLabel = document.getElementById('priceLabel');
-            if (durLabel) durLabel.textContent = dur + '분';
-            if (priceLabel) priceLabel.textContent = price.toLocaleString() + '원';
+            if (durLabel) durLabel.textContent = isConsult ? '-' : dur + '분';
+            if (priceLabel) priceLabel.textContent = isConsult ? '-' : price.toLocaleString() + '원';
             return;
         }
         if (field === 'resDuration' || field === 'editResDuration') {
@@ -904,7 +912,8 @@ const App = (() => {
             let serviceGrid = CONFIG.services.map(s =>
                 `<button type="button" class="btn-grid-item${s[0]===r.service_type?' active':''}" data-field="editResService" data-value="${esc(s[0])}" data-dur="${s[1]}" data-price="${s[2]}" onclick="App.selectGridBtn(this)">${esc(s[0])}</button>`
             ).join('');
-            if (!CONFIG.services.find(s => s[0] === r.service_type)) {
+            serviceGrid += `<button type="button" class="btn-grid-item${'상담 후 결정'===r.service_type?' active':''}" data-field="editResService" data-value="상담 후 결정" data-dur="0" data-price="0" onclick="App.selectGridBtn(this)">상담 후 결정</button>`;
+            if (!CONFIG.services.find(s => s[0] === r.service_type) && r.service_type !== '상담 후 결정') {
                 serviceGrid = `<button type="button" class="btn-grid-item active" data-field="editResService" data-value="${esc(r.service_type)}" onclick="App.selectGridBtn(this)">${esc(r.service_type)}</button>` + serviceGrid;
             }
 
@@ -913,18 +922,20 @@ const App = (() => {
                     `<button type="button" class="btn-grid-item${f===r.fur_length?' active':''}" data-field="editResFurLength" data-value="${f}" onclick="App.selectGridBtn(this)">${f}</button>`
                 ).join('');
 
+            const isConsult = r.service_type === '상담 후 결정';
+            const disAttr = isConsult ? ' disabled style="opacity:0.4"' : '';
             const durations = [30, 60, 90, 120, 150, 180];
             const durLabels = {30:'30분', 60:'1시간', 90:'1시간30분', 120:'2시간', 150:'2시간30분', 180:'3시간'};
             let durGrid = durations.map(d =>
-                `<button type="button" class="btn-grid-item${d===r.duration?' active':''}" data-field="editResDuration" data-value="${d}" onclick="App.selectGridBtn(this)">${durLabels[d]||d+'분'}</button>`
+                `<button type="button" class="btn-grid-item${d===r.duration?' active':''}" data-field="editResDuration" data-value="${d}" onclick="App.selectGridBtn(this)"${disAttr}>${durLabels[d]||d+'분'}</button>`
             ).join('');
 
             const prices = [30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000,100000];
             let priceGrid = prices.map(p => {
                 const label = p % 10000 === 0 ? `${p/10000}만` : `${Math.floor(p/10000)}만${(p%10000)/1000}천`;
-                return `<button type="button" class="btn-grid-item${p===r.amount?' active':''}" data-field="editResAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${label}</button>`;
+                return `<button type="button" class="btn-grid-item${p===r.amount?' active':''}" data-field="editResAmount" data-value="${p}" onclick="App.selectGridBtn(this)"${disAttr}>${label}</button>`;
             }).join('');
-            priceGrid += `<button type="button" class="btn-grid-item" data-field="editResAmount" data-value="0" onclick="App.showCustomAmount('editResAmount')">기타</button>`;
+            priceGrid += `<button type="button" class="btn-grid-item" data-field="editResAmount" data-value="0" onclick="App.showCustomAmount('editResAmount')"${disAttr}>기타</button>`;
             const form = document.getElementById('reservationForm');
             document.getElementById('sheetTitle').textContent = '✏️ 예약 수정';
             form.innerHTML = `
@@ -1390,7 +1401,11 @@ const App = (() => {
             return { pet_name: val.slice(0, lastSpace).trim(), breed: val.slice(lastSpace + 1).trim() };
         }
 
-        // 공백 없으면 전체가 이름
+        // 공백 없으면 견종만 입력한 것으로 판단 → "무명 견종"
+        // 한글 1~4글자인 경우 견종으로 간주
+        if (/^[가-힣]{1,4}$/.test(val)) {
+            return { pet_name: '무명', breed: val };
+        }
         return { pet_name: val, breed: '' };
     }
 
