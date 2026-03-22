@@ -2,7 +2,7 @@
 
 import logging
 from flask import Blueprint, jsonify, request
-from web.app import get_db, require_auth
+from web.app import get_db, require_auth, bump_update
 from web import queries
 from web.utils.phone_formatter import normalize_phone, format_phone_display
 
@@ -72,6 +72,7 @@ def search_customers():
             "age": d.get("age"),
             "notes": d.get("notes", ""),
             "memo": d.get("memo", ""),
+            "channel": d.get("channel", ""),
             "last_visit": lv,
             "visit_count": d.get("visit_count", 0),
             "total_sales": int(d.get("total_sales", 0)),
@@ -131,6 +132,7 @@ def create_customer():
     except Exception as e:
         log.warning("Google sync failed on create (customer %s): %s", cid, e)
 
+    bump_update()
     return jsonify({"ok": True, "id": cid})
 
 
@@ -174,7 +176,7 @@ def get_customer(cid):
         "phone_display": format_phone_display(d.get("phone", "")),
         "pet_name": d.get("pet_name", ""), "breed": d.get("breed", ""),
         "weight": d.get("weight"), "age": d.get("age"),
-        "notes": d.get("notes", ""), "memo": d.get("memo", ""),
+        "notes": d.get("notes", ""), "memo": d.get("memo", ""), "channel": d.get("channel", ""),
         "last_visit": d["last_visit"],
         "stats": d["stats"],
         "reservations": res_list,
@@ -221,6 +223,7 @@ def update_customer(cid):
     except Exception as e:
         log.warning("Google sync failed on update (customer %s): %s", cid, e)
 
+    bump_update()
     return jsonify({"ok": True})
 
 
@@ -281,7 +284,8 @@ def find_by_phone():
             "visit_count": total_count,
             "last_visit": last_visit,
             "recent_reservations": [{
-                "date": r["date"], "service": r["service_type"],
+                "date": r["date"].strftime("%Y-%m-%d") if hasattr(r["date"], "strftime") else str(r["date"]),
+                "service": r["service_type"],
                 "amount": r["amount"], "status": r["status"],
             } for r in recent_rows],
         },

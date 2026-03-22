@@ -159,6 +159,7 @@ def update_memo(rid):
     data = request.get_json()
     memo = data.get("memo", "")
     queries.update_reservation_memo(db, rid, memo)
+    bump_update()
     return jsonify({"ok": True})
 
 
