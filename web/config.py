@@ -15,6 +15,11 @@ TASKER_API_KEY = os.environ.get("TASKER_API_KEY", "")
 # === 관리자 비밀 경로 ===
 ADMIN_SECRET_PATH = os.environ.get("ADMIN_SECRET_PATH", "mgmt-x7k9m2p4")
 
+# === 샵 연락처 (견적 상담 연결용) ===
+SHOP_PHONE = os.environ.get("SHOP_PHONE", "01084247395")
+SHOP_KAKAO_URL = os.environ.get("SHOP_KAKAO_URL", "https://pf.kakao.com/qjNxhX/chat")
+SHOP_NAVER_URL = os.environ.get("SHOP_NAVER_URL", "https://talk.naver.com/WILRAWG")
+
 # === Google OAuth ===
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")

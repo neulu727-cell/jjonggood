@@ -167,7 +167,10 @@ def create_app():
         return render_template("calculator.html",
                                breeds=config.COMMON_BREEDS,
                                price_table=config.PRICE_TABLE,
-                               surcharges=config.SURCHARGES)
+                               surcharges=config.SURCHARGES,
+                               shop_phone=config.SHOP_PHONE,
+                               shop_kakao_url=config.SHOP_KAKAO_URL,
+                               shop_naver_url=config.SHOP_NAVER_URL)
 
     @app.route(f"/{config.ADMIN_SECRET_PATH}")
     def admin_index():

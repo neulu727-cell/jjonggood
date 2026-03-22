@@ -306,44 +306,52 @@ html, body {
     margin-top: 8px;
 }
 
-/* 전송 버튼 */
-.btn-submit {
-    width: 100%;
-    padding: 16px;
-    border: none;
+/* 상담 연결 버튼 */
+.consult-buttons {
+    display: flex;
+    gap: 10px;
+}
+.consult-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 8px;
+    border: 1.5px solid var(--border-strong);
     border-radius: var(--radius-md);
-    background: var(--primary);
-    color: white;
-    font-size: 15px;
+    background: var(--card);
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     transition: all var(--transition);
-    margin-top: 8px;
 }
-.btn-submit:hover {
+.consult-btn:active {
+    transform: scale(0.97);
+}
+.consult-btn.kakao {
+    border-color: #FEE500;
+    background: #FEE500;
+    color: #3C1E1E;
+}
+.consult-btn.kakao:active {
+    background: #F5DC00;
+}
+.consult-btn.naver {
+    border-color: #03C75A;
+    background: #03C75A;
+    color: white;
+}
+.consult-btn.naver:active {
+    background: #02B550;
+}
+.consult-btn.phone {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+}
+.consult-btn.phone:active {
     background: var(--primary-dark);
-}
-.btn-submit:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* 전송 결과 */
-.submit-result {
-    margin-top: 12px;
-    padding: 14px;
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    text-align: center;
-    font-weight: 600;
-}
-.submit-result.success {
-    background: #ECFDF5;
-    color: #059669;
-}
-.submit-result.error {
-    background: #FEF2F2;
-    color: #DC2626;
 }
 
 /* 푸터 */

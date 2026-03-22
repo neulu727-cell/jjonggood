@@ -188,8 +188,8 @@ const Calc = (() => {
         }
     }
 
-    // === 견적 전송 ===
-    async function submitRequest() {
+    // === 상담 연결 ===
+    async function consultVia(channel) {
         const breed = document.getElementById('breedInput').value.trim();
         if (!breed) {
             showToast('견종을 선택해주세요');
@@ -200,25 +200,16 @@ const Calc = (() => {
             return;
         }
 
-        // weightRange에서 중간값 추출 (예: '3-5' → 4)
+        // weightRange에서 중간값 추출
         let weightKg = 0;
         if (weightRange) {
             const parts = weightRange.split('-');
             weightKg = (parseFloat(parts[0]) + parseFloat(parts[1])) / 2;
         }
 
-        const customerName = document.getElementById('customerName').value.trim();
-        const customerPhone = document.getElementById('customerPhone').value.trim();
-        const memo = document.getElementById('customerMemo').value.trim();
-
-        const { total } = calculatePrice();
-
-        const btn = document.getElementById('submitBtn');
-        btn.disabled = true;
-        btn.textContent = '전송 중...';
-
+        // 1) 견적 내용을 샵에 전송 (백그라운드)
         try {
-            const resp = await fetch('/api/grooming-request', {
+            fetch('/api/grooming-request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -229,33 +220,25 @@ const Calc = (() => {
                     face_cut: faceCut,
                     matting,
                     fur_length: serviceChoice === '위생목욕' ? furLength : '',
-                    customer_name: customerName,
-                    customer_phone: customerPhone,
-                    memo,
+                    customer_name: '',
+                    customer_phone: '',
+                    memo: `상담채널: ${channel}`,
                 }),
             });
-
-            const data = await resp.json();
-            const resultEl = document.getElementById('submitResult');
-            resultEl.style.display = '';
-
-            if (resp.ok && data.ok) {
-                resultEl.className = 'submit-result success';
-                resultEl.textContent = '견적 요청이 성공적으로 전송되었습니다!';
-                showToast('전송 완료!');
-            } else {
-                resultEl.className = 'submit-result error';
-                resultEl.textContent = data.error || '전송에 실패했습니다.';
-            }
         } catch (e) {
-            const resultEl = document.getElementById('submitResult');
-            resultEl.style.display = '';
-            resultEl.className = 'submit-result error';
-            resultEl.textContent = '네트워크 오류가 발생했습니다.';
-        } finally {
-            btn.disabled = false;
-            btn.textContent = '이 견적요청서를 전송하시겠습니까?';
+            // 전송 실패해도 상담 연결은 진행
         }
+
+        // 2) 상담 채널로 이동
+        if (channel === 'kakao') {
+            window.open(SHOP.kakao, '_blank');
+        } else if (channel === 'naver') {
+            window.open(SHOP.naver, '_blank');
+        } else if (channel === 'phone') {
+            window.location.href = 'tel:' + SHOP.phone;
+        }
+
+        showToast('견적이 전송되었습니다');
     }
 
     function showToast(msg) {
@@ -276,6 +259,6 @@ const Calc = (() => {
         setFurLength,
         selectBreedType,
         selectWeight,
-        submitRequest,
+        consultVia,
     };
 })();
