@@ -293,3 +293,15 @@ def find_by_phone():
         },
         "pets": pets,
     })
+
+
+@customer_bp.route("/api/customers/missing-breed")
+@require_auth
+def missing_breed():
+    """견종이 비어있는 고객 조회 (일회성 조사용)"""
+    db = get_db()
+    rows = db.fetch_all(
+        "SELECT id, pet_name, breed, phone, memo FROM customers WHERE breed IS NULL OR breed = '' ORDER BY id"
+    )
+    result = [{"id": r["id"], "pet_name": r["pet_name"], "breed": r["breed"] or "", "phone": r["phone"], "memo": r["memo"] or ""} for r in rows]
+    return jsonify({"count": len(result), "customers": result})
