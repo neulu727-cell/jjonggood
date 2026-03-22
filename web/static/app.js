@@ -454,10 +454,10 @@ const App = (() => {
             `✂️ 예약 등록 - ${customer.pet_name}`;
 
         const svc0 = CONFIG.services[0];
-        let serviceGrid = CONFIG.services.map((s, i) =>
-            `<button type="button" class="btn-grid-item${i===0?' active':''}" data-field="resService" data-value="${esc(s[0])}" data-dur="${s[1]}" data-price="${s[2]}" onclick="App.selectGridBtn(this)">${esc(s[0])}</button>`
+        let serviceGrid = `<button type="button" class="btn-grid-item active" data-field="resService" data-value="방문상담 후 결정" data-dur="0" data-price="0" onclick="App.selectGridBtn(this)">방문상담 후 결정</button>`;
+        serviceGrid += CONFIG.services.map(s =>
+            `<button type="button" class="btn-grid-item" data-field="resService" data-value="${esc(s[0])}" data-dur="${s[1]}" data-price="${s[2]}" onclick="App.selectGridBtn(this)">${esc(s[0])}</button>`
         ).join('');
-        serviceGrid += `<button type="button" class="btn-grid-item" data-field="resService" data-value="상담 후 결정" data-dur="0" data-price="0" onclick="App.selectGridBtn(this)">상담 후 결정</button>`;
 
         let furGrid = `<button type="button" class="btn-grid-item active" data-field="resFurLength" data-value="" onclick="App.selectGridBtn(this)">없음</button>` +
             CONFIG.furLengths.map(f =>
@@ -467,15 +467,15 @@ const App = (() => {
         const durations = [30, 60, 90, 120, 150, 180];
         const durLabels = {30:'30분', 60:'1시간', 90:'1시간30분', 120:'2시간', 150:'2시간30분', 180:'3시간'};
         let durGrid = durations.map(d =>
-            `<button type="button" class="btn-grid-item${d===svc0[1]?' active':''}" data-field="resDuration" data-value="${d}" onclick="App.selectGridBtn(this)">${durLabels[d]}</button>`
+            `<button type="button" class="btn-grid-item" data-field="resDuration" data-value="${d}" onclick="App.selectGridBtn(this)" disabled style="opacity:0.4">${durLabels[d]}</button>`
         ).join('');
 
         const prices = [30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000,100000];
         let priceGrid = prices.map(p => {
             const label = p % 10000 === 0 ? `${p/10000}만` : `${Math.floor(p/10000)}만${(p%10000)/1000}천`;
-            return `<button type="button" class="btn-grid-item${p===svc0[2]?' active':''}" data-field="resAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${label}</button>`;
+            return `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="${p}" onclick="App.selectGridBtn(this)" disabled style="opacity:0.4">${label}</button>`;
         }).join('');
-        priceGrid += `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="0" onclick="App.showCustomAmount('resAmount')">기타</button>`;
+        priceGrid += `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="0" onclick="App.showCustomAmount('resAmount')" disabled style="opacity:0.4">기타</button>`;
 
         // 이전 서비스 이력
         let prevHtml = '';
@@ -497,9 +497,9 @@ const App = (() => {
 
         form.innerHTML = `
             <input type="hidden" id="resCustomerId" value="${customer.id}">
-            <input type="hidden" id="resService" value="${esc(svc0[0])}">
-            <input type="hidden" id="resDuration" value="${svc0[1]}">
-            <input type="hidden" id="resAmount" value="${svc0[2]}">
+            <input type="hidden" id="resService" value="방문상담 후 결정">
+            <input type="hidden" id="resDuration" value="0">
+            <input type="hidden" id="resAmount" value="0">
             <input type="hidden" id="resFurLength" value="">
             <div class="res-form-grid">
                 <div class="form-group res-form-full">
@@ -523,11 +523,11 @@ const App = (() => {
                     <div class="btn-grid">${furGrid}</div>
                 </div>
                 <div class="form-group">
-                    <label>소요시간 <span class="sub-label" id="durLabel">${svc0[1]}분</span></label>
+                    <label>소요시간 <span class="sub-label" id="durLabel">-</span></label>
                     <div class="btn-grid">${durGrid}</div>
                 </div>
                 <div class="form-group res-form-full">
-                    <label>금액 <span class="sub-label" id="priceLabel">${svc0[2].toLocaleString()}원</span></label>
+                    <label>금액 <span class="sub-label" id="priceLabel">-</span></label>
                     <div class="btn-grid">${priceGrid}</div>
                 </div>
                 <div class="form-group res-form-full">
@@ -564,7 +564,7 @@ const App = (() => {
         // 서비스 선택 시 연동
         if ((field === 'resService' || field === 'editResService') && btn.dataset.dur !== undefined) {
             const prefix = field.startsWith('edit') ? 'editRes' : 'res';
-            const isConsult = btn.dataset.value === '상담 후 결정';
+            const isConsult = btn.dataset.value === '방문상담 후 결정';
             document.getElementById(prefix + 'Duration').value = btn.dataset.dur;
             document.getElementById(prefix + 'Amount').value = btn.dataset.price;
             const dur = parseInt(btn.dataset.dur);
@@ -912,8 +912,8 @@ const App = (() => {
             let serviceGrid = CONFIG.services.map(s =>
                 `<button type="button" class="btn-grid-item${s[0]===r.service_type?' active':''}" data-field="editResService" data-value="${esc(s[0])}" data-dur="${s[1]}" data-price="${s[2]}" onclick="App.selectGridBtn(this)">${esc(s[0])}</button>`
             ).join('');
-            serviceGrid += `<button type="button" class="btn-grid-item${'상담 후 결정'===r.service_type?' active':''}" data-field="editResService" data-value="상담 후 결정" data-dur="0" data-price="0" onclick="App.selectGridBtn(this)">상담 후 결정</button>`;
-            if (!CONFIG.services.find(s => s[0] === r.service_type) && r.service_type !== '상담 후 결정') {
+            serviceGrid += `<button type="button" class="btn-grid-item${'방문상담 후 결정'===r.service_type?' active':''}" data-field="editResService" data-value="방문상담 후 결정" data-dur="0" data-price="0" onclick="App.selectGridBtn(this)">방문상담 후 결정</button>`;
+            if (!CONFIG.services.find(s => s[0] === r.service_type) && r.service_type !== '방문상담 후 결정') {
                 serviceGrid = `<button type="button" class="btn-grid-item active" data-field="editResService" data-value="${esc(r.service_type)}" onclick="App.selectGridBtn(this)">${esc(r.service_type)}</button>` + serviceGrid;
             }
 
@@ -922,7 +922,7 @@ const App = (() => {
                     `<button type="button" class="btn-grid-item${f===r.fur_length?' active':''}" data-field="editResFurLength" data-value="${f}" onclick="App.selectGridBtn(this)">${f}</button>`
                 ).join('');
 
-            const isConsult = r.service_type === '상담 후 결정';
+            const isConsult = r.service_type === '방문상담 후 결정';
             const disAttr = isConsult ? ' disabled style="opacity:0.4"' : '';
             const durations = [30, 60, 90, 120, 150, 180];
             const durLabels = {30:'30분', 60:'1시간', 90:'1시간30분', 120:'2시간', 150:'2시간30분', 180:'3시간'};
