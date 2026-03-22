@@ -1244,24 +1244,27 @@ const App = (() => {
 
         let formHtml;
         if (isEdit) {
-            // 수정 폼: 기존 필드 유지
+            // 수정 폼: 신규와 동일한 필드 구조
+            const petBreedVal = [c.pet_name, c.breed].filter(Boolean).join(' ');
             formHtml = `
                 <input type="hidden" id="cfId" value="${c.id}">
+                <div class="form-group">
+                    <label>유입경로</label>
+                    <input type="hidden" id="cfChannel" value="${esc(c.channel || '')}">
+                    <div class="btn-grid channel-grid">
+                        ${['방문','카카오','네이버톡톡','전화','인스타DM','문자'].map(ch =>
+                            `<button type="button" class="btn-grid-item${ch===(c.channel||'')?' active':''}" onclick="App.selectChannel(this,'${ch}')">${ch}</button>`
+                        ).join('')}
+                    </div>
+                </div>
                 <div class="form-group">
                     <label>전화번호 *</label>
                     <input type="tel" id="cfPhone" value="${esc(c.phone_display || c.phone || '')}" placeholder="010-0000-0000" inputmode="tel" oninput="App.formatPhoneInput(this)">
                 </div>
                 <input type="hidden" id="cfName" value="${esc(c.name || '')}">
                 <div class="form-group">
-                    <label>반려동물 이름 *</label>
-                    <input type="text" id="cfPetName" value="${esc(c.pet_name || '')}" placeholder="반려동물 이름">
-                </div>
-                <div class="form-group" style="position:relative">
-                    <label>견종 *</label>
-                    <input type="text" id="cfBreed" value="${esc(breedValue)}" placeholder="견종" autocomplete="off"
-                           oninput="App.onBreedInput(this.value)" onfocus="App.onBreedInput(this.value)"
-                           onkeydown="App.onBreedKeydown(event)">
-                    <div class="breed-suggestions" id="breedSuggestions" style="display:none"></div>
+                    <label>이름 견종 *</label>
+                    <input type="text" id="cfPetBreed" value="${esc(petBreedVal)}" placeholder="예: 루미 말티푸" autocomplete="off">
                 </div>
                 <div class="form-group">
                     <label>몸무게 (kg)</label>
@@ -1412,15 +1415,17 @@ const App = (() => {
     async function saveCustomer(isEdit) {
         let data;
         if (isEdit) {
+            const parsedEdit = _parsePetBreed(document.getElementById('cfPetBreed').value);
             data = {
                 phone: document.getElementById('cfPhone').value,
                 name: document.getElementById('cfName').value,
-                pet_name: document.getElementById('cfPetName').value,
-                breed: document.getElementById('cfBreed').value,
+                pet_name: parsedEdit.pet_name,
+                breed: parsedEdit.breed,
                 weight: document.getElementById('cfWeight').value || null,
                 age: '',
                 notes: '',
                 memo: document.getElementById('cfMemo').value,
+                channel: (document.getElementById('cfChannel') || {}).value || '',
             };
         } else {
             const parsed = _parsePetBreed(document.getElementById('cfPetBreed').value);

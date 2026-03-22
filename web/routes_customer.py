@@ -203,6 +203,8 @@ def update_customer(cid):
         fields["phone"] = normalize_phone(data["phone"])
     if "weight" in data:
         fields["weight"] = _safe_float(data["weight"])
+    if "channel" in data:
+        fields["channel"] = str(data["channel"])[:20]
 
     queries.update_customer(db, cid, **fields)
 
