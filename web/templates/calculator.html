@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#4F46E5">
+<title>쫑굿 미용 견적</title>
+<link rel="stylesheet" href="{{ static_url('calculator.css') }}">
+</head>
+<body>
+<div class="calc-app">
+    <!-- 헤더 -->
+    <div class="calc-header">
+        <h1>쫑굿 미용 견적</h1>
+        <p>예상 미용 금액을 확인해보세요</p>
+    </div>
+
+    <!-- 카드1: 반려견 정보 -->
+    <div class="calc-card">
+        <h2 class="card-title">반려견 정보</h2>
+        <div class="form-group">
+            <label>견종</label>
+            <div class="breed-input-wrap">
+                <input type="text" id="breedInput" placeholder="견종을 선택하거나 입력하세요" autocomplete="off">
+                <div class="breed-dropdown" id="breedDropdown" style="display:none"></div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>몸무게 (kg)</label>
+            <input type="number" id="weightInput" placeholder="예: 4.5" min="0" max="50" step="0.1">
+        </div>
+    </div>
+
+    <!-- 카드2: 미용 종류 -->
+    <div class="calc-card">
+        <h2 class="card-title">미용 종류</h2>
+        <div class="service-tabs">
+            <button class="service-tab active" data-service="위생목욕" onclick="Calc.selectService('위생목욕')">위생+목욕</button>
+            <button class="service-tab" data-service="클리핑" onclick="Calc.selectService('클리핑')">클리핑</button>
+            <button class="service-tab" data-service="스포팅" onclick="Calc.selectService('스포팅')">스포팅</button>
+        </div>
+        <!-- 클리핑 길이 (클리핑 선택 시) -->
+        <div class="clipping-options" id="clippingOptions" style="display:none">
+            <label>클리핑 길이</label>
+            <div class="chip-group">
+                <button class="chip active" data-length="3mm" onclick="Calc.selectClipping('3mm')">3mm</button>
+                <button class="chip" data-length="6mm" onclick="Calc.selectClipping('6mm')">6mm</button>
+                <button class="chip" data-length="9mm" onclick="Calc.selectClipping('9mm')">9mm</button>
+                <button class="chip" data-length="1.3cm" onclick="Calc.selectClipping('1.3cm')">1.3cm <span class="chip-extra">+1만</span></button>
+                <button class="chip" data-length="2cm" onclick="Calc.selectClipping('2cm')">2cm <span class="chip-extra">+2만</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 카드3: 추가 옵션 -->
+    <div class="calc-card">
+        <h2 class="card-title">추가 옵션</h2>
+
+        <!-- 얼굴 가위커트 -->
+        <div class="option-row">
+            <div class="option-label">
+                <span>얼굴 가위커트</span>
+                <span class="option-hint" id="faceCutHint"></span>
+            </div>
+            <div class="toggle-group" id="faceCutToggle">
+                <button class="toggle-btn" data-val="false" onclick="Calc.setFaceCut(false)">X</button>
+                <button class="toggle-btn" data-val="true" onclick="Calc.setFaceCut(true)">O</button>
+            </div>
+        </div>
+
+        <!-- 엉킴 정도 -->
+        <div class="option-row">
+            <div class="option-label">
+                <span>엉킴 정도</span>
+            </div>
+            <div class="toggle-group" id="mattingToggle">
+                <button class="toggle-btn active" data-val="none" onclick="Calc.setMatting('none')">없음</button>
+                <button class="toggle-btn" data-val="light" onclick="Calc.setMatting('light')">조금 <span class="chip-extra">+5천</span></button>
+                <button class="toggle-btn" data-val="heavy" onclick="Calc.setMatting('heavy')">심함 <span class="chip-extra">+1만</span></button>
+            </div>
+        </div>
+
+        <!-- 현재 털길이 (위생목욕만) -->
+        <div class="option-row" id="furLengthRow">
+            <div class="option-label">
+                <span>현재 털길이</span>
+            </div>
+            <div class="toggle-group" id="furLengthToggle">
+                <button class="toggle-btn active" data-val="짧다" onclick="Calc.setFurLength('짧다')">짧다</button>
+                <button class="toggle-btn" data-val="중간" onclick="Calc.setFurLength('중간')">중간 <span class="chip-extra">+5천</span></button>
+                <button class="toggle-btn" data-val="길다" onclick="Calc.setFurLength('길다')">길다 <span class="chip-extra">+1만</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 가격 표시 카드 -->
+    <div class="calc-card price-card">
+        <div class="price-label">예상 미용 금액</div>
+        <div class="price-amount" id="priceAmount">0원</div>
+        <div class="price-detail" id="priceDetail"></div>
+        <div class="price-notice">실제 금액은 반려견 상태에 따라 달라질 수 있습니다</div>
+    </div>
+
+    <!-- 전송 카드 -->
+    <div class="calc-card">
+        <h2 class="card-title">견적 요청서 전송</h2>
+        <p class="card-desc">아래 정보를 입력하시면 샵으로 견적서가 전송됩니다 (선택사항)</p>
+        <div class="form-group">
+            <label>보호자 이름</label>
+            <input type="text" id="customerName" placeholder="홍길동" maxlength="50">
+        </div>
+        <div class="form-group">
+            <label>전화번호</label>
+            <input type="tel" id="customerPhone" placeholder="010-0000-0000" maxlength="20">
+        </div>
+        <div class="form-group">
+            <label>추가 요청사항</label>
+            <textarea id="customerMemo" placeholder="특이사항이나 요청사항을 적어주세요" rows="3" maxlength="500"></textarea>
+        </div>
+        <button class="btn-submit" id="submitBtn" onclick="Calc.submitRequest()">이 견적요청서를 전송하시겠습니까?</button>
+        <div class="submit-result" id="submitResult" style="display:none"></div>
+    </div>
+
+    <div class="calc-footer">
+        <p>쫑굿 애견미용</p>
+    </div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast" style="display:none"></div>
+
+<script>
+const BREEDS = {{ breeds | tojson }};
+const PRICE_TABLE = {
+    {% for (min_kg, max_kg), prices in price_table.items() %}
+    "{{ min_kg }}-{{ max_kg }}": { min: {{ min_kg }}, max: {{ max_kg }}, prices: {{ prices | tojson }} },
+    {% endfor %}
+};
+const SURCHARGES = {{ surcharges | tojson }};
+</script>
+<script src="{{ static_url('calculator.js') }}"></script>
+</body>
+</html>

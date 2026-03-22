@@ -46,6 +46,25 @@ class Reservation:
 
 
 @dataclass
+class GroomingRequest:
+    id: int
+    breed: str
+    service_type: str
+    weight: Optional[float] = None
+    actual_service: str = ""
+    clipping_length: str = ""
+    face_cut: bool = False
+    matting: str = "none"
+    fur_length: str = ""
+    estimated_price: int = 0
+    customer_name: str = ""
+    customer_phone: str = ""
+    memo: str = ""
+    status: str = "pending"
+    created_at: Optional[str] = None
+
+
+@dataclass
 class GroomerMemo:
     id: int
     reservation_id: int

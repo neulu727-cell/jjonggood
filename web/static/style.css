@@ -129,7 +129,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .cal-cell {
     display: flex; flex-direction: column; align-items: center;
-    padding: 6px 1px; min-height: 78px; cursor: pointer;
+    padding: 4px 1px; min-height: 110px; cursor: pointer;
     border-radius: var(--radius-sm); position: relative;
     transition: background var(--transition);
     overflow: hidden; min-width: 0;
@@ -140,9 +140,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .cal-cell.empty:active { background: none; }
 
 .cal-day {
-    font-size: 14px; font-weight: 600; width: 28px; height: 28px;
+    font-size: 13px; font-weight: 600; width: 24px; height: 24px;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 50%; margin-bottom: 3px;
+    border-radius: 50%; margin-bottom: 2px;
     transition: all var(--transition);
 }
 .cal-cell.today .cal-day { background: var(--primary); color: #fff; }
@@ -152,7 +152,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .cal-badges {
     display: flex; flex-direction: column; align-items: center;
-    gap: 2px; width: 100%; overflow: hidden;
+    gap: 1px; width: 100%; overflow: hidden; flex: 1;
 }
 .cal-dogs {
     font-size: 13px; line-height: 1.2; letter-spacing: -1px;
@@ -1013,7 +1013,7 @@ textarea#quickMemo:focus {
     .calendar-section { background: #F8F9FB; flex: 1; overflow-y: auto; }
     .weekday-row { background: #F8F9FB; border-bottom-color: var(--border-strong); padding: 6px 12px 4px; gap: 2px; font-size: 13px; }
     .calendar-grid { gap: 3px; padding: 4px 12px; }
-    .cal-cell { min-height: 100px; padding: 6px 4px; border-radius: var(--radius-md); }
+    .cal-cell { min-height: 120px; padding: 6px 4px; border-radius: var(--radius-md); }
     .cal-cell:hover { background: var(--primary-light); }
     .cal-cell.selected { background: var(--primary-light); box-shadow: inset 0 0 0 2px var(--primary-badge); }
     .cal-day { font-size: 16px; width: 30px; height: 30px; margin-bottom: 4px; }
@@ -1624,4 +1624,182 @@ textarea#quickMemo:focus {
     background-repeat: no-repeat;
     pointer-events: none;
     transform: rotate(-15deg);
+}
+
+/* === 견적 요청 뷰 === */
+.requests-view {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    z-index: 10;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.requests-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+.requests-header h3 { font-size: 16px; font-weight: 700; }
+.requests-body {
+    padding: 12px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* 요청 카드 */
+.request-card {
+    background: var(--card);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-sm);
+    border-left: 4px solid var(--border-strong);
+}
+.request-card.pending { border-left-color: var(--yellow); }
+.request-card.confirmed { border-left-color: var(--green); }
+.request-card.dismissed { border-left-color: var(--text-light); opacity: 0.7; }
+
+.req-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.req-status {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+.req-status.pending { background: #FEF3C7; color: #92400E; }
+.req-status.confirmed { background: #ECFDF5; color: #059669; }
+.req-status.dismissed { background: #F3F4F6; color: #6B7280; }
+.req-time { font-size: 11px; color: var(--text-light); }
+
+.req-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.req-main {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 14px;
+}
+.req-main strong { font-weight: 700; }
+.req-service {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.req-price {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--primary);
+}
+.req-options {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+.req-contact {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+.req-memo {
+    font-size: 12px;
+    color: var(--text-light);
+    background: var(--bg);
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+.req-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+.req-btn {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.req-btn.confirm {
+    background: #ECFDF5;
+    color: #059669;
+}
+.req-btn.confirm:hover { background: #D1FAE5; }
+.req-btn.dismiss {
+    background: #F3F4F6;
+    color: #6B7280;
+}
+.req-btn.dismiss:hover { background: #E5E7EB; }
+
+/* 알림 배지 (하단 네비) */
+.nav-badge {
+    position: absolute;
+    top: 4px;
+    right: calc(50% - 18px);
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--red);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+}
+
+/* 인라인 배지 (PC 사이드바) */
+.badge-inline {
+    display: inline-block;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--red);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    margin-left: 4px;
+}
+
+/* 액션 버튼 orange */
+.action-btn.orange {
+    background: #FFF7ED;
+    color: #C2410C;
+}
+.action-btn.orange:active { background: #FFEDD5; }
+
+@media (min-width: 900px) {
+    .requests-view {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+    }
 }

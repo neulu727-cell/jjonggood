@@ -2,7 +2,7 @@
 
 from typing import Optional, List
 from web.db import DatabaseManager
-from web.models import Customer, Reservation, GroomerMemo
+from web.models import Customer, Reservation, GroomerMemo, GroomingRequest
 from datetime import datetime, timezone, timedelta
 
 KST = timezone(timedelta(hours=9))
@@ -571,6 +571,53 @@ def get_sales_month_data(db: DatabaseManager, year: int, month: int) -> dict:
     return {"daily": daily, "summary": summary, "prev_summary": prev_summary,
             "top_pets": top_pets,
             "payment": payment, "breeds": breeds, "services": services, "by_dow": by_dow}
+
+
+# ==================== 견적 요청 관련 ====================
+
+def create_grooming_request(db: DatabaseManager, breed: str, weight: float,
+                            service_type: str, actual_service: str = "",
+                            clipping_length: str = "", face_cut: bool = False,
+                            matting: str = "none", fur_length: str = "",
+                            estimated_price: int = 0, customer_name: str = "",
+                            customer_phone: str = "", memo: str = "") -> int:
+    cursor = db.execute(
+        """INSERT INTO grooming_requests
+           (breed, weight, service_type, actual_service, clipping_length,
+            face_cut, matting, fur_length, estimated_price,
+            customer_name, customer_phone, memo)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (breed, weight, service_type, actual_service, clipping_length,
+         face_cut, matting, fur_length, estimated_price,
+         customer_name, customer_phone, memo)
+    )
+    return cursor.lastrowid
+
+
+def get_grooming_requests(db: DatabaseManager, status: str = None, limit: int = 50) -> list:
+    if status:
+        rows = db.fetch_all(
+            "SELECT * FROM grooming_requests WHERE status = ? ORDER BY created_at DESC LIMIT ?",
+            (status, limit)
+        )
+    else:
+        rows = db.fetch_all(
+            "SELECT * FROM grooming_requests ORDER BY created_at DESC LIMIT ?",
+            (limit,)
+        )
+    return [dict(row) for row in rows]
+
+
+def update_grooming_request_status(db: DatabaseManager, request_id: int, status: str) -> None:
+    db.execute(
+        "UPDATE grooming_requests SET status = ? WHERE id = ?",
+        (status, request_id)
+    )
+
+
+def get_pending_request_count(db: DatabaseManager) -> int:
+    row = db.fetch_one("SELECT COUNT(*) as cnt FROM grooming_requests WHERE status = 'pending'")
+    return row["cnt"] if row else 0
 
 
 # ==================== 헬퍼 ====================

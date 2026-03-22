@@ -88,6 +88,7 @@
             <button class="action-btn purple" onclick="App.showNewCustomerForm()">🐾 고객 등록</button>
             <button class="action-btn gray" onclick="App.refresh()">🔄 새로고침</button>
             <button class="action-btn gray" onclick="App.showView('sales')">💰 매출관리</button>
+            <button class="action-btn orange" onclick="App.showView('requests')" id="requestsActionBtn">📋 견적요청 <span class="badge-inline" id="requestsBadgeInline" style="display:none">0</span></button>
         </div>
     </div>
 
@@ -114,6 +115,27 @@
         </div>
     </div>
 
+    <!-- 견적 요청 목록 뷰 -->
+    <div class="requests-view" id="requestsView" style="display:none">
+        <div class="requests-header">
+            <h3>📋 견적 요청</h3>
+            <div style="display:flex;gap:6px;align-items:center">
+                <select id="requestsFilter" onchange="App.loadGroomingRequests()" style="font-size:12px;padding:4px 8px;border:1px solid #ddd;border-radius:6px">
+                    <option value="">전체</option>
+                    <option value="pending" selected>대기중</option>
+                    <option value="confirmed">확인됨</option>
+                    <option value="dismissed">무시됨</option>
+                </select>
+                <button class="btn-icon" onclick="App.showView('calendar')" title="닫기" style="margin-left:4px">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="requests-body" id="requestsBody">
+            <div class="loading" style="padding:20px"></div>
+        </div>
+    </div>
+
     </div><!-- /.main-content -->
 
     <!-- 하단 네비 (모바일) -->
@@ -129,6 +151,11 @@
         <button class="nav-item" onclick="App.showView('customers')" data-view="customers">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
             <span>고객</span>
+        </button>
+        <button class="nav-item" onclick="App.showView('requests')" data-view="requests" style="position:relative">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>견적</span>
+            <span class="nav-badge" id="requestsNavBadge" style="display:none">0</span>
         </button>
         <button class="nav-item" onclick="App.showView('sales')" data-view="sales">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>

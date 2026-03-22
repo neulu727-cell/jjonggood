@@ -12,6 +12,9 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 VIEWER_PASSWORD = os.environ.get("VIEWER_PASSWORD", "")
 TASKER_API_KEY = os.environ.get("TASKER_API_KEY", "")
 
+# === 관리자 비밀 경로 ===
+ADMIN_SECRET_PATH = os.environ.get("ADMIN_SECRET_PATH", "mgmt-x7k9m2p4")
+
 # === Google OAuth ===
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
@@ -27,6 +30,27 @@ DEFAULT_SERVICES = [
 
 # === 털 길이 옵션 ===
 FUR_LENGTHS = ["3mm", "6mm", "9mm", "13mm", "1cm", "2cm"]
+
+# === 견적 계산기 요금표 ===
+PRICE_TABLE = {
+    (1, 3):   {"위생목욕": 35000, "전체미용": 45000, "전체얼컷": 60000, "스포팅": 100000},
+    (3, 5):   {"위생목욕": 40000, "전체미용": 50000, "전체얼컷": 65000, "스포팅": 105000},
+    (5, 7):   {"위생목욕": 45000, "전체미용": 55000, "전체얼컷": 70000, "스포팅": 110000},
+    (7, 9):   {"위생목욕": 50000, "전체미용": 60000, "전체얼컷": 75000, "스포팅": 115000},
+    (9, 11):  {"위생목욕": 60000, "전체미용": 70000, "전체얼컷": 85000, "스포팅": 125000},
+    (11, 13): {"위생목욕": 70000, "전체미용": 80000, "전체얼컷": 95000, "스포팅": 135000},
+    (13, 15): {"위생목욕": 80000, "전체미용": 90000, "전체얼컷": 105000, "스포팅": 145000},
+}
+
+SURCHARGES = {
+    "clipping_1.3cm": 10000,
+    "clipping_2cm": 20000,
+    "face_cut": 15000,
+    "matting_light": 5000,
+    "matting_heavy": 10000,
+    "fur_medium": 5000,
+    "fur_long": 10000,
+}
 
 # === 영업 시간 ===
 BUSINESS_HOURS_START = "10:00"

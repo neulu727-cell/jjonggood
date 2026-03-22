@@ -1,0 +1,360 @@
+/* === 견적 계산기 스타일 === */
+:root {
+    --primary: #4F46E5;
+    --primary-light: #EEF2FF;
+    --primary-dark: #4338CA;
+    --bg: #F7F8FA;
+    --card: #ffffff;
+    --text: #191F28;
+    --text-secondary: #4E5968;
+    --text-light: #8B95A1;
+    --border: #F2F3F5;
+    --border-strong: #E5E8EB;
+    --green: #22C55E;
+    --red: #EF4444;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --transition: 0.2s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+    font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh;
+    letter-spacing: -0.02em;
+    -webkit-font-smoothing: antialiased;
+}
+
+.calc-app {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 16px 40px;
+}
+
+/* 헤더 */
+.calc-header {
+    text-align: center;
+    padding: 32px 0 20px;
+}
+.calc-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 4px;
+}
+.calc-header p {
+    font-size: 13px;
+    color: var(--text-light);
+}
+
+/* 카드 */
+.calc-card {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+}
+.card-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+.card-desc {
+    font-size: 12px;
+    color: var(--text-light);
+    margin: -8px 0 16px;
+    line-height: 1.5;
+}
+
+/* 폼 */
+.form-group {
+    margin-bottom: 14px;
+}
+.form-group:last-child {
+    margin-bottom: 0;
+}
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    color: var(--text);
+    background: var(--card);
+    transition: border-color var(--transition);
+    font-family: inherit;
+}
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+}
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* 견종 자동완성 */
+.breed-input-wrap {
+    position: relative;
+}
+.breed-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: var(--card);
+    border: 1.5px solid var(--border-strong);
+    border-top: none;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: var(--shadow-md);
+}
+.breed-option {
+    padding: 10px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.breed-option:hover, .breed-option.highlighted {
+    background: var(--primary-light);
+}
+
+/* 서비스 탭 */
+.service-tabs {
+    display: flex;
+    gap: 8px;
+}
+.service-tab {
+    flex: 1;
+    padding: 12px 8px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.service-tab.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+/* 클리핑 옵션 */
+.clipping-options {
+    margin-top: 16px;
+}
+.clipping-options label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+/* 칩 그룹 */
+.chip-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.chip {
+    padding: 8px 14px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 20px;
+    background: var(--card);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+.chip.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+}
+.chip-extra {
+    font-size: 11px;
+    color: var(--red);
+    font-weight: 400;
+}
+
+/* 옵션 행 */
+.option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+.option-row:last-child {
+    border-bottom: none;
+}
+.option-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.option-label span:first-child {
+    font-size: 14px;
+    font-weight: 600;
+}
+.option-hint {
+    font-size: 11px;
+    color: var(--text-light);
+}
+
+/* 토글 그룹 */
+.toggle-group {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.toggle-btn {
+    padding: 7px 12px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 6px;
+    background: var(--card);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+.toggle-btn.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+}
+.toggle-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* 가격 카드 */
+.price-card {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    text-align: center;
+    padding: 28px 20px;
+}
+.price-label {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-bottom: 8px;
+}
+.price-amount {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 4px;
+    transition: all 0.3s ease;
+}
+.price-detail {
+    font-size: 12px;
+    opacity: 0.75;
+    margin-bottom: 8px;
+    min-height: 16px;
+}
+.price-notice {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 8px;
+}
+
+/* 전송 버튼 */
+.btn-submit {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--primary);
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition);
+    margin-top: 8px;
+}
+.btn-submit:hover {
+    background: var(--primary-dark);
+}
+.btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 전송 결과 */
+.submit-result {
+    margin-top: 12px;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    text-align: center;
+    font-weight: 600;
+}
+.submit-result.success {
+    background: #ECFDF5;
+    color: #059669;
+}
+.submit-result.error {
+    background: #FEF2F2;
+    color: #DC2626;
+}
+
+/* 푸터 */
+.calc-footer {
+    text-align: center;
+    padding: 20px 0;
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+/* 토스트 */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: 8px;
+    background: #333;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 9999;
+    animation: toastIn 0.3s ease;
+}
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* 포커스 접근성 */
+:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}

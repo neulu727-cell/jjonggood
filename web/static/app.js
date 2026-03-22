@@ -68,6 +68,7 @@ const App = (() => {
         const tlSec = document.getElementById('timelineSection');
         const custView = document.getElementById('customerView');
         const salesView = document.getElementById('salesView');
+        const requestsView = document.getElementById('requestsView');
         const leftPanel = document.querySelector('.left-panel');
 
         if (view === 'calendar') {
@@ -76,6 +77,7 @@ const App = (() => {
             tlSec.style.display = 'none';
             custView.style.display = 'none';
             salesView.style.display = 'none';
+            if (requestsView) requestsView.style.display = 'none';
             // collapsed/split-view 해제 + 선택 초기화
             document.querySelector('.main-content')?.classList.remove('split-view');
             document.querySelector('.calendar-section')?.classList.remove('collapsed');
@@ -91,6 +93,7 @@ const App = (() => {
             tlSec.style.display = 'flex';
             custView.style.display = 'none';
             salesView.style.display = 'none';
+            if (requestsView) requestsView.style.display = 'none';
         } else if (view === 'customers') {
             if (!isPC()) {
                 calSec.style.display = 'none';
@@ -102,6 +105,7 @@ const App = (() => {
             }
             custView.style.display = 'flex';
             salesView.style.display = 'none';
+            if (requestsView) requestsView.style.display = 'none';
             loadCustomerList('', customerSort);
         } else if (view === 'sales') {
             calSec.style.display = 'none';
@@ -109,12 +113,21 @@ const App = (() => {
             if (leftPanel) leftPanel.style.display = 'none';
             custView.style.display = 'none';
             salesView.style.display = 'flex';
+            if (requestsView) requestsView.style.display = 'none';
             if (!salesData) {
                 const now = new Date();
                 salesYear = now.getFullYear();
                 salesMonth = now.getMonth() + 1;
             }
             loadSalesMonth();
+        } else if (view === 'requests') {
+            calSec.style.display = 'none';
+            tlSec.style.display = 'none';
+            if (leftPanel) leftPanel.style.display = 'none';
+            custView.style.display = 'none';
+            salesView.style.display = 'none';
+            if (requestsView) requestsView.style.display = 'flex';
+            loadGroomingRequests();
         }
     }
 
@@ -169,7 +182,7 @@ const App = (() => {
             if (dow === 6) cls += ' saturday';
 
             const names = monthData.names[dateStr] || [];
-            const maxBadges = 2;
+            const maxBadges = 5;
             let badgesHtml = '';
             for (let i = 0; i < Math.min(names.length, maxBadges); i++) {
                 const entry = names[i];
@@ -182,8 +195,8 @@ const App = (() => {
                 const statusCls = entry.status === 'completed' ? 'completed' : 'confirmed';
                 badgesHtml += `<span class="cal-badge ${statusCls}">${esc(label)}</span>`;
             }
-            if (names.length > 0) {
-                badgesHtml += `<span class="cal-dogs">${'🐕'.repeat(names.length)}</span>`;
+            if (names.length > maxBadges) {
+                badgesHtml += `<span class="cal-more">+${names.length - maxBadges}건</span>`;
             }
 
             html += `<div class="${cls}" onclick="App.selectDate('${dateStr}')">
@@ -2779,6 +2792,139 @@ const App = (() => {
             .catch(() => {});
     }
 
+    // ==================== 견적 요청 (SSE + 알림) ====================
+
+    let _sseSource = null;
+    let _pendingRequestCount = 0;
+
+    function initGroomingSSE() {
+        if (_sseSource) return;
+        _sseSource = new EventSource('/api/grooming-requests/stream');
+        _sseSource.onmessage = function(e) {
+            try {
+                const data = JSON.parse(e.data);
+                if (data.type === 'init') {
+                    _pendingRequestCount = data.pending_count;
+                    updateRequestBadge();
+                } else if (data.type === 'new_request') {
+                    _pendingRequestCount++;
+                    updateRequestBadge();
+                    showBrowserNotification(data);
+                    if (currentView === 'requests') loadGroomingRequests();
+                }
+            } catch (err) {}
+        };
+        _sseSource.onerror = function() {
+            _sseSource.close();
+            _sseSource = null;
+            setTimeout(initGroomingSSE, 5000);
+        };
+    }
+
+    function updateRequestBadge() {
+        const cnt = _pendingRequestCount;
+        const navBadge = document.getElementById('requestsNavBadge');
+        const inlineBadge = document.getElementById('requestsBadgeInline');
+        if (navBadge) {
+            navBadge.textContent = cnt;
+            navBadge.style.display = cnt > 0 ? '' : 'none';
+        }
+        if (inlineBadge) {
+            inlineBadge.textContent = cnt;
+            inlineBadge.style.display = cnt > 0 ? '' : 'none';
+        }
+    }
+
+    function showBrowserNotification(data) {
+        if (!('Notification' in window)) return;
+        if (Notification.permission === 'default') {
+            Notification.requestPermission();
+            return;
+        }
+        if (Notification.permission !== 'granted') return;
+        const title = '새 견적 요청';
+        const body = `${data.breed || ''} / ${data.actual_service || data.service_type || ''} / ${(data.estimated_price || 0).toLocaleString()}원${data.customer_name ? ' - ' + data.customer_name : ''}`;
+        new Notification(title, { body, icon: '/static/icons/icon-192.png' });
+    }
+
+    async function loadGroomingRequests() {
+        const filter = document.getElementById('requestsFilter');
+        const status = filter ? filter.value : 'pending';
+        const body = document.getElementById('requestsBody');
+        body.innerHTML = '<div class="loading" style="padding:20px"></div>';
+
+        try {
+            const url = status ? `/api/grooming-requests?status=${status}` : '/api/grooming-requests';
+            const res = await fetch(url, { credentials: 'same-origin' });
+            const rows = await res.json();
+            if (!rows.length) {
+                body.innerHTML = '<div style="text-align:center;padding:40px;color:#999;font-size:14px">요청이 없습니다</div>';
+                return;
+            }
+            body.innerHTML = rows.map(r => renderRequestCard(r)).join('');
+        } catch (e) {
+            body.innerHTML = '<div style="text-align:center;padding:40px;color:#EF4444;font-size:14px">로딩 실패</div>';
+        }
+    }
+
+    function renderRequestCard(r) {
+        const statusLabels = { pending: '⏳ 대기중', confirmed: '✅ 확인됨', dismissed: '🚫 무시됨' };
+        const statusClass = r.status === 'pending' ? 'pending' : r.status === 'confirmed' ? 'confirmed' : 'dismissed';
+        const created = r.created_at || '';
+        const options = [];
+        if (r.clipping_length) options.push(`클리핑 ${r.clipping_length}`);
+        if (r.face_cut) options.push('얼굴커트');
+        if (r.matting && r.matting !== 'none') options.push(`엉킴: ${r.matting === 'light' ? '조금' : '심함'}`);
+        if (r.fur_length) options.push(`털: ${r.fur_length}`);
+
+        return `<div class="request-card ${statusClass}">
+            <div class="req-top">
+                <span class="req-status ${statusClass}">${statusLabels[r.status] || r.status}</span>
+                <span class="req-time">${created}</span>
+            </div>
+            <div class="req-info">
+                <div class="req-main">
+                    <strong>${r.breed || ''}</strong>
+                    <span>${r.weight ? r.weight + 'kg' : ''}</span>
+                    <span class="req-service">${r.actual_service || r.service_type}</span>
+                </div>
+                <div class="req-price">${(r.estimated_price || 0).toLocaleString()}원</div>
+            </div>
+            ${options.length ? `<div class="req-options">${options.join(' · ')}</div>` : ''}
+            ${r.customer_name || r.customer_phone ? `<div class="req-contact">${r.customer_name || ''} ${r.customer_phone || ''}</div>` : ''}
+            ${r.memo ? `<div class="req-memo">${r.memo}</div>` : ''}
+            ${r.status === 'pending' ? `<div class="req-actions">
+                <button class="req-btn confirm" onclick="App.updateRequestStatus(${r.id}, 'confirmed')">✅ 확인</button>
+                <button class="req-btn dismiss" onclick="App.updateRequestStatus(${r.id}, 'dismissed')">🚫 무시</button>
+            </div>` : ''}
+        </div>`;
+    }
+
+    async function updateRequestStatus(id, status) {
+        try {
+            await fetch(`/api/grooming-requests/${id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ status }),
+            });
+            if (status === 'confirmed' || status === 'dismissed') {
+                _pendingRequestCount = Math.max(0, _pendingRequestCount - 1);
+                updateRequestBadge();
+            }
+            loadGroomingRequests();
+        } catch (e) {
+            toast('상태 변경 실패', 'error');
+        }
+    }
+
+    // SSE 시작 (init에서 호출)
+    setTimeout(initGroomingSSE, 1000);
+    // 브라우저 알림 권한 요청
+    if ('Notification' in window && Notification.permission === 'default') {
+        setTimeout(() => Notification.requestPermission(), 3000);
+    }
+
     function toggleGoogle() {
         fetch('/google/status', {credentials: 'same-origin'})
             .then(r => r.json())
@@ -2829,6 +2975,7 @@ const App = (() => {
         showImportForm, submitImport,
         changeSalesMonth, goTodaySales, showSalesDayDetail, showCustomAmount,
         toggleGoogle,
+        loadGroomingRequests, updateRequestStatus,
     };
 })();
 

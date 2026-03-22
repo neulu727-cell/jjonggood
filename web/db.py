@@ -227,6 +227,24 @@ class DatabaseManager:
                         created_at      TIMESTAMP DEFAULT NOW()
                     );
 
+                    CREATE TABLE IF NOT EXISTS grooming_requests (
+                        id              SERIAL PRIMARY KEY,
+                        breed           TEXT NOT NULL,
+                        weight          REAL,
+                        service_type    TEXT NOT NULL,
+                        actual_service  TEXT DEFAULT '',
+                        clipping_length TEXT DEFAULT '',
+                        face_cut        BOOLEAN DEFAULT FALSE,
+                        matting         TEXT DEFAULT 'none',
+                        fur_length      TEXT DEFAULT '',
+                        estimated_price INTEGER DEFAULT 0,
+                        customer_name   TEXT DEFAULT '',
+                        customer_phone  TEXT DEFAULT '',
+                        memo            TEXT DEFAULT '',
+                        status          TEXT DEFAULT 'pending',
+                        created_at      TIMESTAMP DEFAULT NOW()
+                    );
+
                     CREATE INDEX IF NOT EXISTS idx_reservations_date ON reservations(date);
                     CREATE INDEX IF NOT EXISTS idx_reservations_customer ON reservations(customer_id);
                     CREATE INDEX IF NOT EXISTS idx_reservations_date_customer ON reservations(date, customer_id);

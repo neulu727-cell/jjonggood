@@ -87,6 +87,7 @@ def create_app():
     from web.routes_setup import setup_bp
     from web.routes_sales import sales_bp
     from web.routes_google import google_bp
+    from web.routes_calculator import calculator_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(calendar_bp)
@@ -97,6 +98,7 @@ def create_app():
     app.register_blueprint(setup_bp)
     app.register_blueprint(sales_bp)
     app.register_blueprint(google_bp)
+    app.register_blueprint(calculator_bp)
 
     # --- 정적 파일 캐시 버스팅: url_for('static') → ?v=해시 자동 추가 ---
     _static_hashes = {}
@@ -125,8 +127,25 @@ def create_app():
 
     @app.route("/manifest.json")
     def manifest():
-        response = app.send_static_file("manifest.json")
-        response.headers["Content-Type"] = "application/manifest+json"
+        import json as _json
+        manifest_data = {
+            "name": "쫑굿 예약관리",
+            "short_name": "쫑굿",
+            "start_url": f"/{config.ADMIN_SECRET_PATH}",
+            "display": "standalone",
+            "background_color": "#F7F8FA",
+            "theme_color": "#4F46E5",
+            "icons": [
+                {"src": "/static/icons/icon-192.png?v=3", "sizes": "192x192", "type": "image/png"},
+                {"src": "/static/icons/icon-512.png?v=3", "sizes": "512x512", "type": "image/png"},
+                {"src": "/static/icons/icon-maskable-192.png?v=3", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+                {"src": "/static/icons/icon-maskable-512.png?v=3", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+            ]
+        }
+        response = app.response_class(
+            response=_json.dumps(manifest_data, ensure_ascii=False),
+            mimetype="application/manifest+json"
+        )
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         return response
 
@@ -145,6 +164,13 @@ def create_app():
 
     @app.route("/")
     def index():
+        return render_template("calculator.html",
+                               breeds=config.COMMON_BREEDS,
+                               price_table=config.PRICE_TABLE,
+                               surcharges=config.SURCHARGES)
+
+    @app.route(f"/{config.ADMIN_SECRET_PATH}")
+    def admin_index():
         session["authenticated"] = True
         return render_template("index.html",
                                services=config.DEFAULT_SERVICES,

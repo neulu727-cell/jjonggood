@@ -7,12 +7,12 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
-    """로그인 페이지 비활성화 — 메인으로 리다이렉트"""
+    """로그인 페이지 비활성화 — 관리자로 리다이렉트"""
     session["authenticated"] = True
-    return redirect(url_for("index"))
+    return redirect(url_for("admin_index"))
 
 
 @auth_bp.route("/logout")
 def logout():
-    """로그아웃 비활성화 — 메인으로 리다이렉트"""
-    return redirect(url_for("index"))
+    """로그아웃 비활성화 — 관리자로 리다이렉트"""
+    return redirect(url_for("admin_index"))
