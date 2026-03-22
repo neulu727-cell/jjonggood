@@ -182,7 +182,7 @@ const App = (() => {
             if (dow === 6) cls += ' saturday';
 
             const names = monthData.names[dateStr] || [];
-            const maxBadges = 5;
+            const maxBadges = 4;
             let badgesHtml = '';
             for (let i = 0; i < Math.min(names.length, maxBadges); i++) {
                 const entry = names[i];
@@ -196,7 +196,10 @@ const App = (() => {
                 badgesHtml += `<span class="cal-badge ${statusCls}">${esc(label)}</span>`;
             }
             if (names.length > maxBadges) {
-                badgesHtml += `<span class="cal-more">+${names.length - maxBadges}건</span>`;
+                const overflow = names.length - maxBadges;
+                // 5마리 이하: 보통 크기, 6~8: 작게, 9+: 더 작게
+                const sizeClass = overflow <= 5 ? '' : overflow <= 8 ? 'sm' : 'xs';
+                badgesHtml += `<span class="cal-dogs ${sizeClass}">${'🐕'.repeat(overflow)}</span>`;
             }
 
             html += `<div class="${cls}" onclick="App.selectDate('${dateStr}')">
