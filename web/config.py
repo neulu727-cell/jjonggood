@@ -17,7 +17,7 @@ ADMIN_SECRET_PATH = os.environ.get("ADMIN_SECRET_PATH", "mgmt-x7k9m2p4")
 
 # === 샵 연락처 (견적 상담 연결용) ===
 SHOP_PHONE = os.environ.get("SHOP_PHONE", "01084247395")
-SHOP_KAKAO_URL = os.environ.get("SHOP_KAKAO_URL", "https://pf.kakao.com/qjNxhX/chat")
+SHOP_KAKAO_URL = os.environ.get("SHOP_KAKAO_URL", "http://pf.kakao.com/qjNxhX/chat")
 SHOP_NAVER_URL = os.environ.get("SHOP_NAVER_URL", "https://talk.naver.com/WILRAWG")
 
 # === Google OAuth ===
