@@ -263,10 +263,19 @@ const Calc = (() => {
         }
 
         // 2) 인앱 브라우저면 닫기 (대화방 복귀), 일반 브라우저면 채널로 이동
-        if (SOURCE === 'kakao' || SOURCE === 'naver') {
-            // 전송 완료 잠깐 표시 후 뒤로가기로 대화방 복귀
+        if (SOURCE === 'kakao') {
+            // 카카오톡 인앱 브라우저 전용 닫기 스킴
             showSentOverlay(() => {
+                location.href = 'kakaotalk://inappbrowser/close';
+            });
+        } else if (SOURCE === 'naver') {
+            showSentOverlay(() => {
+                // 네이버 인앱은 전용 스킴이 없으므로 뒤로가기 시도 후 안내
                 history.back();
+                setTimeout(() => {
+                    const sub = document.querySelector('.sent-sub');
+                    if (sub) sub.textContent = '← 뒤로가기를 눌러 대화방으로 돌아가주세요';
+                }, 800);
             });
         } else {
             if (channel === 'kakao') {
