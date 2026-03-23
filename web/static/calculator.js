@@ -264,14 +264,9 @@ const Calc = (() => {
 
         // 2) 인앱 브라우저면 닫기 (대화방 복귀), 일반 브라우저면 채널로 이동
         if (SOURCE === 'kakao' || SOURCE === 'naver') {
-            // 전송 완료 표시 후 인앱 브라우저 닫기
+            // 전송 완료 잠깐 표시 후 뒤로가기로 대화방 복귀
             showSentOverlay(() => {
-                window.close();
-                // window.close()가 안 먹히는 경우 대비
-                setTimeout(() => {
-                    if (channel === 'kakao') window.location.href = SHOP.kakao;
-                    else if (channel === 'naver') window.location.href = SHOP.naver;
-                }, 500);
+                history.back();
             });
         } else {
             if (channel === 'kakao') {
@@ -293,7 +288,7 @@ const Calc = (() => {
             <div class="sent-sub">대화방으로 돌아갑니다...</div>
         `;
         document.body.appendChild(overlay);
-        setTimeout(callback, 1200);
+        if (callback) setTimeout(callback, 1200);
     }
 
     function showToast(msg) {
