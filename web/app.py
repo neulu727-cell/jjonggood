@@ -164,9 +164,15 @@ def create_app():
 
     @app.route("/")
     def index():
+        # PRICE_TABLE의 tuple key를 JSON-safe string key로 변환
+        price_table_js = {}
+        for breed_name, ranges in config.PRICE_TABLE.items():
+            price_table_js[breed_name] = {}
+            for (min_kg, max_kg), prices in ranges.items():
+                price_table_js[breed_name][f"{min_kg}-{max_kg}"] = prices
         return render_template("calculator.html",
                                breeds=config.COMMON_BREEDS,
-                               price_table=config.PRICE_TABLE,
+                               price_table_json=price_table_js,
                                surcharges=config.SURCHARGES,
                                shop_phone=config.SHOP_PHONE,
                                shop_kakao_url=config.SHOP_KAKAO_URL,

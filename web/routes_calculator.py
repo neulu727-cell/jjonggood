@@ -53,10 +53,9 @@ def api_calculate_price():
     data = request.get_json(silent=True) or {}
     service_choice = data.get("service_choice", "위생목욕")
     weight_kg = data.get("weight_kg")
+    breed_type = data.get("breed_type", "일반")
     clipping_length = data.get("clipping_length", "")
     face_cut = bool(data.get("face_cut", False))
-    matting = data.get("matting", "none")
-    fur_length = data.get("fur_length", "")
 
     try:
         weight_kg = float(weight_kg) if weight_kg else 0
@@ -64,7 +63,7 @@ def api_calculate_price():
         weight_kg = 0
 
     price, actual_service = calculate_price(
-        service_choice, weight_kg, clipping_length, face_cut, matting, fur_length
+        service_choice, weight_kg, breed_type, clipping_length, face_cut
     )
     return jsonify({
         "estimated_price": price,
@@ -92,16 +91,15 @@ def api_grooming_request():
     except (ValueError, TypeError):
         weight_kg = 0
 
+    breed_type = data.get("breed_type", "일반")
     clipping_length = data.get("clipping_length", "")
     face_cut = bool(data.get("face_cut", False))
-    matting = data.get("matting", "none")
-    fur_length = data.get("fur_length", "")
     customer_name = (data.get("customer_name") or "").strip()[:50]
     customer_phone = (data.get("customer_phone") or "").strip()[:20]
     memo = (data.get("memo") or "").strip()[:500]
 
     price, actual_service = calculate_price(
-        service_choice, weight_kg, clipping_length, face_cut, matting, fur_length
+        service_choice, weight_kg, breed_type, clipping_length, face_cut
     )
 
     db = get_db()
@@ -109,7 +107,7 @@ def api_grooming_request():
         db, breed=breed, weight=weight_kg,
         service_type=service_choice, actual_service=actual_service,
         clipping_length=clipping_length, face_cut=face_cut,
-        matting=matting, fur_length=fur_length,
+        matting="none", fur_length="",
         estimated_price=price, customer_name=customer_name,
         customer_phone=customer_phone, memo=memo,
     )

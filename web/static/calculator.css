@@ -137,7 +137,7 @@ html, body {
 /* 몸무게 버튼 */
 .weight-btn-group {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 6px;
 }
 .weight-btn {
@@ -220,6 +220,83 @@ html, body {
     font-size: 11px;
     color: var(--red);
     font-weight: 400;
+}
+.chip-extra.chip-free {
+    color: var(--text-light);
+}
+
+/* 클리핑 서브옵션 (얼굴컷/비숑컷 토글) */
+.clipping-sub-options {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+.bichon-clipping-notice {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    line-height: 1.4;
+}
+
+/* 포함 서비스 칩 */
+.included-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+.included-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 12px;
+    border-radius: 20px;
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    font-size: 12px;
+    color: #065F46;
+    cursor: default;
+    position: relative;
+    user-select: none;
+}
+.included-check {
+    font-size: 11px;
+    font-weight: 700;
+    color: #10B981;
+}
+.included-text {
+    font-weight: 600;
+}
+.included-price {
+    font-size: 11px;
+    color: #6EE7B7;
+    font-weight: 500;
+}
+.included-tooltip {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    background: #1F2937;
+    color: white;
+    font-size: 11px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    z-index: 10;
+    line-height: 1.4;
+}
+.included-tooltip.show {
+    display: block;
+}
+.included-chip:active .included-tooltip,
+.included-tooltip.show {
+    display: block;
 }
 
 /* 옵션 행 */

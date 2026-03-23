@@ -2,20 +2,18 @@
 
 const Calc = (() => {
     // 상태
-    let breedType = '일반';   // '일반' | '특수'
-    let weightRange = '';      // '1-3', '3-5', ... (선택 안 하면 빈 문자열)
+    let breedType = '일반';   // '일반' | '비숑'
+    let weightRange = '';      // '0-4', '4-6', '6-8', '8-10'
     let serviceChoice = '위생목욕';
     let clippingLength = '3mm';
     let faceCut = false;
-    let matting = 'none';
-    let furLength = '짧다';
 
     // 유입 채널 감지
     function detectSource() {
         const ua = navigator.userAgent || '';
         if (/KAKAOTALK/i.test(ua)) return 'kakao';
         if (/NAVER/i.test(ua)) return 'naver';
-        return 'web';  // 일반 브라우저
+        return 'web';
     }
     const SOURCE = detectSource();
 
@@ -23,6 +21,17 @@ const Calc = (() => {
         updateServiceUI();
         updatePrice();
         updateConsultButtons();
+        initTooltip();
+    }
+
+    // === 전체위생 칩 툴팁 ===
+    function initTooltip() {
+        const chip = document.getElementById('chipHygiene');
+        if (!chip) return;
+        chip.addEventListener('click', () => {
+            const tooltip = document.getElementById('hygieneTooltip');
+            if (tooltip) tooltip.classList.toggle('show');
+        });
     }
 
     // === 견종 타입 선택 ===
@@ -32,6 +41,7 @@ const Calc = (() => {
         document.querySelectorAll('.breed-btn').forEach(el => {
             el.classList.toggle('active', el.dataset.breed === type);
         });
+        updateServiceUI();
         updatePrice();
     }
 
@@ -50,7 +60,6 @@ const Calc = (() => {
         document.querySelectorAll('.service-tab').forEach(el => {
             el.classList.toggle('active', el.dataset.service === svc);
         });
-        // 서비스 바꾸면 faceCut 초기화
         if (svc !== '클리핑') {
             faceCut = false;
         }
@@ -59,25 +68,36 @@ const Calc = (() => {
     }
 
     function updateServiceUI() {
-        // 클리핑 옵션 표시
-        document.getElementById('clippingOptions').style.display =
-            serviceChoice === '클리핑' ? '' : 'none';
+        const isClipping = serviceChoice === '클리핑';
 
-        // 털길이 옵션 (위생목욕만)
-        document.getElementById('furLengthRow').style.display =
-            serviceChoice === '위생목욕' ? '' : 'none';
+        // 클리핑 길이 옵션
+        document.getElementById('clippingOptions').style.display = isClipping ? '' : 'none';
 
-        // 얼굴커트: 클리핑 선택 시만 표시
-        const faceCutRow = document.getElementById('faceCutRow');
-        if (serviceChoice === '클리핑') {
-            faceCutRow.style.display = '';
+        // 얼굴컷/비숑컷 토글
+        const subOptions = document.getElementById('clippingSubOptions');
+        subOptions.style.display = isClipping ? '' : 'none';
+
+        if (isClipping) {
+            // 비숑이면 "비숑컷", 일반이면 "얼굴컷"
+            const label = document.getElementById('faceCutLabel');
+            label.textContent = breedType === '비숑' ? '비숑컷' : '얼굴컷';
+
             const hint = document.getElementById('faceCutHint');
-            hint.textContent = faceCut ? '→ 전체얼컷' : '→ 전체미용';
+            if (faceCut) {
+                hint.textContent = breedType === '비숑' ? '→ 클리핑+비숑컷' : '→ 클리핑+얼굴컷';
+            } else {
+                hint.textContent = '→ 클리핑';
+            }
+
             document.querySelectorAll('#faceCutToggle .toggle-btn').forEach(btn => {
                 btn.classList.toggle('active', String(faceCut) === btn.dataset.val);
             });
-        } else {
-            faceCutRow.style.display = 'none';
+
+            // 비숑 + 클리핑(비숑컷X) → 일반과 동일 요금 안내
+            const notice = document.getElementById('bichonClippingNotice');
+            if (notice) {
+                notice.style.display = (breedType === '비숑' && !faceCut) ? '' : 'none';
+            }
         }
     }
 
@@ -90,56 +110,41 @@ const Calc = (() => {
         updatePrice();
     }
 
-    // === 얼굴커트 토글 ===
+    // === 얼굴컷 토글 ===
     function setFaceCut(val) {
         faceCut = val;
         updateServiceUI();
         updatePrice();
     }
 
-    // === 엉킴 정도 ===
-    function setMatting(val) {
-        matting = val;
-        document.querySelectorAll('#mattingToggle .toggle-btn').forEach(el => {
-            el.classList.toggle('active', el.dataset.val === val);
-        });
-        updatePrice();
-    }
-
-    // === 털길이 ===
-    function setFurLength(val) {
-        furLength = val;
-        document.querySelectorAll('#furLengthToggle .toggle-btn').forEach(el => {
-            el.classList.toggle('active', el.dataset.val === val);
-        });
-        updatePrice();
-    }
-
     // === 가격 계산 (클라이언트) ===
     function calculatePrice() {
-        // 특수견종은 "상담 필요"
-        if (breedType === '특수') {
-            return { total: 0, actualService: '', details: [], isSpecial: true };
-        }
-
-        // 몸무게 미선택
         if (!weightRange) {
-            return { total: 0, actualService: '', details: [], isSpecial: false };
+            return { total: 0, actualService: '', details: [] };
         }
 
         // 서비스 매핑
         let actualService;
         if (serviceChoice === '클리핑') {
-            actualService = faceCut ? '전체얼컷' : '전체미용';
+            if (faceCut) {
+                actualService = breedType === '비숑' ? '클리핑+비숑컷' : '클리핑+얼굴컷';
+            } else {
+                actualService = '클리핑';
+            }
         } else if (serviceChoice === '스포팅') {
             actualService = '스포팅';
         } else {
             actualService = '위생목욕';
         }
 
-        // base price from weight range
-        const rangeData = PRICE_TABLE[weightRange];
-        let basePrice = rangeData ? (rangeData.prices[actualService] || 0) : 0;
+        // breed별 요금표에서 조회 (key: "0-4", "4-6", ...)
+        const breedTable = PRICE_TABLE[breedType] || PRICE_TABLE['일반'];
+
+        let basePrice = 0;
+        const prices = breedTable[weightRange];
+        if (prices) {
+            basePrice = prices[actualService] || 0;
+        }
 
         let total = basePrice;
         const details = [];
@@ -150,45 +155,22 @@ const Calc = (() => {
 
         // 클리핑 길이 추가금
         if (serviceChoice === '클리핑') {
-            if (clippingLength === '1.3cm') {
-                total += SURCHARGES['clipping_1.3cm'];
-                details.push(`클리핑 1.3cm: +${SURCHARGES['clipping_1.3cm'].toLocaleString()}원`);
-            } else if (clippingLength === '2cm') {
-                total += SURCHARGES['clipping_2cm'];
-                details.push(`클리핑 2cm: +${SURCHARGES['clipping_2cm'].toLocaleString()}원`);
+            if (clippingLength === '13mm' && SURCHARGES['clipping_13mm']) {
+                total += SURCHARGES['clipping_13mm'];
+                details.push(`클리핑 13mm: +${SURCHARGES['clipping_13mm'].toLocaleString()}원`);
+            } else if (clippingLength === '20mm' && SURCHARGES['clipping_20mm']) {
+                total += SURCHARGES['clipping_20mm'];
+                details.push(`클리핑 20mm: +${SURCHARGES['clipping_20mm'].toLocaleString()}원`);
             }
         }
 
-        // 엉킴
-        if (matting === 'light') {
-            total += SURCHARGES['matting_light'];
-            details.push(`엉킴(조금): +${SURCHARGES['matting_light'].toLocaleString()}원`);
-        } else if (matting === 'heavy') {
-            total += SURCHARGES['matting_heavy'];
-            details.push(`엉킴(심함): +${SURCHARGES['matting_heavy'].toLocaleString()}원`);
-        }
-
-        // 털길이 (위생목욕만)
-        if (serviceChoice === '위생목욕') {
-            if (furLength === '중간') {
-                total += SURCHARGES['fur_medium'];
-                details.push(`털길이(중간): +${SURCHARGES['fur_medium'].toLocaleString()}원`);
-            } else if (furLength === '길다') {
-                total += SURCHARGES['fur_long'];
-                details.push(`털길이(길다): +${SURCHARGES['fur_long'].toLocaleString()}원`);
-            }
-        }
-
-        return { total, actualService, details, isSpecial: false };
+        return { total, actualService, details };
     }
 
     function updatePrice() {
-        const { total, details, isSpecial } = calculatePrice();
+        const { total, details } = calculatePrice();
         const el = document.getElementById('priceAmount');
-        if (isSpecial) {
-            el.textContent = '상담 필요';
-            document.getElementById('priceDetail').textContent = '비숑, 대형견 등은 상담 후 안내드립니다';
-        } else if (total > 0) {
+        if (total > 0) {
             el.textContent = `${total.toLocaleString()}원`;
             document.getElementById('priceDetail').textContent =
                 details.length > 1 ? details.join(' / ') : '';
@@ -204,21 +186,18 @@ const Calc = (() => {
         if (!container) return;
 
         if (SOURCE === 'kakao') {
-            // 카톡에서 유입 → 카톡 상담 버튼만 크게
             container.innerHTML = `
                 <button class="consult-btn kakao single" onclick="Calc.consultVia('kakao')">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.48 3 2 6.58 2 10.9c0 2.78 1.86 5.22 4.65 6.6-.15.53-.96 3.4-.99 3.62 0 0-.02.17.09.23.11.07.24.01.24.01.32-.04 3.7-2.44 4.28-2.86.56.08 1.14.12 1.73.12 5.52 0 10-3.58 10-7.9S17.52 3 12 3z"/></svg>
                     <span>이 견적으로 카톡 상담하기</span>
                 </button>`;
         } else if (SOURCE === 'naver') {
-            // 네이버에서 유입 → 톡톡 버튼만 크게
             container.innerHTML = `
                 <button class="consult-btn naver single" onclick="Calc.consultVia('naver')">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16.27 10.7L7.4 21h4.47l5.53-6.4V21H21V3h-3.6v7.7zM3 3v18h3.6V13.3L15.47 3H11L5.47 9.4V3H3z"/></svg>
                     <span>이 견적으로 톡톡 상담하기</span>
                 </button>`;
         }
-        // 일반 브라우저: 3개 버튼 모두 유지 (HTML 그대로)
     }
 
     // === 상담 연결 ===
@@ -228,31 +207,27 @@ const Calc = (() => {
             showToast('견종을 선택해주세요');
             return;
         }
-        if (!weightRange && breedType !== '특수') {
+        if (!weightRange) {
             showToast('몸무게를 선택해주세요');
             return;
         }
 
         // weightRange에서 중간값 추출
-        let weightKg = 0;
-        if (weightRange) {
-            const parts = weightRange.split('-');
-            weightKg = (parseFloat(parts[0]) + parseFloat(parts[1])) / 2;
-        }
+        const parts = weightRange.split('-');
+        const weightKg = (parseFloat(parts[0]) + parseFloat(parts[1])) / 2;
 
-        // 1) 견적 내용을 샵에 전송 (백그라운드, 유입채널+상담채널 포함)
+        // 견적 내용을 샵에 전송
         try {
             fetch('/api/grooming-request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     breed,
+                    breed_type: breedType,
                     weight_kg: weightKg,
                     service_choice: serviceChoice,
                     clipping_length: serviceChoice === '클리핑' ? clippingLength : '',
                     face_cut: faceCut,
-                    matting,
-                    fur_length: serviceChoice === '위생목욕' ? furLength : '',
                     customer_name: '',
                     customer_phone: '',
                     memo: JSON.stringify({ source: SOURCE, consult: channel }),
@@ -262,15 +237,13 @@ const Calc = (() => {
             // 전송 실패해도 상담 연결은 진행
         }
 
-        // 2) 인앱 브라우저면 닫기 (대화방 복귀), 일반 브라우저면 채널로 이동
+        // 인앱 브라우저면 닫기, 일반 브라우저면 채널로 이동
         if (SOURCE === 'kakao') {
-            // 카카오톡 인앱 브라우저 전용 닫기 스킴
             showSentOverlay(() => {
                 location.href = 'kakaotalk://inappbrowser/close';
             });
         } else if (SOURCE === 'naver') {
             showSentOverlay(() => {
-                // 네이버 인앱은 전용 스킴이 없으므로 뒤로가기 시도 후 안내
                 history.back();
                 setTimeout(() => {
                     const sub = document.querySelector('.sent-sub');
@@ -314,8 +287,6 @@ const Calc = (() => {
         selectService,
         selectClipping,
         setFaceCut,
-        setMatting,
-        setFurLength,
         selectBreedType,
         selectWeight,
         consultVia,
