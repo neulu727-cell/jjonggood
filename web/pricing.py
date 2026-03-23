@@ -28,9 +28,9 @@ def calculate_price(service_choice, weight_kg, clipping_length="",
                 base_price = prices.get(actual_service, 0)
                 break
         else:
-            # 15kg 이상: 최고 구간 사용
-            if weight_kg >= 15:
-                last_prices = PRICE_TABLE[(13, 15)]
+            # 13kg 이상: 최고 구간 사용
+            if weight_kg >= 13:
+                last_prices = PRICE_TABLE[(11, 13)]
                 base_price = last_prices.get(actual_service, 0)
             # 1kg 미만: 최저 구간 사용
             elif weight_kg < 1:

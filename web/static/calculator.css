@@ -137,7 +137,7 @@ html, body {
 /* 몸무게 버튼 */
 .weight-btn-group {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
 }
 .weight-btn {
