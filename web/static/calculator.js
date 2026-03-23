@@ -262,14 +262,38 @@ const Calc = (() => {
             // 전송 실패해도 상담 연결은 진행
         }
 
-        // 2) 상담 채널로 이동
-        if (channel === 'kakao') {
-            window.location.href = SHOP.kakao;
-        } else if (channel === 'naver') {
-            window.location.href = SHOP.naver;
-        } else if (channel === 'phone') {
-            window.location.href = 'tel:' + SHOP.phone;
+        // 2) 인앱 브라우저면 닫기 (대화방 복귀), 일반 브라우저면 채널로 이동
+        if (SOURCE === 'kakao' || SOURCE === 'naver') {
+            // 전송 완료 표시 후 인앱 브라우저 닫기
+            showSentOverlay(() => {
+                window.close();
+                // window.close()가 안 먹히는 경우 대비
+                setTimeout(() => {
+                    if (channel === 'kakao') window.location.href = SHOP.kakao;
+                    else if (channel === 'naver') window.location.href = SHOP.naver;
+                }, 500);
+            });
+        } else {
+            if (channel === 'kakao') {
+                window.location.href = SHOP.kakao;
+            } else if (channel === 'naver') {
+                window.location.href = SHOP.naver;
+            } else if (channel === 'phone') {
+                window.location.href = 'tel:' + SHOP.phone;
+            }
         }
+    }
+
+    function showSentOverlay(callback) {
+        const overlay = document.createElement('div');
+        overlay.className = 'sent-overlay';
+        overlay.innerHTML = `
+            <div class="sent-check">✓</div>
+            <div class="sent-text">견적이 전송되었습니다</div>
+            <div class="sent-sub">대화방으로 돌아갑니다...</div>
+        `;
+        document.body.appendChild(overlay);
+        setTimeout(callback, 1200);
     }
 
     function showToast(msg) {
