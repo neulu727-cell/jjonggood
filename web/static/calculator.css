@@ -353,6 +353,12 @@ html, body {
 .consult-btn.phone:active {
     background: var(--primary-dark);
 }
+.consult-btn.single {
+    flex-direction: row;
+    padding: 18px 24px;
+    font-size: 16px;
+    gap: 10px;
+}
 
 /* 푸터 */
 .calc-footer {

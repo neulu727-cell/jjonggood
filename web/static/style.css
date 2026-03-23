@@ -1693,6 +1693,10 @@ textarea#quickMemo:focus {
 .req-status.confirmed { background: #ECFDF5; color: #059669; }
 .req-status.dismissed { background: #F3F4F6; color: #6B7280; }
 .req-time { font-size: 11px; color: var(--text-light); }
+.req-channel {
+    font-size: 11px; font-weight: 600; padding: 2px 6px;
+    border-radius: 4px; background: #F0F9FF; color: #0369A1;
+}
 
 .req-info {
     display: flex;

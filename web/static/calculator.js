@@ -10,9 +10,19 @@ const Calc = (() => {
     let matting = 'none';
     let furLength = '짧다';
 
+    // 유입 채널 감지
+    function detectSource() {
+        const ua = navigator.userAgent || '';
+        if (/KAKAOTALK/i.test(ua)) return 'kakao';
+        if (/NAVER/i.test(ua)) return 'naver';
+        return 'web';  // 일반 브라우저
+    }
+    const SOURCE = detectSource();
+
     function init() {
         updateServiceUI();
         updatePrice();
+        updateConsultButtons();
     }
 
     // === 견종 타입 선택 ===
@@ -188,8 +198,31 @@ const Calc = (() => {
         }
     }
 
+    // === 유입 채널에 따라 버튼 표시 조정 ===
+    function updateConsultButtons() {
+        const container = document.querySelector('.consult-buttons');
+        if (!container) return;
+
+        if (SOURCE === 'kakao') {
+            // 카톡에서 유입 → 카톡 상담 버튼만 크게
+            container.innerHTML = `
+                <button class="consult-btn kakao single" onclick="Calc.consultVia('kakao')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.48 3 2 6.58 2 10.9c0 2.78 1.86 5.22 4.65 6.6-.15.53-.96 3.4-.99 3.62 0 0-.02.17.09.23.11.07.24.01.24.01.32-.04 3.7-2.44 4.28-2.86.56.08 1.14.12 1.73.12 5.52 0 10-3.58 10-7.9S17.52 3 12 3z"/></svg>
+                    <span>이 견적으로 카톡 상담하기</span>
+                </button>`;
+        } else if (SOURCE === 'naver') {
+            // 네이버에서 유입 → 톡톡 버튼만 크게
+            container.innerHTML = `
+                <button class="consult-btn naver single" onclick="Calc.consultVia('naver')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16.27 10.7L7.4 21h4.47l5.53-6.4V21H21V3h-3.6v7.7zM3 3v18h3.6V13.3L15.47 3H11L5.47 9.4V3H3z"/></svg>
+                    <span>이 견적으로 톡톡 상담하기</span>
+                </button>`;
+        }
+        // 일반 브라우저: 3개 버튼 모두 유지 (HTML 그대로)
+    }
+
     // === 상담 연결 ===
-    async function consultVia(channel) {
+    function consultVia(channel) {
         const breed = document.getElementById('breedInput').value.trim();
         if (!breed) {
             showToast('견종을 선택해주세요');
@@ -207,7 +240,7 @@ const Calc = (() => {
             weightKg = (parseFloat(parts[0]) + parseFloat(parts[1])) / 2;
         }
 
-        // 1) 견적 내용을 샵에 전송 (백그라운드)
+        // 1) 견적 내용을 샵에 전송 (백그라운드, 유입채널+상담채널 포함)
         try {
             fetch('/api/grooming-request', {
                 method: 'POST',
@@ -222,7 +255,7 @@ const Calc = (() => {
                     fur_length: serviceChoice === '위생목욕' ? furLength : '',
                     customer_name: '',
                     customer_phone: '',
-                    memo: `상담채널: ${channel}`,
+                    memo: JSON.stringify({ source: SOURCE, consult: channel }),
                 }),
             });
         } catch (e) {
@@ -231,14 +264,12 @@ const Calc = (() => {
 
         // 2) 상담 채널로 이동
         if (channel === 'kakao') {
-            window.open(SHOP.kakao, '_blank');
+            window.location.href = SHOP.kakao;
         } else if (channel === 'naver') {
-            window.open(SHOP.naver, '_blank');
+            window.location.href = SHOP.naver;
         } else if (channel === 'phone') {
             window.location.href = 'tel:' + SHOP.phone;
         }
-
-        showToast('견적이 전송되었습니다');
     }
 
     function showToast(msg) {

@@ -2880,9 +2880,25 @@ const App = (() => {
         if (r.matting && r.matting !== 'none') options.push(`엉킴: ${r.matting === 'light' ? '조금' : '심함'}`);
         if (r.fur_length) options.push(`털: ${r.fur_length}`);
 
+        // 채널 정보 파싱
+        let channelBadge = '';
+        const memo = r.memo || '';
+        try {
+            const meta = JSON.parse(memo);
+            const sourceIcons = { kakao: '💬 카톡', naver: '🟢 톡톡', web: '🌐 웹' };
+            const consultIcons = { kakao: '카톡상담', naver: '톡톡상담', phone: '📞 전화상담' };
+            const src = sourceIcons[meta.source] || '';
+            const con = consultIcons[meta.consult] || '';
+            if (src || con) channelBadge = `<span class="req-channel">${src}${src && con ? ' → ' : ''}${con}</span>`;
+        } catch (e) {
+            // memo가 JSON이 아닌 경우 (이전 데이터) 그냥 표시
+            if (memo && !memo.startsWith('{')) channelBadge = `<div class="req-memo">${memo}</div>`;
+        }
+
         return `<div class="request-card ${statusClass}">
             <div class="req-top">
                 <span class="req-status ${statusClass}">${statusLabels[r.status] || r.status}</span>
+                ${channelBadge}
                 <span class="req-time">${created}</span>
             </div>
             <div class="req-info">
@@ -2894,8 +2910,6 @@ const App = (() => {
                 <div class="req-price">${(r.estimated_price || 0).toLocaleString()}원</div>
             </div>
             ${options.length ? `<div class="req-options">${options.join(' · ')}</div>` : ''}
-            ${r.customer_name || r.customer_phone ? `<div class="req-contact">${r.customer_name || ''} ${r.customer_phone || ''}</div>` : ''}
-            ${r.memo ? `<div class="req-memo">${r.memo}</div>` : ''}
             ${r.status === 'pending' ? `<div class="req-actions">
                 <button class="req-btn confirm" onclick="App.updateRequestStatus(${r.id}, 'confirmed')">✅ 확인</button>
                 <button class="req-btn dismiss" onclick="App.updateRequestStatus(${r.id}, 'dismissed')">🚫 무시</button>
