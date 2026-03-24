@@ -126,14 +126,17 @@ def create_customer():
     )
 
     # Google 연락처 동기화
+    google_synced = False
+    google_msg = ""
     try:
         from web.routes_google import sync_contact_to_google
-        sync_contact_to_google(cid, pet_name, weight, breed, phone, memo)
+        google_synced, google_msg = sync_contact_to_google(cid, pet_name, weight, breed, phone, memo)
     except Exception as e:
         log.warning("Google sync failed on create (customer %s): %s", cid, e)
+        google_msg = str(e)
 
     bump_update()
-    return jsonify({"ok": True, "id": cid})
+    return jsonify({"ok": True, "id": cid, "google_synced": google_synced, "google_msg": google_msg})
 
 
 @customer_bp.route("/api/customer/<int:cid>", methods=["GET"])
@@ -209,11 +212,13 @@ def update_customer(cid):
     queries.update_customer(db, cid, **fields)
 
     # Google 연락처 동기화
+    google_synced = False
+    google_msg = ""
     try:
         from web.routes_google import sync_contact_to_google
         customer = db.fetch_one("SELECT * FROM customers WHERE id = ?", (cid,))
         if customer:
-            sync_contact_to_google(
+            google_synced, google_msg = sync_contact_to_google(
                 cid,
                 customer["pet_name"],
                 customer["weight"],
@@ -224,9 +229,10 @@ def update_customer(cid):
             )
     except Exception as e:
         log.warning("Google sync failed on update (customer %s): %s", cid, e)
+        google_msg = str(e)
 
     bump_update()
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "google_synced": google_synced, "google_msg": google_msg})
 
 
 @customer_bp.route("/api/customer/<int:cid>", methods=["DELETE"])

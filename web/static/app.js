@@ -1476,7 +1476,15 @@ const App = (() => {
             if (result.ok || result.id) {
                 cachedCustomers = null;
                 closeSheet('customerFormSheet');
-                toast(isEdit ? '수정되었습니다' : '등록되었습니다', 'success');
+                const baseMsg = isEdit ? '수정되었습니다' : '등록되었습니다';
+                if (result.google_synced) {
+                    toast(baseMsg + ' (Google 연락처 동기화 완료)', 'success');
+                } else if (result.google_msg) {
+                    toast(baseMsg, 'success');
+                    setTimeout(() => toast('Google 동기화 실패: ' + result.google_msg, 'error'), 1500);
+                } else {
+                    toast(baseMsg, 'success');
+                }
                 // 고객 목록 자동 갱신
                 if (currentView === 'customers') loadCustomerList('', customerSort);
 
@@ -2947,7 +2955,7 @@ const App = (() => {
             .then(r => r.json())
             .then(data => {
                 if (data.connected) {
-                    const choice = prompt('1: 기존 고객 전체 동기화\n2: 연동 해제\n\n번호를 입력하세요:');
+                    const choice = prompt('고객 등록/수정 시 자동 동기화됩니다.\n\n1: 기존 고객 전체 일괄 동기화\n2: 연동 해제\n\n번호를 입력하세요:');
                     if (choice === '1') {
                         if (confirm('기존 고객 전체를 Google 연락처에 동기화합니다.\n시간이 걸릴 수 있습니다. 진행하시겠습니까?')) {
                             const el = document.getElementById('googleStatus');
@@ -2961,11 +2969,15 @@ const App = (() => {
                                 .catch(() => { alert('동기화 실패'); loadGoogleStatus(); });
                         }
                     } else if (choice === '2') {
-                        fetch('/google/disconnect', {method: 'POST', credentials: 'same-origin'})
-                            .then(() => loadGoogleStatus());
+                        if (confirm('Google 연동을 해제하시겠습니까?\n자동 동기화가 중단됩니다.')) {
+                            fetch('/google/disconnect', {method: 'POST', credentials: 'same-origin'})
+                                .then(() => loadGoogleStatus());
+                        }
                     }
                 } else {
-                    window.location.href = '/google/connect';
+                    if (confirm('Google 연락처를 연동하시겠습니까?\n연동하면 고객 등록/수정 시 자동으로 연락처가 동기화됩니다.')) {
+                        window.location.href = '/google/connect';
+                    }
                 }
             });
     }

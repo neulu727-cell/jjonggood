@@ -1,7 +1,6 @@
 """Google 연락처 연동: OAuth 인증 + 연락처 동기화"""
 
 import logging
-import threading
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request, redirect, session
 
@@ -195,14 +194,14 @@ def google_sync_all():
     success = 0
     fail = 0
     for c in customers:
-        try:
-            sync_contact_to_google(
-                c["id"], c["pet_name"], c["weight"], c["breed"],
-                c["phone"], c.get("memo", ""), c.get("google_contact_id"),
-            )
+        ok, msg = sync_contact_to_google(
+            c["id"], c["pet_name"], c["weight"], c["breed"],
+            c["phone"], c.get("memo", ""), c.get("google_contact_id"),
+        )
+        if ok:
             success += 1
-        except Exception as e:
-            log.error("Bulk sync failed for customer %s: %s", c["id"], e)
+        else:
+            log.error("Bulk sync failed for customer %s: %s", c["id"], msg)
             fail += 1
 
     return jsonify({"ok": True, "success": success, "fail": fail})
@@ -257,47 +256,41 @@ def _build_contact_body(pet_name: str, weight, breed: str, phone: str, memo: str
 
 def sync_contact_to_google(customer_id: int, pet_name: str, weight, breed: str,
                            phone: str, memo: str, google_contact_id: str = None):
-    """고객 데이터를 Google 연락처에 비동기 동기화.
+    """고객 데이터를 Google 연락처에 동기화.
 
-    백그라운드 스레드에서 실행하여 API 응답을 지연시키지 않음.
-    DB 저장은 이미 완료된 상태에서 호출되므로 안전.
+    Returns: (success: bool, message: str)
     """
     if not GOOGLE_AVAILABLE:
-        return
+        return False, "Google API 패키지 미설치"
 
-    from flask import current_app
-    app = current_app._get_current_object()
+    try:
+        db = get_db()
+        creds = _get_credentials(db)
+        if not creds:
+            return False, "Google 연동이 필요합니다"
 
-    def _do_sync():
-        with app.app_context():
-            try:
-                db = get_db()
-                creds = _get_credentials(db)
-                if not creds:
-                    return
+        service = _build_people_service(creds)
 
-                service = _build_people_service(creds)
+        if google_contact_id:
+            _update_existing_contact(db, service, customer_id, google_contact_id,
+                                     pet_name, weight, breed, phone, memo)
+        else:
+            existing = _find_contact_by_phone(service, phone)
+            if existing:
+                resource_name = existing["resourceName"]
+                db.execute("UPDATE customers SET google_contact_id = ? WHERE id = ?",
+                           (resource_name, customer_id))
+                _update_existing_contact(db, service, customer_id, resource_name,
+                                         pet_name, weight, breed, phone, memo)
+            else:
+                _create_new_contact(db, service, customer_id,
+                                    pet_name, weight, breed, phone, memo)
 
-                if google_contact_id:
-                    _update_existing_contact(db, service, customer_id, google_contact_id,
-                                             pet_name, weight, breed, phone, memo)
-                else:
-                    existing = _find_contact_by_phone(service, phone)
-                    if existing:
-                        resource_name = existing["resourceName"]
-                        db.execute("UPDATE customers SET google_contact_id = ? WHERE id = ?",
-                                   (resource_name, customer_id))
-                        _update_existing_contact(db, service, customer_id, resource_name,
-                                                 pet_name, weight, breed, phone, memo)
-                    else:
-                        _create_new_contact(db, service, customer_id,
-                                            pet_name, weight, breed, phone, memo)
+        return True, "Google 연락처 동기화 완료"
 
-            except Exception as e:
-                log.error("Google contact sync failed for customer %s: %s", customer_id, e)
-
-    thread = threading.Thread(target=_do_sync, daemon=True)
-    thread.start()
+    except Exception as e:
+        log.error("Google contact sync failed for customer %s: %s", customer_id, e)
+        return False, str(e)
 
 
 def _find_contact_by_phone(service, phone: str):
