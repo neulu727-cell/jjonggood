@@ -226,22 +226,42 @@ def google_debug():
         "expires_at_type": type(row["expires_at"]).__name__,
     }
 
-    creds = _get_credentials(db)
-    info["credentials_valid"] = creds is not None
+    # 직접 refresh 시도하여 에러 메시지 캡처
+    refresh_token = row["refresh_token"]
+    access_token = row["access_token"]
+    creds = Credentials(
+        token=access_token,
+        refresh_token=refresh_token,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=config.GOOGLE_CLIENT_ID,
+        client_secret=config.GOOGLE_CLIENT_SECRET,
+    )
 
-    if creds:
-        try:
-            service = _build_people_service(creds)
-            # 연락처 1개만 조회해서 API 동작 확인
-            result = service.people().connections().list(
-                resourceName="people/me",
-                pageSize=1,
-                personFields="names",
-            ).execute()
-            info["api_test"] = "OK"
-            info["total_contacts"] = result.get("totalPeople", result.get("totalItems", "?"))
-        except Exception as e:
-            info["api_test"] = f"FAILED: {e}"
+    try:
+        from google.auth.transport.requests import Request
+        creds.refresh(Request())
+        info["refresh_result"] = "OK"
+        info["credentials_valid"] = True
+        # refresh 성공 → 토큰 갱신 저장
+        new_expiry = datetime.now(KST) + timedelta(hours=1)
+        _save_tokens(db, creds.token, creds.refresh_token or refresh_token, new_expiry)
+    except Exception as e:
+        info["refresh_result"] = f"FAILED: {e}"
+        info["credentials_valid"] = False
+        info["fix"] = "Google 연동을 다시 해주세요 (/google/connect)"
+        return jsonify(info)
+
+    try:
+        service = _build_people_service(creds)
+        result = service.people().connections().list(
+            resourceName="people/me",
+            pageSize=1,
+            personFields="names",
+        ).execute()
+        info["api_test"] = "OK"
+        info["total_contacts"] = result.get("totalPeople", result.get("totalItems", "?"))
+    except Exception as e:
+        info["api_test"] = f"FAILED: {e}"
 
     return jsonify(info)
 
