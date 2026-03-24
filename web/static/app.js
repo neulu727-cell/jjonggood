@@ -2963,10 +2963,14 @@ const App = (() => {
                             fetch('/google/sync-all', {method: 'POST', credentials: 'same-origin'})
                                 .then(r => r.json())
                                 .then(res => {
-                                    alert('동기화 완료: 성공 ' + res.success + '건, 실패 ' + res.fail + '건');
+                                    let msg = '동기화 완료: 성공 ' + res.success + '건, 실패 ' + res.fail + '건';
+                                    if (res.errors && res.errors.length) {
+                                        msg += '\n\n실패 원인:\n' + res.errors.join('\n');
+                                    }
+                                    alert(msg);
                                     loadGoogleStatus();
                                 })
-                                .catch(() => { alert('동기화 실패'); loadGoogleStatus(); });
+                                .catch(e => { alert('동기화 실패: ' + e); loadGoogleStatus(); });
                         }
                     } else if (choice === '2') {
                         if (confirm('Google 연동을 해제하시겠습니까?\n자동 동기화가 중단됩니다.')) {

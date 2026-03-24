@@ -68,32 +68,53 @@ def _get_credentials(db):
     """유효한 Credentials 반환. 만료 시 자동 갱신."""
     row = _get_tokens(db)
     if not row:
+        log.warning("Google credentials: no tokens found in DB")
+        return None
+
+    access_token = row["access_token"]
+    refresh_token = row["refresh_token"]
+
+    if not refresh_token:
+        log.warning("Google credentials: no refresh_token — re-auth needed")
         return None
 
     creds = Credentials(
-        token=row["access_token"],
-        refresh_token=row["refresh_token"],
+        token=access_token,
+        refresh_token=refresh_token,
         token_uri="https://oauth2.googleapis.com/token",
         client_id=config.GOOGLE_CLIENT_ID,
         client_secret=config.GOOGLE_CLIENT_SECRET,
     )
 
-    # 만료 확인 및 갱신
+    # 만료 확인 및 갱신 — 항상 refresh 시도 (토큰이 1시간 만료이므로)
+    needs_refresh = False
     expires_at = row["expires_at"]
     now = datetime.now(KST)
-    if expires_at and hasattr(expires_at, 'timestamp'):
-        if not expires_at.tzinfo:
+
+    if expires_at is None:
+        needs_refresh = True
+    elif isinstance(expires_at, str):
+        # DB에서 문자열로 온 경우 파싱
+        try:
+            expires_at = datetime.fromisoformat(expires_at)
+        except (ValueError, TypeError):
+            needs_refresh = True
+    if not needs_refresh and expires_at is not None:
+        if not getattr(expires_at, 'tzinfo', None):
             expires_at = expires_at.replace(tzinfo=KST)
         if now >= expires_at - timedelta(minutes=5):
-            try:
-                from google.auth.transport.requests import Request
-                creds.refresh(Request())
-                new_expiry = datetime.now(KST) + timedelta(hours=1)
-                _save_tokens(db, creds.token, creds.refresh_token or row["refresh_token"], new_expiry)
-                log.info("Google token refreshed")
-            except Exception as e:
-                log.error("Google token refresh failed: %s", e)
-                return None
+            needs_refresh = True
+
+    if needs_refresh:
+        try:
+            from google.auth.transport.requests import Request
+            creds.refresh(Request())
+            new_expiry = datetime.now(KST) + timedelta(hours=1)
+            _save_tokens(db, creds.token, creds.refresh_token or refresh_token, new_expiry)
+            log.info("Google token refreshed successfully")
+        except Exception as e:
+            log.error("Google token refresh failed: %s", e)
+            return None
 
     return creds
 
@@ -178,6 +199,53 @@ def google_disconnect():
     return jsonify({"ok": True})
 
 
+@google_bp.route("/google/debug")
+@require_auth
+def google_debug():
+    """Google 연동 상태 디버깅"""
+    info = {"google_available": GOOGLE_AVAILABLE}
+
+    if not GOOGLE_AVAILABLE:
+        info["error"] = "Google API 패키지 미설치"
+        return jsonify(info)
+
+    info["client_id_set"] = bool(config.GOOGLE_CLIENT_ID)
+    info["client_secret_set"] = bool(config.GOOGLE_CLIENT_SECRET)
+
+    db = get_db()
+    row = _get_tokens(db)
+    if not row:
+        info["tokens"] = None
+        info["error"] = "토큰 없음 — /google/connect 필요"
+        return jsonify(info)
+
+    info["tokens"] = {
+        "has_access_token": bool(row["access_token"]),
+        "has_refresh_token": bool(row["refresh_token"]),
+        "expires_at": str(row["expires_at"]),
+        "expires_at_type": type(row["expires_at"]).__name__,
+    }
+
+    creds = _get_credentials(db)
+    info["credentials_valid"] = creds is not None
+
+    if creds:
+        try:
+            service = _build_people_service(creds)
+            # 연락처 1개만 조회해서 API 동작 확인
+            result = service.people().connections().list(
+                resourceName="people/me",
+                pageSize=1,
+                personFields="names",
+            ).execute()
+            info["api_test"] = "OK"
+            info["total_contacts"] = result.get("totalPeople", result.get("totalItems", "?"))
+        except Exception as e:
+            info["api_test"] = f"FAILED: {e}"
+
+    return jsonify(info)
+
+
 @google_bp.route("/google/sync-all", methods=["POST"])
 @require_auth
 def google_sync_all():
@@ -193,6 +261,7 @@ def google_sync_all():
     customers = db.fetch_all("SELECT * FROM customers ORDER BY id")
     success = 0
     fail = 0
+    errors = []
     for c in customers:
         ok, msg = sync_contact_to_google(
             c["id"], c["pet_name"], c["weight"], c["breed"],
@@ -203,8 +272,10 @@ def google_sync_all():
         else:
             log.error("Bulk sync failed for customer %s: %s", c["id"], msg)
             fail += 1
+            if len(errors) < 3:  # 처음 3개 에러만 표시
+                errors.append(f"{c['pet_name']}: {msg}")
 
-    return jsonify({"ok": True, "success": success, "fail": fail})
+    return jsonify({"ok": True, "success": success, "fail": fail, "errors": errors})
 
 
 # ==================== 연락처 동기화 ====================
@@ -332,49 +403,41 @@ def _get_existing_notes(service, resource_name: str) -> str:
 
 def _update_existing_contact(db, service, customer_id: int, resource_name: str,
                               pet_name: str, weight, breed: str, phone: str, memo: str):
-    """기존 연락처 업데이트 (메모 병합)"""
-    try:
-        # 기존 연락처 전체 조회 (etag 필요)
-        person = service.people().get(
-            resourceName=resource_name,
-            personFields="names,phoneNumbers,biographies,metadata",
-        ).execute()
+    """기존 연락처 업데이트 (메모 병합). 실패 시 예외 전파."""
+    # 기존 연락처 전체 조회 (etag 필요)
+    person = service.people().get(
+        resourceName=resource_name,
+        personFields="names,phoneNumbers,biographies,metadata",
+    ).execute()
 
-        # 기존 메모 가져와서 병합
-        existing_notes = ""
-        bios = person.get("biographies", [])
-        if bios:
-            existing_notes = bios[0].get("value", "")
+    # 기존 메모 가져와서 병합
+    existing_notes = ""
+    bios = person.get("biographies", [])
+    if bios:
+        existing_notes = bios[0].get("value", "")
 
-        merged_memo = _merge_notes(existing_notes, memo)
+    merged_memo = _merge_notes(existing_notes, memo)
 
-        body = _build_contact_body(pet_name, weight, breed, phone, merged_memo)
-        body["etag"] = person.get("etag", "")
+    body = _build_contact_body(pet_name, weight, breed, phone, merged_memo)
+    body["etag"] = person.get("etag", "")
 
-        service.people().updateContact(
-            resourceName=resource_name,
-            updatePersonFields="names,phoneNumbers,biographies",
-            body=body,
-        ).execute()
+    service.people().updateContact(
+        resourceName=resource_name,
+        updatePersonFields="names,phoneNumbers,biographies",
+        body=body,
+    ).execute()
 
-        log.info("Google contact updated: %s (customer %s)", resource_name, customer_id)
-
-    except Exception as e:
-        log.error("Google contact update failed for %s: %s", resource_name, e)
+    log.info("Google contact updated: %s (customer %s)", resource_name, customer_id)
 
 
 def _create_new_contact(db, service, customer_id: int,
                         pet_name: str, weight, breed: str, phone: str, memo: str):
-    """새 연락처 생성"""
-    try:
-        body = _build_contact_body(pet_name, weight, breed, phone, memo)
-        result = service.people().createContact(body=body).execute()
-        resource_name = result.get("resourceName", "")
+    """새 연락처 생성. 실패 시 예외 전파."""
+    body = _build_contact_body(pet_name, weight, breed, phone, memo)
+    result = service.people().createContact(body=body).execute()
+    resource_name = result.get("resourceName", "")
 
-        if resource_name:
-            db.execute("UPDATE customers SET google_contact_id = ? WHERE id = ?",
-                       (resource_name, customer_id))
-            log.info("Google contact created: %s (customer %s)", resource_name, customer_id)
-
-    except Exception as e:
-        log.error("Google contact create failed for customer %s: %s", customer_id, e)
+    if resource_name:
+        db.execute("UPDATE customers SET google_contact_id = ? WHERE id = ?",
+                   (resource_name, customer_id))
+        log.info("Google contact created: %s (customer %s)", resource_name, customer_id)
