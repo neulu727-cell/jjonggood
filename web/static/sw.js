@@ -1,6 +1,6 @@
 /* Service Worker — 쫑굿 예약관리 PWA */
 
-const CACHE_NAME = 'jjonggood-v30';
+const CACHE_NAME = 'jjonggood-v31';
 const OFFLINE_URL = '/offline.html';
 
 // 프리캐시: SW 설치 시 즉시 캐시할 리소스
@@ -32,6 +32,16 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  // http/https가 아닌 요청 (chrome-extension:// 등) → 무시
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
+  // POST 등 GET 이외 → 캐시 불가, 패스스루
+  if (request.method !== 'GET') {
+    return;
+  }
 
   // API / SSE → network-only (패스스루)
   if (url.pathname.startsWith('/api/')) {
