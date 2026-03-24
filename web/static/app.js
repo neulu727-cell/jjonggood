@@ -2961,20 +2961,47 @@ const App = (() => {
                         if (confirm('기존 고객 전체를 Google 연락처에 동기화합니다.\n시간이 걸릴 수 있습니다. 진행하시겠습니까?')) {
                             const el = document.getElementById('googleStatus');
                             if (el) el.innerHTML = '&#9679; 동기화중...';
+                            // SSE 스트림으로 진행상황 수신
                             fetch('/google/sync-all', {method: 'POST', credentials: 'same-origin'})
-                                .then(r => r.json())
-                                .then(res => {
-                                    let msg = '동기화 완료: 성공 ' + res.success + '건, 실패 ' + res.fail + '건';
-                                    if (res.synced_names && res.synced_names.length) {
-                                        msg += '\n\n동기화된 연락처:\n' + res.synced_names.join(', ');
+                                .then(r => {
+                                    if (!r.ok) return r.json().then(d => { throw new Error(d.error || '실패'); });
+                                    const reader = r.body.getReader();
+                                    const decoder = new TextDecoder();
+                                    let buffer = '';
+                                    function read() {
+                                        return reader.read().then(({done, value}) => {
+                                            if (done) return;
+                                            buffer += decoder.decode(value, {stream: true});
+                                            const lines = buffer.split('\n');
+                                            buffer = lines.pop();
+                                            for (const line of lines) {
+                                                if (!line.startsWith('data: ')) continue;
+                                                try {
+                                                    const ev = JSON.parse(line.slice(6));
+                                                    if (ev.type === 'start') {
+                                                        if (el) el.innerHTML = '&#9679; 0/' + ev.total;
+                                                    } else if (ev.type === 'progress') {
+                                                        if (el) el.innerHTML = '&#9679; ' + ev.i + '/' + ev.total;
+                                                        toast((ev.ok ? '✓ ' : '✗ ') + ev.name, ev.ok ? 'success' : 'error');
+                                                    } else if (ev.type === 'done') {
+                                                        let msg = '동기화 완료: 성공 ' + ev.success + '건, 실패 ' + ev.fail + '건';
+                                                        if (ev.synced_names && ev.synced_names.length) {
+                                                            msg += '\n\n동기화된 연락처:\n' + ev.synced_names.join(', ');
+                                                        }
+                                                        if (ev.errors && ev.errors.length) {
+                                                            msg += '\n\n실패:\n' + ev.errors.join('\n');
+                                                        }
+                                                        alert(msg);
+                                                        loadGoogleStatus();
+                                                    }
+                                                } catch (e) {}
+                                            }
+                                            return read();
+                                        });
                                     }
-                                    if (res.errors && res.errors.length) {
-                                        msg += '\n\n실패:\n' + res.errors.join('\n');
-                                    }
-                                    alert(msg);
-                                    loadGoogleStatus();
+                                    return read();
                                 })
-                                .catch(e => { alert('동기화 실패: ' + e); loadGoogleStatus(); });
+                                .catch(e => { alert('동기화 실패: ' + e.message); loadGoogleStatus(); });
                         }
                     } else if (choice === '2') {
                         if (confirm('Google 연동을 해제하시겠습니까?\n자동 동기화가 중단됩니다.')) {
