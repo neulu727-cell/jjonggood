@@ -136,7 +136,10 @@ def create_customer():
         google_msg = str(e)
 
     bump_update()
-    return jsonify({"ok": True, "id": cid, "google_synced": google_synced, "google_msg": google_msg})
+    weight_str = f" {weight}kg" if weight else ""
+    breed_str = f" {breed}" if breed else ""
+    google_name = f"{pet_name}{weight_str}{breed_str}".strip()
+    return jsonify({"ok": True, "id": cid, "google_synced": google_synced, "google_msg": google_msg, "google_contact_name": google_name})
 
 
 @customer_bp.route("/api/customer/<int:cid>", methods=["GET"])
@@ -232,7 +235,12 @@ def update_customer(cid):
         google_msg = str(e)
 
     bump_update()
-    return jsonify({"ok": True, "google_synced": google_synced, "google_msg": google_msg})
+    google_name = ""
+    if customer:
+        w = f" {customer['weight']}kg" if customer.get("weight") else ""
+        b = f" {customer['breed']}" if customer.get("breed") else ""
+        google_name = f"{customer['pet_name']}{w}{b}".strip()
+    return jsonify({"ok": True, "google_synced": google_synced, "google_msg": google_msg, "google_contact_name": google_name})
 
 
 @customer_bp.route("/api/customer/<int:cid>", methods=["DELETE"])

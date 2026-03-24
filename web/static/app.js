@@ -1478,7 +1478,8 @@ const App = (() => {
                 closeSheet('customerFormSheet');
                 const baseMsg = isEdit ? '수정되었습니다' : '등록되었습니다';
                 if (result.google_synced) {
-                    toast(baseMsg + ' (Google 연락처 동기화 완료)', 'success');
+                    const syncName = result.google_contact_name || '';
+                    toast(baseMsg + (syncName ? ` (Google 동기화: ${syncName})` : ' (Google 동기화 완료)'), 'success');
                 } else if (result.google_msg) {
                     toast(baseMsg, 'success');
                     setTimeout(() => toast('Google 동기화 실패: ' + result.google_msg, 'error'), 1500);
@@ -2964,8 +2965,11 @@ const App = (() => {
                                 .then(r => r.json())
                                 .then(res => {
                                     let msg = '동기화 완료: 성공 ' + res.success + '건, 실패 ' + res.fail + '건';
+                                    if (res.synced_names && res.synced_names.length) {
+                                        msg += '\n\n동기화된 연락처:\n' + res.synced_names.join(', ');
+                                    }
                                     if (res.errors && res.errors.length) {
-                                        msg += '\n\n실패 원인:\n' + res.errors.join('\n');
+                                        msg += '\n\n실패:\n' + res.errors.join('\n');
                                     }
                                     alert(msg);
                                     loadGoogleStatus();

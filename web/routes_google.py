@@ -281,6 +281,7 @@ def google_sync_all():
     customers = db.fetch_all("SELECT * FROM customers ORDER BY id")
     success = 0
     fail = 0
+    synced_names = []
     errors = []
     for c in customers:
         ok, msg = sync_contact_to_google(
@@ -289,13 +290,19 @@ def google_sync_all():
         )
         if ok:
             success += 1
+            weight_str = f" {c['weight']}kg" if c.get("weight") else ""
+            breed_str = f" {c['breed']}" if c.get("breed") else ""
+            synced_names.append(f"{c['pet_name']}{weight_str}{breed_str}")
         else:
             log.error("Bulk sync failed for customer %s: %s", c["id"], msg)
             fail += 1
-            if len(errors) < 3:  # 처음 3개 에러만 표시
+            if len(errors) < 3:
                 errors.append(f"{c['pet_name']}: {msg}")
 
-    return jsonify({"ok": True, "success": success, "fail": fail, "errors": errors})
+    return jsonify({
+        "ok": True, "success": success, "fail": fail,
+        "synced_names": synced_names, "errors": errors,
+    })
 
 
 # ==================== 연락처 동기화 ====================
