@@ -267,7 +267,7 @@ def google_debug():
     return jsonify(info)
 
 
-@google_bp.route("/google/sync-all", methods=["POST"])
+@google_bp.route("/google/sync-all")
 @require_auth
 def google_sync_all():
     """기존 고객 전체를 Google 연락처에 일괄 동기화 (SSE 스트림)"""
