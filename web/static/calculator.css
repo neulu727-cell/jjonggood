@@ -216,6 +216,11 @@ html, body {
     background: var(--primary-light);
     color: var(--primary);
 }
+.clipping-options .chip {
+    flex: 0 0 calc((100% - 12px) / 3);
+    text-align: center;
+    justify-content: center;
+}
 .chip-extra {
     font-size: 11px;
     color: var(--red);
@@ -230,6 +235,11 @@ html, body {
     margin-top: 16px;
     padding-top: 12px;
     border-top: 1px solid var(--border);
+}
+.sporting-mm-notice {
+    font-size: 11px;
+    color: var(--text-light);
+    margin-top: 8px;
 }
 .bichon-clipping-notice {
     font-size: 12px;
@@ -376,6 +386,33 @@ html, body {
     opacity: 0.75;
     margin-bottom: 8px;
     min-height: 16px;
+}
+/* 특수견 안내 */
+.special-breed-notice {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px auto;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.15);
+    font-size: 13px;
+    font-weight: 600;
+    color: #FDE68A;
+    line-height: 1.4;
+}
+.special-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #FDE68A;
+    color: #92400E;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
 }
 .price-notice {
     font-size: 11px;

@@ -24,8 +24,9 @@ def calculate_price(service_choice, weight_kg, breed_type="일반",
     else:
         actual_service = "위생목욕"
 
-    # 2. 견종별 요금표 선택
-    breed_table = PRICE_TABLE.get(breed_type, PRICE_TABLE["일반"])
+    # 2. 견종별 요금표 선택 (특수견은 일반 요금 기준)
+    table_key = "일반" if breed_type == "특수" else breed_type
+    breed_table = PRICE_TABLE.get(table_key, PRICE_TABLE["일반"])
 
     # 3. 몸무게 구간으로 base price 조회
     base_price = 0

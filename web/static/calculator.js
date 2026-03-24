@@ -69,9 +69,20 @@ const Calc = (() => {
 
     function updateServiceUI() {
         const isClipping = serviceChoice === '클리핑';
+        const isSporting = serviceChoice === '스포팅';
 
         // 클리핑 길이 옵션
         document.getElementById('clippingOptions').style.display = isClipping ? '' : 'none';
+
+        // 스포팅 길이 옵션
+        document.getElementById('sportingOptions').style.display = isSporting ? '' : 'none';
+
+        // 스포팅 칩 active 상태 동기화
+        if (isSporting) {
+            document.querySelectorAll('#sportingOptions .chip').forEach(el => {
+                el.classList.toggle('active', el.dataset.length === clippingLength);
+            });
+        }
 
         // 얼굴컷/비숑컷 토글
         const subOptions = document.getElementById('clippingSubOptions');
@@ -101,10 +112,10 @@ const Calc = (() => {
         }
     }
 
-    // === 클리핑 길이 선택 ===
+    // === 클리핑/스포팅 길이 선택 ===
     function selectClipping(len) {
         clippingLength = len;
-        document.querySelectorAll('#clippingOptions .chip').forEach(el => {
+        document.querySelectorAll('#clippingOptions .chip, #sportingOptions .chip').forEach(el => {
             el.classList.toggle('active', el.dataset.length === len);
         });
         updatePrice();
@@ -123,11 +134,12 @@ const Calc = (() => {
             return { total: 0, actualService: '', details: [] };
         }
 
-        // 서비스 매핑
+        // 서비스 매핑 (특수견은 일반과 동일)
+        const isBichon = breedType === '비숑';
         let actualService;
         if (serviceChoice === '클리핑') {
             if (faceCut) {
-                actualService = breedType === '비숑' ? '클리핑+비숑컷' : '클리핑+얼굴컷';
+                actualService = isBichon ? '클리핑+비숑컷' : '클리핑+얼굴컷';
             } else {
                 actualService = '클리핑';
             }
@@ -137,8 +149,9 @@ const Calc = (() => {
             actualService = '위생목욕';
         }
 
-        // breed별 요금표에서 조회 (key: "0-4", "4-6", ...)
-        const breedTable = PRICE_TABLE[breedType] || PRICE_TABLE['일반'];
+        // breed별 요금표에서 조회 (특수견은 일반 요금 기준)
+        const tableKey = breedType === '특수' ? '일반' : breedType;
+        const breedTable = PRICE_TABLE[tableKey] || PRICE_TABLE['일반'];
 
         let basePrice = 0;
         const prices = breedTable[weightRange];
@@ -170,14 +183,22 @@ const Calc = (() => {
     function updatePrice() {
         const { total, details } = calculatePrice();
         const el = document.getElementById('priceAmount');
+        const isSpecial = breedType === '특수';
+
         if (total > 0) {
-            el.textContent = `${total.toLocaleString()}원`;
+            el.textContent = isSpecial
+                ? `${total.toLocaleString()}원 ~`
+                : `${total.toLocaleString()}원`;
             document.getElementById('priceDetail').textContent =
                 details.length > 1 ? details.join(' / ') : '';
         } else {
             el.textContent = '0원';
             document.getElementById('priceDetail').textContent = '몸무게를 선택해주세요';
         }
+
+        // 특수견 안내 표시
+        const notice = document.getElementById('specialBreedNotice');
+        if (notice) notice.style.display = isSpecial ? '' : 'none';
     }
 
     // === 유입 채널에 따라 버튼 표시 조정 ===

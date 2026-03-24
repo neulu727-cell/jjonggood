@@ -27,6 +27,7 @@
             <div class="breed-btn-group">
                 <button class="breed-btn active" data-breed="일반" onclick="Calc.selectBreedType('일반')">일반</button>
                 <button class="breed-btn" data-breed="비숑" onclick="Calc.selectBreedType('비숑')">비숑</button>
+                <button class="breed-btn" data-breed="특수" onclick="Calc.selectBreedType('특수')">특수견</button>
             </div>
             <input type="hidden" id="breedInput" value="일반">
         </div>
@@ -79,6 +80,19 @@
             </div>
         </div>
 
+        <!-- 스포팅 길이 (스포팅 선택 시) -->
+        <div class="clipping-options" id="sportingOptions" style="display:none">
+            <label>스포팅 길이</label>
+            <div class="chip-group">
+                <button class="chip active" data-length="3mm" onclick="Calc.selectClipping('3mm')">3mm <span class="chip-extra chip-free">+0원</span></button>
+                <button class="chip" data-length="6mm" onclick="Calc.selectClipping('6mm')">6mm <span class="chip-extra chip-free">+0원</span></button>
+                <button class="chip" data-length="9mm" onclick="Calc.selectClipping('9mm')">9mm <span class="chip-extra chip-free">+0원</span></button>
+                <button class="chip" data-length="13mm" onclick="Calc.selectClipping('13mm')">13mm <span class="chip-extra chip-free">+0원</span></button>
+                <button class="chip" data-length="20mm" onclick="Calc.selectClipping('20mm')">20mm <span class="chip-extra chip-free">+0원</span></button>
+            </div>
+            <p class="sporting-mm-notice">스포팅은 길이에 관계없이 추가금이 없습니다</p>
+        </div>
+
         <!-- 포함 서비스 칩 -->
         <div class="included-chips">
             <div class="included-chip" id="chipHygiene">
@@ -100,6 +114,10 @@
         <div class="price-label">예상 미용 금액</div>
         <div class="price-amount" id="priceAmount">0원</div>
         <div class="price-detail" id="priceDetail"></div>
+        <div class="special-breed-notice" id="specialBreedNotice" style="display:none">
+            <span class="special-icon">!</span>
+            특수견은 상담 후 추가 비용이 발생할 수 있습니다
+        </div>
         <div class="price-notice">엉킴·보정·진드기 등은 상담 후 추가될 수 있습니다</div>
     </div>
 
