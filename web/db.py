@@ -321,6 +321,29 @@ class DatabaseManager:
                         END IF;
                     END $$;
                 """)
+                # 마이그레이션: 보조연락처/비상연락처 필드
+                cur.execute("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'customers' AND column_name = 'phone2'
+                        ) THEN
+                            ALTER TABLE customers ADD COLUMN phone2 TEXT DEFAULT '';
+                        END IF;
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'customers' AND column_name = 'phone3'
+                        ) THEN
+                            ALTER TABLE customers ADD COLUMN phone3 TEXT DEFAULT '';
+                        END IF;
+                    END $$;
+                """)
+                # 마이그레이션: 전체얼컷 기본 소요시간 90→120분
+                cur.execute("""
+                    UPDATE service_types SET default_duration = 120
+                    WHERE name = '전체얼컷' AND default_duration = 90;
+                """)
             conn.commit()
         finally:
             self._put_conn(conn)

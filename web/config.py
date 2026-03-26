@@ -28,7 +28,7 @@ GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 DEFAULT_SERVICES = [
     ("위생목욕", 60, 30000),
     ("전체미용", 120, 50000),
-    ("전체얼컷", 90, 45000),
+    ("전체얼컷", 120, 45000),
     ("스포팅", 120, 60000),
     ("기타", 30, 0),
 ]

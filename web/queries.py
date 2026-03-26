@@ -34,7 +34,7 @@ def create_customer(db: DatabaseManager, name: str, phone: str, pet_name: str,
     return cursor.lastrowid
 
 
-_CUSTOMER_FIELDS = {"name", "phone", "pet_name", "breed", "weight", "age", "notes", "memo", "channel"}
+_CUSTOMER_FIELDS = {"name", "phone", "pet_name", "breed", "weight", "age", "notes", "memo", "channel", "phone2", "phone3"}
 
 def update_customer(db: DatabaseManager, customer_id: int, **fields) -> None:
     if not fields:

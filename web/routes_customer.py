@@ -183,6 +183,8 @@ def get_customer(cid):
         "pet_name": d.get("pet_name", ""), "breed": d.get("breed", ""),
         "weight": d.get("weight"), "age": d.get("age"),
         "notes": d.get("notes", ""), "memo": d.get("memo", ""), "channel": d.get("channel", ""),
+        "phone2": d.get("phone2", ""), "phone2_display": format_phone_display(d.get("phone2", "")),
+        "phone3": d.get("phone3", ""), "phone3_display": format_phone_display(d.get("phone3", "")),
         "last_visit": d["last_visit"],
         "stats": d["stats"],
         "reservations": res_list,
@@ -211,6 +213,10 @@ def update_customer(cid):
         fields["weight"] = _safe_float(data["weight"])
     if "channel" in data:
         fields["channel"] = str(data["channel"])[:20]
+    if "phone2" in data:
+        fields["phone2"] = normalize_phone(data["phone2"]) if data["phone2"] else ""
+    if "phone3" in data:
+        fields["phone3"] = normalize_phone(data["phone3"]) if data["phone3"] else ""
 
     queries.update_customer(db, cid, **fields)
 

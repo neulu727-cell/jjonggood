@@ -152,7 +152,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .cal-badges {
     display: flex; flex-direction: column; align-items: center;
-    gap: 1px; width: 100%; overflow: hidden; flex: 1;
+    gap: 1px; width: 100%; flex: 1; min-height: 0;
 }
 .cal-dogs {
     font-size: 12px; line-height: 1; letter-spacing: -2px;
@@ -1279,6 +1279,9 @@ textarea#quickMemo:focus {
 }
 .ud-pet-phone {
     font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;
+}
+.ud-phone-sub {
+    font-size: 12px; font-weight: 400; color: var(--text-light); margin-left: 4px;
 }
 .ud-header-bar .ud-edit-link {
     margin-left: auto;

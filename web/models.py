@@ -16,6 +16,8 @@ class Customer:
     notes: str = ""
     memo: str = ""
     channel: str = ""
+    phone2: str = ""
+    phone3: str = ""
     google_contact_id: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None

@@ -867,6 +867,8 @@ const App = (() => {
                     ${petsHeaderHtml}${addBtnHtml}
                     <span class="ud-pet-divider">|</span>
                     <a href="tel:${c.phone}" class="ud-pet-phone">${esc(c.phone_display)}</a>
+                    ${c.phone2 ? `<a href="tel:${c.phone2}" class="ud-pet-phone ud-phone-sub" title="보조연락처">${esc(c.phone2_display)}</a>` : ''}
+                    ${c.phone3 ? `<a href="tel:${c.phone3}" class="ud-pet-phone ud-phone-sub" title="비상연락처">${esc(c.phone3_display)}</a>` : ''}
                     <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})" aria-label="고객 정보 수정">수정</button>
                 </div>
             </div>
@@ -1287,6 +1289,14 @@ const App = (() => {
                     <input type="number" id="cfWeight" value="${c.weight || ''}" step="0.1" placeholder="예: 3.5">
                 </div>
                 <div class="form-group">
+                    <label>보조연락처</label>
+                    <input type="tel" id="cfPhone2" value="${esc(c.phone2_display || c.phone2 || '')}" placeholder="보조 연락처" inputmode="tel" oninput="App.formatPhoneInput(this)">
+                </div>
+                <div class="form-group">
+                    <label>비상연락처</label>
+                    <input type="tel" id="cfPhone3" value="${esc(c.phone3_display || c.phone3 || '')}" placeholder="비상 연락처" inputmode="tel" oninput="App.formatPhoneInput(this)">
+                </div>
+                <div class="form-group">
                     <label>메모</label>
                     <textarea id="cfMemo" rows="2" placeholder="알러지, 주의사항 등">${esc(c.memo || '')}</textarea>
                 </div>
@@ -1442,6 +1452,8 @@ const App = (() => {
                 notes: '',
                 memo: document.getElementById('cfMemo').value,
                 channel: (document.getElementById('cfChannel') || {}).value || '',
+                phone2: (document.getElementById('cfPhone2') || {}).value || '',
+                phone3: (document.getElementById('cfPhone3') || {}).value || '',
             };
         } else {
             const parsed = _parsePetBreed(document.getElementById('cfPetBreed').value);
