@@ -353,6 +353,12 @@ class DatabaseManager:
                     CREATE INDEX IF NOT EXISTS idx_customer_history_cid
                         ON customer_history(customer_id, created_at DESC);
                 """)
+                # 마이그레이션: 사장 일정용 고객 레코드
+                cur.execute("""
+                    INSERT INTO customers (name, phone, pet_name, breed, memo)
+                    SELECT '사장', 'BOSS', '사장', '', '사장 일정/휴무용'
+                    WHERE NOT EXISTS (SELECT 1 FROM customers WHERE phone = 'BOSS');
+                """)
                 # 마이그레이션: 전체얼컷 기본 소요시간 90→120분
                 cur.execute("""
                     UPDATE service_types SET default_duration = 120

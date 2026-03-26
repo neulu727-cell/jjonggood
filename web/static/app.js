@@ -186,6 +186,12 @@ const App = (() => {
             let badgesHtml = '';
             for (let i = 0; i < Math.min(names.length, maxBadges); i++) {
                 const entry = names[i];
+                if (entry.is_boss) {
+                    const reason = entry.service_type || '휴무';
+                    const label = '휴무(' + (reason.length > 3 ? reason.substring(0,3) + '..' : reason) + ')';
+                    badgesHtml += `<span class="cal-badge boss">${esc(label)}</span>`;
+                    continue;
+                }
                 let label = entry.pet_name;
                 if (entry.breed) {
                     const b = entry.breed.length > 2 ? entry.breed.substring(0,2) + '..' : entry.breed;
@@ -278,6 +284,7 @@ const App = (() => {
                     <span class="timeline-count">${items.length}건</span>
                 </div>
                 <div class="timeline-actions">
+                    <button class="btn-boss-schedule" onclick="App.showBossScheduleForm()" title="휴무/일정 등록">🏖️</button>
                     <button class="timeline-close" onclick="App.closeTimeline()">&times;</button>
                 </div>
             </div>
@@ -297,16 +304,38 @@ const App = (() => {
                 <p class="empty-title">예약이 없어요!</p>
                 <p>이 날짜에 첫 예약을 등록해보세요</p>
                 <button class="empty-cta" onclick="App.onQuickReserveForDate()">✂️ 예약 등록하기</button>
+                <button class="empty-cta boss-cta" onclick="App.showBossScheduleForm()" style="margin-top:8px">🏖️ 휴무/일정 등록</button>
                 <p class="mobile-only" style="font-size:12px;margin-top:24px">↓ 아래로 스와이프하면 캘린더로 돌아갑니다</p>
             </div>`;
         }
         const TL_LABEL = { confirmed: '🕐 예약', completed: '✅ 완료', cancelled: '❌ 취소', no_show: '⚠️ 노쇼' };
         let html = '<div class="timeline-list">';
         for (const r of items) {
+            const isBoss = r.customer_id === CONFIG.bossCustomerId;
             const startLabel = formatTime(r.time);
             const endLabel = formatTime(r.end_time);
             const statusCls = r.status || 'confirmed';
             const statusText = TL_LABEL[statusCls] || statusCls;
+
+            if (isBoss) {
+                const reason = r.service || '휴무';
+                const memoSrc = r.groomer_memo || '';
+                const memoText = memoSrc ? `<div class="res-memo">${esc(memoSrc)}</div>` : '';
+                html += `
+                    <div class="res-card boss-schedule ${statusCls}" onclick="App.showReservationDetail(${r.id},${r.customer_id})">
+                        <div class="res-time-col">
+                            <div class="res-time-start">${startLabel}</div>
+                            <div class="res-time-end">${endLabel}</div>
+                        </div>
+                        <div class="res-info">
+                            <div class="res-pet">🏖️ 휴무 <span class="breed">(${esc(reason)})</span></div>
+                            ${memoText}
+                        </div>
+                        <span class="res-status boss">휴무</span>
+                    </div>`;
+                continue;
+            }
+
             const breedText = r.breed ? `(${r.breed})` : '';
             const amtText = r.amount === -1 ? '미정' : r.amount ? `${r.amount.toLocaleString()}원` : '';
             const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
@@ -2979,6 +3008,119 @@ const App = (() => {
             });
     }
 
+    // ==================== 사장 휴무/일정 ====================
+
+    function showBossScheduleForm() {
+        if (!CONFIG.bossCustomerId) { toast('사장 계정이 없습니다', 'error'); return; }
+        const date = selectedDate || fmtDate(new Date());
+
+        const durations = [30, 60, 90, 120, 150, 180, 210, 240];
+        const durLabels = {30:'30분', 60:'1시간', 90:'1시간30분', 120:'2시간', 150:'2시간30분', 180:'3시간', 210:'3시간30분', 240:'4시간'};
+
+        const slots = generateTimeSlots();
+        let timeOptions = slots.map(s => `<option value="${s}">${formatTime(s)}</option>`).join('');
+
+        const form = document.getElementById('reservationForm');
+        document.getElementById('sheetTitle').textContent = '🏖️ 휴무/일정 등록';
+        form.innerHTML = `
+            <input type="hidden" id="bossDate" value="${date}">
+            <div class="res-form-grid">
+                <div class="form-group">
+                    <label>날짜</label>
+                    <input type="date" id="bossDateInput" value="${date}" onchange="document.getElementById('bossDate').value=this.value">
+                </div>
+                <div class="form-group">
+                    <label>유형</label>
+                    <input type="hidden" id="bossType" value="allday">
+                    <div class="btn-grid">
+                        <button type="button" class="btn-grid-item active" onclick="App.selectBossType(this,'allday')">종일 휴무</button>
+                        <button type="button" class="btn-grid-item" onclick="App.selectBossType(this,'time')">시간대 지정</button>
+                    </div>
+                </div>
+                <div id="bossTimeSection" style="display:none" class="form-group">
+                    <label>시작 시간</label>
+                    <select id="bossStartTime" class="form-select">${timeOptions}</select>
+                </div>
+                <div id="bossDurSection" style="display:none" class="form-group">
+                    <label>소요시간</label>
+                    <div class="btn-grid">
+                        ${durations.map(d => `<button type="button" class="btn-grid-item${d===120?' active':''}" data-field="bossDuration" data-value="${d}" onclick="App.selectGridBtn(this)">${durLabels[d]}</button>`).join('')}
+                    </div>
+                    <input type="hidden" id="bossDuration" value="120">
+                </div>
+                <div class="form-group res-form-full">
+                    <label>이유/내용 *</label>
+                    <input type="text" id="bossReason" placeholder="예: 병원, 가족여행, 개인휴무" maxlength="50">
+                </div>
+                <div class="form-group res-form-full">
+                    <label>메모</label>
+                    <input type="text" id="bossMemo" placeholder="상세 메모 (선택)" maxlength="200">
+                </div>
+                <div class="res-form-full">
+                    <button class="btn-primary" onclick="App.saveBossSchedule()">등록</button>
+                </div>
+            </div>
+        `;
+        openSheet('reservationSheet');
+    }
+
+    function selectBossType(btn, type) {
+        btn.parentElement.querySelectorAll('.btn-grid-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('bossType').value = type;
+        document.getElementById('bossTimeSection').style.display = type === 'time' ? '' : 'none';
+        document.getElementById('bossDurSection').style.display = type === 'time' ? '' : 'none';
+    }
+
+    async function saveBossSchedule() {
+        const reason = document.getElementById('bossReason').value.trim();
+        if (!reason) { toast('이유를 입력해주세요', 'error'); return; }
+
+        const date = document.getElementById('bossDate').value;
+        const type = document.getElementById('bossType').value;
+        const memo = document.getElementById('bossMemo').value.trim();
+
+        let time, duration;
+        if (type === 'allday') {
+            time = CONFIG.businessStart;
+            // 종일: 영업시간 전체
+            const [sh, sm] = CONFIG.businessStart.split(':').map(Number);
+            const [eh, em] = CONFIG.businessEnd.split(':').map(Number);
+            duration = (eh * 60 + em) - (sh * 60 + sm);
+        } else {
+            time = document.getElementById('bossStartTime').value;
+            duration = parseInt(document.getElementById('bossDuration').value) || 120;
+        }
+
+        try {
+            const res = await fetch('/api/reservation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customer_id: CONFIG.bossCustomerId,
+                    date: date,
+                    time: time,
+                    service_type: reason,
+                    duration: duration,
+                    amount: 0,
+                    quoted_amount: 0,
+                    groomer_memo: memo,
+                }),
+            });
+            const result = await res.json();
+            if (result.ok) {
+                closeSheet('reservationSheet', true);
+                toast('휴무/일정이 등록되었습니다', 'success');
+                selectDate(date);
+                loadMonth();
+            } else {
+                toast(result.error || '등록 실패', 'error');
+            }
+        } catch (e) {
+            toast('등록 실패', 'error');
+        }
+    }
+
     return {
         selectDate, closeTimeline, changeMonth, goToday, loadCustomerList,
         get customerSort() { return customerSort; },
@@ -3002,6 +3144,7 @@ const App = (() => {
         changeSalesMonth, goTodaySales, showSalesDayDetail, showCustomAmount,
         toggleGoogle,
         loadGroomingRequests, updateRequestStatus,
+        showBossScheduleForm, selectBossType, saveBossSchedule,
     };
 })();
 

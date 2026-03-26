@@ -49,12 +49,13 @@ def search_customers():
                COALESCE(SUM(CASE WHEN r.status='completed' AND r.amount>0 THEN r.amount END),0) AS total_sales
         FROM customers c
         LEFT JOIN reservations r ON r.customer_id = c.id
+        WHERE c.phone != 'BOSS'
     """
 
     if keyword:
         like = f"%{keyword}%"
         rows = db.fetch_all(
-            base_query + " WHERE c.name ILIKE ? OR c.phone ILIKE ? OR c.pet_name ILIKE ?"
+            base_query + " AND (c.name ILIKE ? OR c.phone ILIKE ? OR c.pet_name ILIKE ?)"
             " GROUP BY c.id ORDER BY " + order,
             (like, like, like))
     else:

@@ -181,6 +181,8 @@ def create_app():
     @app.route(f"/{config.ADMIN_SECRET_PATH}")
     def admin_index():
         session["authenticated"] = True
+        db = get_db()
+        boss_row = db.fetch_one("SELECT id FROM customers WHERE phone = 'BOSS' LIMIT 1")
         return render_template("index.html",
                                services=config.DEFAULT_SERVICES,
                                fur_lengths=config.FUR_LENGTHS,
@@ -188,7 +190,8 @@ def create_app():
                                business_start=config.BUSINESS_HOURS_START,
                                business_end=config.BUSINESS_HOURS_END,
                                slot_interval=config.TIME_SLOT_INTERVAL,
-                               tasker_key=config.TASKER_API_KEY)
+                               tasker_key=config.TASKER_API_KEY,
+                               boss_customer_id=boss_row["id"] if boss_row else None)
 
     @app.route("/api/last-update")
     @require_auth
@@ -198,6 +201,8 @@ def create_app():
     @app.route("/api/config")
     def api_config():
         """프론트엔드에서 필요한 설정 반환"""
+        db = get_db()
+        boss_row = db.fetch_one("SELECT id FROM customers WHERE phone = 'BOSS' LIMIT 1")
         return jsonify({
             "services": [{"name": s[0], "duration": s[1], "price": s[2]}
                          for s in config.DEFAULT_SERVICES],
@@ -206,6 +211,7 @@ def create_app():
             "business_start": config.BUSINESS_HOURS_START,
             "business_end": config.BUSINESS_HOURS_END,
             "slot_interval": config.TIME_SLOT_INTERVAL,
+            "boss_customer_id": boss_row["id"] if boss_row else None,
         })
 
     @app.after_request
