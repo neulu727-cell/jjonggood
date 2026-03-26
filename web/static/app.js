@@ -308,7 +308,7 @@ const App = (() => {
             const statusCls = r.status || 'confirmed';
             const statusText = TL_LABEL[statusCls] || statusCls;
             const breedText = r.breed ? `(${r.breed})` : '';
-            const amtText = r.amount ? `${r.amount.toLocaleString()}원` : '';
+            const amtText = r.amount === -1 ? '미정' : r.amount ? `${r.amount.toLocaleString()}원` : '';
             const furText = r.fur_length ? ` / ${esc(r.fur_length)}` : '';
             const weightText = r.weight ? `${r.weight}kg` : '';
             const petMeta = [breedText, weightText].filter(Boolean).join(' · ');
@@ -492,6 +492,7 @@ const App = (() => {
             return `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="${p}" onclick="App.selectGridBtn(this)" disabled style="opacity:0.4">${label}</button>`;
         }).join('');
         priceGrid += `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="0" onclick="App.showCustomAmount('resAmount')" disabled style="opacity:0.4">기타</button>`;
+        priceGrid += `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="-1" onclick="App.selectGridBtn(this)" disabled style="opacity:0.4">미정</button>`;
 
         // 이전 서비스 이력
         let prevHtml = '';
@@ -505,7 +506,7 @@ const App = (() => {
                     <div class="prev-services-list" style="display:none">
                         ${recent.map(r => `<div class="prev-service-item" onclick="App.applyPrevService('${esc(r.service_type)}',${r.duration},${r.amount||0},'${esc(r.fur_length||'')}')">
                             <span>${esc(r.service_type)} / ${r.duration}분</span>
-                            <span>${r.amount ? r.amount.toLocaleString()+'원' : '-'}</span>
+                            <span>${r.amount === -1 ? '미정' : r.amount ? r.amount.toLocaleString()+'원' : '-'}</span>
                         </div>`).join('')}
                     </div>
                 </div>`;
@@ -607,7 +608,8 @@ const App = (() => {
         }
         if (field === 'resAmount' || field === 'editResAmount') {
             const priceLabel = document.getElementById('priceLabel');
-            if (priceLabel) priceLabel.textContent = parseInt(btn.dataset.value).toLocaleString() + '원';
+            const v = parseInt(btn.dataset.value);
+            if (priceLabel) priceLabel.textContent = v === -1 ? '미정' : v.toLocaleString() + '원';
         }
     }
 
@@ -782,7 +784,7 @@ const App = (() => {
         // 통계: 전체 예약 기준으로 합산
         const completedRes = allReservations.filter(r => r.status === 'completed');
         const totalCount = completedRes.length;
-        const totalSales = completedRes.reduce((sum, r) => sum + (r.amount || 0), 0);
+        const totalSales = completedRes.reduce((sum, r) => sum + (r.amount > 0 ? r.amount : 0), 0);
         const firstVisit = allReservations.length ? allReservations[allReservations.length - 1].date : null;
         const lastVisit = allReservations.length ? allReservations[0].date : null;
         const daysSinceLast = lastVisit ? Math.floor((Date.now() - new Date(lastVisit + 'T00:00:00')) / 86400000) : null;
@@ -797,23 +799,17 @@ const App = (() => {
         if (cycleDays) vp.push(`주기 ${cycleDays}일`);
         if (vp.length) visitLine = vp.join(' · ');
 
-        // 통합 메모: 모든 펫의 메모를 하나의 클릭-편집 영역으로 표시
-        const mergedMemoLines = allPets.map(p => {
-            const prefix = hasSiblings ? `${p.pet_name} - ` : '';
-            return prefix + (p.memo || '');
-        });
-        const mergedMemoText = mergedMemoLines.join('\n');
-        const mergedMemoDisplay = mergedMemoLines.map(line => esc(line) || '<span class="memo-empty">메모를 입력하세요</span>').join('<br>');
-        const petIdsAttr = allPets.map(p => p.id).join(',');
-        const petNamesAttr = allPets.map(p => p.pet_name).join(',');
+        // 통합 메모: 형제 공유 (아무 펫 눌러도 같은 메모)
+        const sharedMemo = allPets.map(p => p.memo || '').find(m => m) || '';
+        const allPetIds = allPets.map(p => p.id).join(',');
         const memoHtml = `
             <div class="ud-merged-memo" id="mergedMemoView_${c.id}" onclick="App.startMemoEdit(${c.id})" title="클릭하여 편집">
-                <div class="memo-text clickable">${mergedMemoDisplay}</div>
+                <div class="memo-text clickable">${esc(sharedMemo) || '<span class="memo-empty">메모를 입력하세요</span>'}</div>
             </div>
             <div id="mergedMemoEdit_${c.id}" style="display:none">
-                <textarea id="mergedMemoTA_${c.id}" class="memo-edit-ta merged">${esc(mergedMemoText)}</textarea>
+                <textarea id="memoTA_${c.id}" class="memo-edit-ta" rows="3">${esc(sharedMemo)}</textarea>
                 <div style="display:flex;gap:4px;margin-top:4px">
-                    <button class="btn-primary-sm" style="padding:6px 14px;font-size:13px" onclick="App.saveMergedMemo(${c.id}, '${petIdsAttr}', '${esc(petNamesAttr)}', ${hasSiblings})">저장</button>
+                    <button class="btn-primary-sm" style="padding:6px 14px;font-size:13px" onclick="App.saveMergedMemo(${c.id}, '${allPetIds}')">저장</button>
                     <button class="btn-cancel-sm" onclick="App.cancelMemoEdit(${c.id})">취소</button>
                 </div>
             </div>`;
@@ -829,7 +825,7 @@ const App = (() => {
                 const dow = WEEKDAYS_KR[d.getDay()];
                 const dateStr = `${r.date.substring(5).replace('-','.')}(${dow})`;
                 const timeStr = r.time ? ' ' + formatTime(r.time) : '';
-                const amt = r.amount ? r.amount.toLocaleString() + '원' : '';
+                const amt = r.amount === -1 ? '미정' : r.amount ? r.amount.toLocaleString() + '원' : '';
                 const resMemo = r.groomer_memo || r.request || '';
                 const isLegacyMemo = resMemo && !r.customer_memo; // 과거 데이터: groomer_memo만 있는 경우
                 const petTag = hasSiblings ? `<span style="font-size:12px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:2px 6px;border-radius:4px;margin-right:4px">${esc(r._pet)}</span>` : '';
@@ -954,6 +950,7 @@ const App = (() => {
                 return `<button type="button" class="btn-grid-item${p===r.amount?' active':''}" data-field="editResAmount" data-value="${p}" onclick="App.selectGridBtn(this)"${disAttr}>${label}</button>`;
             }).join('');
             priceGrid += `<button type="button" class="btn-grid-item" data-field="editResAmount" data-value="0" onclick="App.showCustomAmount('editResAmount')"${disAttr}>기타</button>`;
+            priceGrid += `<button type="button" class="btn-grid-item${r.amount===-1?' active':''}" data-field="editResAmount" data-value="-1" onclick="App.selectGridBtn(this)"${disAttr}>미정</button>`;
             const form = document.getElementById('reservationForm');
             document.getElementById('sheetTitle').textContent = '✏️ 예약 수정';
             form.innerHTML = `
@@ -985,7 +982,7 @@ const App = (() => {
                         <div class="btn-grid">${durGrid}</div>
                     </div>
                     <div class="form-group res-form-full">
-                        <label>금액 <span class="sub-label" id="priceLabel">${(r.amount||0).toLocaleString()}원</span></label>
+                        <label>금액 <span class="sub-label" id="priceLabel">${r.amount===-1?'미정':(r.amount||0).toLocaleString()+'원'}</span></label>
                         <div class="btn-grid">${priceGrid}</div>
                     </div>
                     <div class="form-group">
@@ -1557,50 +1554,14 @@ const App = (() => {
         editEl.style.display = 'none';
     }
 
-    async function saveMergedMemo(mainCid, petIdsStr, petNamesStr, hasSiblings) {
-        const ta = document.getElementById('mergedMemoTA_' + mainCid);
+    async function saveMergedMemo(mainCid, allPetIdsStr) {
+        const ta = document.getElementById('memoTA_' + mainCid);
         if (!ta) return;
-        const petIds = petIdsStr.split(',').map(Number);
-        const petNames = petNamesStr.split(',');
-        const text = ta.value;
-
+        const memo = ta.value.trim();
+        const petIds = allPetIdsStr ? allPetIdsStr.split(',').map(Number) : [mainCid];
         try {
-            if (hasSiblings) {
-                // 펫 이름 기반 파싱: "바니 - 메모\n꾸꾸 - 메모" 형식
-                const memos = {};
-                petIds.forEach((id, i) => { memos[id] = ''; });
-
-                // 각 펫 이름의 시작 위치를 찾아서 해당 구간의 메모 추출
-                const lines = text.split('\n');
-                let currentPetIdx = -1;
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    // 이 줄이 어떤 펫 이름으로 시작하는지 확인
-                    let matched = false;
-                    for (let i = 0; i < petNames.length; i++) {
-                        if (trimmed.startsWith(petNames[i] + ' - ')) {
-                            currentPetIdx = i;
-                            memos[petIds[i]] = trimmed.substring(petNames[i].length + 3);
-                            matched = true;
-                            break;
-                        }
-                    }
-                    if (!matched && currentPetIdx >= 0 && trimmed) {
-                        // 현재 펫의 추가 줄
-                        memos[petIds[currentPetIdx]] += (memos[petIds[currentPetIdx]] ? '\n' : '') + trimmed;
-                    }
-                }
-
-                for (const id of petIds) {
-                    await fetch(`/api/customer/${id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ memo: memos[id] }),
-                    });
-                }
-            } else {
-                const memo = ta.value.trim();
-                await fetch(`/api/customer/${petIds[0]}`, {
+            for (const id of petIds) {
+                await fetch(`/api/customer/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ memo }),
@@ -1694,7 +1655,7 @@ const App = (() => {
                 recentHtml = '<div class="call-recent"><div class="call-recent-title">최근 이력</div>' +
                     data.recent_reservations.map(r => {
                         const st = statusLabel[r.status] || r.status;
-                        const amt = r.amount ? ` ${r.amount.toLocaleString()}원` : '';
+                        const amt = r.amount === -1 ? ' 미정' : r.amount ? ` ${r.amount.toLocaleString()}원` : '';
                         return `<div class="call-recent-item"><span>${esc(r.date)}</span><span>${esc(r.service)}${amt}</span><span class="call-recent-status ${r.status}">${st}</span></div>`;
                     }).join('') + '</div>';
             }

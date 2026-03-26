@@ -1336,7 +1336,6 @@ textarea#quickMemo:focus {
     border: 2px solid var(--primary); border-radius: 6px;
     font-size: 14px; font-family: inherit; resize: vertical; box-sizing: border-box;
 }
-.memo-edit-ta.merged { min-height: 80px; }
 .btn-cancel-sm {
     padding: 6px 14px; font-size: 13px; background: none;
     border: 1px solid var(--border-strong); border-radius: 5px;

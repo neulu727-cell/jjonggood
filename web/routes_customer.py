@@ -11,6 +11,14 @@ log = logging.getLogger("jjonggood.customer")
 customer_bp = Blueprint("customer", __name__)
 
 
+def _record_history(db, customer_id, action, field_name="", old_value="", new_value=""):
+    """고객 변경이력 기록"""
+    db.execute(
+        "INSERT INTO customer_history (customer_id, action, field_name, old_value, new_value) VALUES (?, ?, ?, ?, ?)",
+        (customer_id, action, field_name, str(old_value or "")[:500], str(new_value or "")[:500])
+    )
+
+
 def _safe_float(val):
     """안전한 float 변환. 빈값이면 None, 변환 불가시 None."""
     if not val and val != 0:
@@ -125,6 +133,9 @@ def create_customer():
         channel=channel,
     )
 
+    # 생성 이력 기록
+    _record_history(db, cid, "create", "", "", f"{pet_name} ({breed}) {phone}")
+
     # Google 연락처 동기화
     google_synced = False
     google_msg = ""
@@ -218,7 +229,30 @@ def update_customer(cid):
     if "phone3" in data:
         fields["phone3"] = normalize_phone(data["phone3"]) if data["phone3"] else ""
 
+    # 수정 전 기존 데이터 조회 (이력용)
+    old_data = db.fetch_one("SELECT * FROM customers WHERE id = ?", (cid,))
+
     queries.update_customer(db, cid, **fields)
+
+    # 메모 변경 시 형제 강아지에게도 동기화
+    if "memo" in fields:
+        customer = db.fetch_one("SELECT phone FROM customers WHERE id = ?", (cid,))
+        if customer and customer["phone"]:
+            db.execute(
+                "UPDATE customers SET memo = ?, updated_at = NOW() WHERE phone = ? AND id != ?",
+                (fields["memo"], customer["phone"], cid)
+            )
+
+    # 변경 이력 기록
+    if old_data:
+        for key, new_val in fields.items():
+            old_val = old_data.get(key, "")
+            if old_val is None:
+                old_val = ""
+            if new_val is None:
+                new_val = ""
+            if str(old_val) != str(new_val):
+                _record_history(db, cid, "update", key, old_val, new_val)
 
     # Google 연락처 동기화
     google_synced = False
@@ -253,6 +287,11 @@ def update_customer(cid):
 @require_auth
 def delete_customer(cid):
     # URL 유출 대비: 고객 삭제 비활성화
+    # 삭제 이력은 활성화 시 기록됨
+    db = get_db()
+    old_data = db.fetch_one("SELECT * FROM customers WHERE id = ?", (cid,))
+    if old_data:
+        _record_history(db, cid, "delete", "", f"{old_data.get('pet_name','')} ({old_data.get('breed','')}) {old_data.get('phone','')}", "")
     return jsonify({"error": "삭제 기능이 비활성화되어 있습니다"}), 403
 
 

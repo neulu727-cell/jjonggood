@@ -339,6 +339,20 @@ class DatabaseManager:
                         END IF;
                     END $$;
                 """)
+                # 마이그레이션: 고객 변경이력 테이블
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS customer_history (
+                        id            SERIAL PRIMARY KEY,
+                        customer_id   INTEGER NOT NULL,
+                        action        TEXT NOT NULL,
+                        field_name    TEXT DEFAULT '',
+                        old_value     TEXT DEFAULT '',
+                        new_value     TEXT DEFAULT '',
+                        created_at    TIMESTAMP DEFAULT NOW()
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_customer_history_cid
+                        ON customer_history(customer_id, created_at DESC);
+                """)
                 # 마이그레이션: 전체얼컷 기본 소요시간 90→120분
                 cur.execute("""
                     UPDATE service_types SET default_duration = 120
