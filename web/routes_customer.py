@@ -355,6 +355,42 @@ def find_by_phone():
     })
 
 
+@customer_bp.route("/api/customers/history")
+@require_auth
+def customer_history():
+    """고객 변경이력 조회"""
+    db = get_db()
+    offset = request.args.get("offset", 0, type=int)
+    limit = request.args.get("limit", 50, type=int)
+    rows = db.fetch_all(
+        """SELECT h.*, c.pet_name, c.breed
+           FROM customer_history h
+           LEFT JOIN customers c ON h.customer_id = c.id
+           ORDER BY h.created_at DESC
+           LIMIT ? OFFSET ?""",
+        (min(limit, 100), offset)
+    )
+    result = []
+    for r in rows:
+        created = r["created_at"]
+        if hasattr(created, 'strftime'):
+            created = created.strftime("%m/%d %H:%M")
+        else:
+            created = str(created)[:16] if created else ""
+        result.append({
+            "id": r["id"],
+            "customer_id": r["customer_id"],
+            "pet_name": r.get("pet_name") or "",
+            "breed": r.get("breed") or "",
+            "action": r["action"],
+            "field_name": r["field_name"] or "",
+            "old_value": r["old_value"] or "",
+            "new_value": r["new_value"] or "",
+            "created_at": created,
+        })
+    return jsonify({"history": result})
+
+
 @customer_bp.route("/api/customers/missing-breed")
 @require_auth
 def missing_breed():

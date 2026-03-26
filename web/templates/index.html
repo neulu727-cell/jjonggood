@@ -42,6 +42,7 @@
             <button onclick="App.changeMonth(1)" aria-label="다음 달">&#8250;</button>
         </div>
         <div class="header-actions">
+            <button class="btn-icon" onclick="App.showCustomerHistory()" title="변경이력" aria-label="변경이력" style="font-size:16px">📋</button>
             <button class="btn-icon mobile-only" onclick="App.copyIntakeForm()" title="예약 양식 복사" aria-label="예약 양식 복사">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             </button>
@@ -305,6 +306,20 @@
             </div>
             <div id="importResult" style="display:none;margin-bottom:12px;padding:10px;border-radius:8px;font-size:13px"></div>
             <button class="btn-primary" onclick="App.submitImport()" id="importBtn">임포트 실행</button>
+        </div>
+    </div>
+</div>
+
+<!-- 변경이력 바텀시트 -->
+<div class="bottom-sheet-overlay" id="historySheet" style="display:none">
+    <div class="bottom-sheet tall">
+        <div class="sheet-handle" onclick="App.closeSheet('historySheet')"></div>
+        <div class="sheet-header">
+            <h3>📋 고객 변경이력</h3>
+            <button class="sheet-close" onclick="App.closeSheet('historySheet')" aria-label="닫기">&times;</button>
+        </div>
+        <div class="sheet-body" id="historyContent" style="overflow-y:auto">
+            <p style="text-align:center;color:#999;padding:40px">불러오는 중...</p>
         </div>
     </div>
 </div>

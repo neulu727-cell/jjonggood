@@ -3008,6 +3008,86 @@ const App = (() => {
             });
     }
 
+    // ==================== 고객 변경이력 ====================
+
+    let _historyOffset = 0;
+
+    async function showCustomerHistory() {
+        _historyOffset = 0;
+        openSheet('historySheet');
+        await _loadHistory(false);
+    }
+
+    async function _loadHistory(append) {
+        const content = document.getElementById('historyContent');
+        if (!append) content.innerHTML = '<p style="text-align:center;color:#999;padding:40px">불러오는 중...</p>';
+        try {
+            const res = await fetch(`/api/customers/history?offset=${_historyOffset}&limit=50`);
+            const data = await res.json();
+            const items = data.history || [];
+
+            const ACTION_LABEL = { create: '🆕 등록', update: '✏️ 수정', delete: '🗑️ 삭제' };
+            const FIELD_LABEL = { memo: '메모', phone: '전화', pet_name: '이름', breed: '견종', weight: '몸무게', channel: '유입경로', phone2: '보조연락처', phone3: '비상연락처', name: '보호자명', notes: '메모' };
+
+            let html = '';
+            if (!append) html = '';
+
+            if (!items.length && !append) {
+                content.innerHTML = '<p style="text-align:center;color:#999;padding:40px">변경이력이 없습니다</p>';
+                return;
+            }
+
+            let lastDate = '';
+            for (const h of items) {
+                const dateStr = h.created_at.split(' ')[0];
+                if (dateStr !== lastDate) {
+                    html += `<div class="history-date-divider">${dateStr}</div>`;
+                    lastDate = dateStr;
+                }
+                const label = ACTION_LABEL[h.action] || h.action;
+                const pet = h.pet_name ? `${esc(h.pet_name)}` : `#${h.customer_id}`;
+                const field = FIELD_LABEL[h.field_name] || h.field_name;
+
+                let detail = '';
+                if (h.action === 'create') {
+                    detail = `<span class="history-new">${esc(h.new_value)}</span>`;
+                } else if (h.action === 'update') {
+                    const oldShort = h.old_value.length > 30 ? h.old_value.substring(0, 30) + '..' : h.old_value;
+                    const newShort = h.new_value.length > 30 ? h.new_value.substring(0, 30) + '..' : h.new_value;
+                    detail = `<span class="history-field">${field}</span> <span class="history-old">${esc(oldShort)}</span> → <span class="history-new">${esc(newShort)}</span>`;
+                } else if (h.action === 'delete') {
+                    detail = `<span class="history-old">${esc(h.old_value)}</span>`;
+                }
+
+                html += `<div class="history-item">
+                    <span class="history-action">${label}</span>
+                    <span class="history-pet">${pet}</span>
+                    <div class="history-detail">${detail}</div>
+                    <span class="history-time">${h.created_at.split(' ')[1] || ''}</span>
+                </div>`;
+            }
+
+            if (items.length >= 50) {
+                html += `<button class="btn-load-more" onclick="App.loadMoreHistory()">더 보기</button>`;
+            }
+
+            if (append) {
+                const btn = content.querySelector('.btn-load-more');
+                if (btn) btn.remove();
+                content.insertAdjacentHTML('beforeend', html);
+            } else {
+                content.innerHTML = html;
+            }
+            _historyOffset += items.length;
+        } catch (e) {
+            if (!append) content.innerHTML = '<p style="text-align:center;color:#999;padding:40px">불러오기 실패</p>';
+        }
+    }
+
+    async function loadMoreHistory() {
+        await _loadHistory(true);
+    }
+
     // ==================== 사장 휴무/일정 ====================
 
     function showBossScheduleForm() {
@@ -3145,6 +3225,7 @@ const App = (() => {
         toggleGoogle,
         loadGroomingRequests, updateRequestStatus,
         showBossScheduleForm, selectBossType, saveBossSchedule,
+        showCustomerHistory, loadMoreHistory,
     };
 })();
 
