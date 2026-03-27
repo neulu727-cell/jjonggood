@@ -267,6 +267,58 @@ def google_debug():
     return jsonify(info)
 
 
+@google_bp.route("/google/sync-incremental")
+@require_auth
+def google_sync_incremental():
+    """google_contact_id가 없는 고객만 동기화 (증분)"""
+    if not GOOGLE_AVAILABLE:
+        return jsonify({"error": "Google API 패키지가 설치되지 않았습니다"}), 500
+
+    db = get_db()
+    creds = _get_credentials(db)
+    if not creds:
+        return jsonify({"error": "Google 연동이 필요합니다"}), 400
+
+    customers = db.fetch_all(
+        "SELECT * FROM customers WHERE phone != 'BOSS' AND (google_contact_id IS NULL OR google_contact_id = '') ORDER BY id"
+    )
+    total = len(customers)
+
+    if total == 0:
+        return jsonify({"ok": True, "message": "동기화할 고객이 없습니다 (모두 동기화 완료)"})
+
+    def generate():
+        success = 0
+        fail = 0
+        synced_names = []
+        errors = []
+
+        yield f"data: {json.dumps({'type': 'start', 'total': total}, ensure_ascii=False)}\n\n"
+
+        for i, c in enumerate(customers):
+            ok, msg = sync_contact_to_google(
+                c["id"], c["pet_name"], c["weight"], c["breed"],
+                c["phone"], c.get("memo", ""), c.get("google_contact_id"),
+            )
+            weight_str = f" {c['weight']}kg" if c.get("weight") else ""
+            breed_str = f" {c['breed']}" if c.get("breed") else ""
+            name = f"{c['pet_name']}{weight_str}{breed_str}"
+
+            if ok:
+                success += 1
+                synced_names.append(name)
+                yield f"data: {json.dumps({'type': 'progress', 'i': i + 1, 'total': total, 'name': name, 'ok': True}, ensure_ascii=False)}\n\n"
+            else:
+                fail += 1
+                errors.append(f"{name}: {msg}")
+                yield f"data: {json.dumps({'type': 'progress', 'i': i + 1, 'total': total, 'name': name, 'ok': False, 'error': msg}, ensure_ascii=False)}\n\n"
+
+        yield f"data: {json.dumps({'type': 'done', 'success': success, 'fail': fail, 'synced_names': synced_names, 'errors': errors[:3]}, ensure_ascii=False)}\n\n"
+
+    return Response(generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 @google_bp.route("/google/sync-all")
 @require_auth
 def google_sync_all():
@@ -279,7 +331,7 @@ def google_sync_all():
     if not creds:
         return jsonify({"error": "Google 연동이 필요합니다"}), 400
 
-    customers = db.fetch_all("SELECT * FROM customers ORDER BY id")
+    customers = db.fetch_all("SELECT * FROM customers WHERE phone != 'BOSS' ORDER BY id")
     total = len(customers)
 
     def generate():

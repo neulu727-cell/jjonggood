@@ -3110,41 +3110,12 @@ const App = (() => {
             .then(r => r.json())
             .then(data => {
                 if (data.connected) {
-                    const choice = prompt('고객 등록/수정 시 자동 동기화됩니다.\n\n1: 기존 고객 전체 일괄 동기화\n2: 연동 해제\n\n번호를 입력하세요:');
+                    const choice = prompt('Google 연락처 자동 동기화 중입니다.\n(고객 등록/수정 시 자동 반영)\n\n1: 증분 동기화 (미동기화 고객만)\n2: 연동 해제\n3: 전체 동기화 (시간 오래 걸림)\n\n번호를 입력하세요:');
                     if (choice === '1') {
-                        if (confirm('기존 고객 전체를 Google 연락처에 동기화합니다.\n시간이 걸릴 수 있습니다. 진행하시겠습니까?')) {
-                            const el = document.getElementById('googleStatus');
-                            if (el) el.innerHTML = '&#9679; 동기화중...';
-                            // EventSource(GET SSE)로 진행상황 수신
-                            const sse = new EventSource('/google/sync-all');
-                            sse.onmessage = function(e) {
-                                try {
-                                    const ev = JSON.parse(e.data);
-                                    if (ev.type === 'start') {
-                                        if (el) el.innerHTML = '&#9679; 0/' + ev.total;
-                                    } else if (ev.type === 'progress') {
-                                        if (el) el.innerHTML = '&#9679; ' + ev.i + '/' + ev.total;
-                                        toast((ev.ok ? '✓ ' : '✗ ') + ev.name, ev.ok ? 'success' : 'error');
-                                    } else if (ev.type === 'done') {
-                                        sse.close();
-                                        let msg = '동기화 완료: 성공 ' + ev.success + '건, 실패 ' + ev.fail + '건';
-                                        if (ev.synced_names && ev.synced_names.length) {
-                                            msg += '\n\n동기화된 연락처:\n' + ev.synced_names.join(', ');
-                                        }
-                                        if (ev.errors && ev.errors.length) {
-                                            msg += '\n\n실패:\n' + ev.errors.join('\n');
-                                        }
-                                        alert(msg);
-                                        loadGoogleStatus();
-                                    }
-                                } catch (err) {}
-                            };
-                            sse.onerror = function() {
-                                sse.close();
-                                if (el) el.innerHTML = '&#9679; Google 연동됨';
-                                toast('동기화 연결이 끊어졌습니다. 서버에서는 완료되었을 수 있습니다.', 'error');
-                                loadGoogleStatus();
-                            };
+                        _runGoogleSync('/google/sync-incremental', '증분');
+                    } else if (choice === '3') {
+                        if (confirm('전체 고객을 동기화합니다.\n시간이 오래 걸릴 수 있습니다. 진행하시겠습니까?')) {
+                            _runGoogleSync('/google/sync-all', '전체');
                         }
                     } else if (choice === '2') {
                         if (confirm('Google 연동을 해제하시겠습니까?\n자동 동기화가 중단됩니다.')) {
@@ -3158,6 +3129,68 @@ const App = (() => {
                     }
                 }
             });
+    }
+
+    function _runGoogleSync(url, label) {
+        const el = document.getElementById('googleStatus');
+        if (el) el.innerHTML = '&#9679; ' + label + ' 동기화중...';
+
+        // JSON 응답인 경우 (동기화할 고객 없음)
+        fetch(url, {credentials: 'same-origin'}).then(r => {
+            const ct = r.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+                return r.json().then(d => {
+                    toast(d.message || '완료', 'success');
+                    loadGoogleStatus();
+                });
+            }
+            // SSE 응답 → EventSource로 재연결
+            const sse = new EventSource(url);
+            sse.onmessage = function(e) {
+                try {
+                    const ev = JSON.parse(e.data);
+                    if (ev.type === 'start') {
+                        if (el) el.innerHTML = '&#9679; 0/' + ev.total;
+                    } else if (ev.type === 'progress') {
+                        if (el) el.innerHTML = '&#9679; ' + ev.i + '/' + ev.total;
+                        toast((ev.ok ? '✓ ' : '✗ ') + ev.name, ev.ok ? 'success' : 'error');
+                    } else if (ev.type === 'done') {
+                        sse.close();
+                        let msg = label + ' 동기화 완료: 성공 ' + ev.success + '건, 실패 ' + ev.fail + '건';
+                        if (ev.synced_names && ev.synced_names.length) {
+                            msg += '\n\n동기화된 연락처:\n' + ev.synced_names.join(', ');
+                        }
+                        if (ev.errors && ev.errors.length) {
+                            msg += '\n\n실패:\n' + ev.errors.join('\n');
+                        }
+                        alert(msg);
+                        loadGoogleStatus();
+                    }
+                } catch (err) {}
+            };
+            sse.onerror = function() {
+                sse.close();
+                if (el) el.innerHTML = '&#9679; Google 연동됨';
+                toast('서버 연결이 끊어졌습니다. 서버에서는 계속 진행 중일 수 있습니다.', 'error');
+                loadGoogleStatus();
+            };
+        }).catch(() => {
+            // fetch 자체 실패 시 SSE로 바로 시도
+            const sse = new EventSource(url);
+            sse.onmessage = function(e) {
+                try {
+                    const ev = JSON.parse(e.data);
+                    if (ev.type === 'done') {
+                        sse.close();
+                        alert(label + ' 동기화 완료: 성공 ' + ev.success + '건, 실패 ' + ev.fail + '건');
+                        loadGoogleStatus();
+                    } else if (ev.type === 'progress' && el) {
+                        el.innerHTML = '&#9679; ' + ev.i + '/' + ev.total;
+                    }
+                } catch (err) {}
+            };
+            sse.onerror = function() { sse.close(); loadGoogleStatus(); };
+        });
     }
 
     // ==================== 고객 변경이력 ====================
