@@ -391,6 +391,53 @@ def customer_history():
     return jsonify({"history": result})
 
 
+@customer_bp.route("/api/customer/<int:cid>/photos", methods=["GET"])
+@require_auth
+def get_customer_photos(cid):
+    """고객 참고사진 조회"""
+    db = get_db()
+    rows = db.fetch_all(
+        "SELECT id, image_data, TO_CHAR(created_at, 'MM/DD') as created_at FROM customer_photos WHERE customer_id = ? ORDER BY created_at DESC",
+        (cid,)
+    )
+    return jsonify({"photos": [{"id": r["id"], "image_data": r["image_data"], "created_at": r["created_at"] or ""} for r in rows]})
+
+
+@customer_bp.route("/api/customer/<int:cid>/photos", methods=["POST"])
+@require_auth
+def add_customer_photo(cid):
+    """고객 참고사진 추가"""
+    db = get_db()
+    data = request.get_json()
+    if not data or not data.get("image_data"):
+        return jsonify({"error": "이미지 데이터가 없습니다"}), 400
+
+    image_data = data["image_data"]
+    # base64 data URL 크기 제한 (약 5MB)
+    if len(image_data) > 5 * 1024 * 1024:
+        return jsonify({"error": "이미지가 너무 큽니다 (5MB 이하)"}), 400
+
+    # 사진 수 제한 (고객당 최대 20장)
+    count = db.fetch_one("SELECT COUNT(*) as cnt FROM customer_photos WHERE customer_id = ?", (cid,))
+    if count and count["cnt"] >= 20:
+        return jsonify({"error": "사진은 최대 20장까지 등록 가능합니다"}), 400
+
+    db.execute(
+        "INSERT INTO customer_photos (customer_id, image_data) VALUES (?, ?)",
+        (cid, image_data)
+    )
+    return jsonify({"ok": True})
+
+
+@customer_bp.route("/api/customer/<int:cid>/photo/<int:pid>", methods=["DELETE"])
+@require_auth
+def delete_customer_photo(cid, pid):
+    """고객 참고사진 삭제"""
+    db = get_db()
+    db.execute("DELETE FROM customer_photos WHERE id = ? AND customer_id = ?", (pid, cid))
+    return jsonify({"ok": True})
+
+
 @customer_bp.route("/api/customers/missing-breed")
 @require_auth
 def missing_breed():

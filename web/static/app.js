@@ -378,6 +378,7 @@ const App = (() => {
         if (!tl) return;
         let startY = 0, currentY = 0, dragging = false;
         tl.addEventListener('touchstart', (e) => {
+            if (isPC()) return;
             startY = e.touches[0].clientY;
             currentY = 0;
             dragging = false;
@@ -897,8 +898,8 @@ const App = (() => {
                     <span class="ud-pet-divider">|</span>
                     <a href="tel:${c.phone}" class="ud-pet-phone">${esc(c.phone_display)}</a>
                     ${c.phone2 ? `<a href="tel:${c.phone2}" class="ud-pet-phone ud-phone-sub" title="보조연락처">${esc(c.phone2_display)}</a>` : ''}
-                    ${c.phone3 ? `<a href="tel:${c.phone3}" class="ud-pet-phone ud-phone-sub" title="비상연락처">${esc(c.phone3_display)}</a>` : ''}
                     <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})" aria-label="고객 정보 수정">수정</button>
+                    <button class="ud-edit-link ud-photo-link" onclick="App.showRefPhotos(${c.id})" aria-label="참고사진">📷</button>
                 </div>
             </div>
             <div class="ud-memo-banner">
@@ -1323,12 +1324,14 @@ const App = (() => {
                     <input type="tel" id="cfPhone2" value="${esc(c.phone2_display || c.phone2 || '')}" placeholder="보조 연락처" inputmode="tel" oninput="App.formatPhoneInput(this)">
                 </div>
                 <div class="form-group">
-                    <label>비상연락처</label>
-                    <input type="tel" id="cfPhone3" value="${esc(c.phone3_display || c.phone3 || '')}" placeholder="비상 연락처" inputmode="tel" oninput="App.formatPhoneInput(this)">
-                </div>
-                <div class="form-group">
                     <label>메모</label>
                     <textarea id="cfMemo" rows="2" placeholder="알러지, 주의사항 등">${esc(c.memo || '')}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>참고사진</label>
+                    <div id="cfPhotoPreview" class="photo-preview-grid"></div>
+                    <button type="button" class="btn-outline" onclick="App.addRefPhoto(${c.id})">📷 참고사진 추가</button>
+                    <input type="file" id="cfPhotoInput" accept="image/*" style="display:none" onchange="App.handlePhotoSelect(this, ${c.id})">
                 </div>
                 <button class="btn-primary" onclick="App.saveCustomer(true, '${typeof onSaved === 'function' ? 'callback' : ''}')">${'수정 저장'}</button>
                 <button class="btn-danger" onclick="App.deleteCustomer(${c.id})">삭제</button>
@@ -1483,7 +1486,6 @@ const App = (() => {
                 memo: document.getElementById('cfMemo').value,
                 channel: (document.getElementById('cfChannel') || {}).value || '',
                 phone2: (document.getElementById('cfPhone2') || {}).value || '',
-                phone3: (document.getElementById('cfPhone3') || {}).value || '',
             };
         } else {
             const parsed = _parsePetBreed(document.getElementById('cfPetBreed').value);
@@ -1626,6 +1628,7 @@ const App = (() => {
             const c = await res.json();
             closeSheet('unifiedDetailSheet');
             showCustomerForm(c);
+            _loadEditFormPhotos(cid);
         } catch (e) {
             toast('불러오기 실패', 'error');
         }
@@ -1811,10 +1814,12 @@ const App = (() => {
         let startX = 0, startY = 0;
         const el = document.querySelector('.calendar-section');
         el.addEventListener('touchstart', e => {
+            if (isPC()) return;
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
         }, { passive: true });
         el.addEventListener('touchend', e => {
+            if (isPC()) return;
             const dx = e.changedTouches[0].clientX - startX;
             const dy = e.changedTouches[0].clientY - startY;
             if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
@@ -1960,6 +1965,7 @@ const App = (() => {
         if (header) {
             header.classList.add('sheet-drag-area');
             header.addEventListener('touchstart', (e) => {
+                if (isPC()) return;
                 startY = e.touches[0].clientY;
                 isDragging = true;
                 dragSource = 'header';
@@ -1969,6 +1975,7 @@ const App = (() => {
 
         // 시트 본문: 스크롤이 맨 위일 때만 아래 스와이프로 닫기
         sheet.addEventListener('touchstart', (e) => {
+            if (isPC()) return;
             if (isDragging) return;
             if (sheet.scrollTop <= 0) {
                 startY = e.touches[0].clientY;
@@ -1977,6 +1984,7 @@ const App = (() => {
         }, { passive: true });
 
         sheet.addEventListener('touchmove', (e) => {
+            if (isPC()) return;
             if (dragSource === 'header' && isDragging) {
                 currentY = e.touches[0].clientY - startY;
                 if (currentY > 0) {
@@ -3052,7 +3060,7 @@ const App = (() => {
             const items = data.history || [];
 
             const ACTION_LABEL = { create: '🆕 등록', update: '✏️ 수정', delete: '🗑️ 삭제' };
-            const FIELD_LABEL = { memo: '메모', phone: '전화', pet_name: '이름', breed: '견종', weight: '몸무게', channel: '유입경로', phone2: '보조연락처', phone3: '비상연락처', name: '보호자명', notes: '메모' };
+            const FIELD_LABEL = { memo: '메모', phone: '전화', pet_name: '이름', breed: '견종', weight: '몸무게', channel: '유입경로', phone2: '보조연락처', name: '보호자명', notes: '메모' };
 
             let html = '';
             if (!append) html = '';
@@ -3213,6 +3221,122 @@ const App = (() => {
         }
     }
 
+    // ==================== 참고사진 ====================
+
+    function addRefPhoto(cid) {
+        document.getElementById('cfPhotoInput').click();
+    }
+
+    async function handlePhotoSelect(input, cid) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        if (file.size > 10 * 1024 * 1024) { toast('10MB 이하 사진만 가능합니다', 'error'); return; }
+
+        toast('사진 업로드 중...');
+        try {
+            const base64 = await _compressImage(file, 1200, 0.75);
+            const res = await fetch(`/api/customer/${cid}/photos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image_data: base64 }),
+            });
+            const result = await res.json();
+            if (result.ok) {
+                toast('사진이 추가되었습니다', 'success');
+                _loadEditFormPhotos(cid);
+            } else {
+                toast(result.error || '업로드 실패', 'error');
+            }
+        } catch (e) {
+            toast('업로드 실패', 'error');
+        }
+        input.value = '';
+    }
+
+    function _compressImage(file, maxSize, quality) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    if (w > maxSize || h > maxSize) {
+                        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+                        else { w = Math.round(w * maxSize / h); h = maxSize; }
+                    }
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function _loadEditFormPhotos(cid) {
+        const container = document.getElementById('cfPhotoPreview');
+        if (!container) return;
+        try {
+            const res = await fetch(`/api/customer/${cid}/photos`);
+            const data = await res.json();
+            const photos = data.photos || [];
+            if (!photos.length) { container.innerHTML = ''; return; }
+            container.innerHTML = photos.map(p => `
+                <div class="photo-thumb-wrap">
+                    <img src="${p.image_data}" class="photo-thumb" onclick="App.viewPhoto('${p.image_data.replace(/'/g, "\\'")}')">
+                    <button class="photo-delete-btn" onclick="App.deleteRefPhoto(${cid}, ${p.id})">&times;</button>
+                </div>
+            `).join('');
+        } catch (e) { /* ignore */ }
+    }
+
+    async function deleteRefPhoto(cid, photoId) {
+        if (!confirm('이 사진을 삭제하시겠습니까?')) return;
+        try {
+            const res = await fetch(`/api/customer/${cid}/photo/${photoId}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.ok) {
+                toast('삭제됨', 'success');
+                _loadEditFormPhotos(cid);
+            } else {
+                toast('삭제 실패', 'error');
+            }
+        } catch (e) { toast('삭제 실패', 'error'); }
+    }
+
+    async function showRefPhotos(cid) {
+        try {
+            const res = await fetch(`/api/customer/${cid}/photos`);
+            const data = await res.json();
+            const photos = data.photos || [];
+            if (!photos.length) { toast('등록된 참고사진이 없습니다'); return; }
+
+            const form = document.getElementById('reservationForm');
+            document.getElementById('sheetTitle').textContent = '📷 참고사진';
+            form.innerHTML = `
+                <div class="photo-gallery">
+                    ${photos.map(p => `
+                        <div class="photo-gallery-item">
+                            <img src="${p.image_data}" onclick="App.viewPhoto(this.src)" loading="lazy">
+                            <span class="photo-date">${p.created_at || ''}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            openSheet('reservationSheet');
+        } catch (e) { toast('사진 불러오기 실패', 'error'); }
+    }
+
+    function viewPhoto(src) {
+        const overlay = document.createElement('div');
+        overlay.className = 'photo-viewer-overlay';
+        overlay.innerHTML = `<img src="${src}" class="photo-viewer-img"><button class="photo-viewer-close" onclick="this.parentElement.remove()">&times;</button>`;
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+        document.body.appendChild(overlay);
+    }
+
     return {
         selectDate, closeTimeline, changeMonth, goToday, loadCustomerList,
         get customerSort() { return customerSort; },
@@ -3238,6 +3362,7 @@ const App = (() => {
         loadGroomingRequests, updateRequestStatus,
         showBossScheduleForm, selectBossType, saveBossSchedule,
         showCustomerHistory, loadMoreHistory,
+        addRefPhoto, handlePhotoSelect, deleteRefPhoto, showRefPhotos, viewPhoto,
     };
 })();
 

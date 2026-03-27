@@ -359,6 +359,16 @@ class DatabaseManager:
                     SELECT '사장', 'BOSS', '사장', '', '사장 일정/휴무용'
                     WHERE NOT EXISTS (SELECT 1 FROM customers WHERE phone = 'BOSS');
                 """)
+                # 마이그레이션: 참고사진 테이블
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS customer_photos (
+                        id SERIAL PRIMARY KEY,
+                        customer_id INTEGER NOT NULL,
+                        image_data TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_customer_photos_cid ON customer_photos(customer_id);
+                """)
                 # 마이그레이션: 전체얼컷 기본 소요시간 90→120분
                 cur.execute("""
                     UPDATE service_types SET default_duration = 120
