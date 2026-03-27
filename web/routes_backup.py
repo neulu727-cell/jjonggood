@@ -56,12 +56,38 @@ def download_backup():
                 d[k] = v.isoformat()
         call_history_list.append(d)
 
+    # 고객 변경이력
+    customer_history = db.fetch_all("SELECT * FROM customer_history ORDER BY id")
+    customer_history_list = []
+    for row in customer_history:
+        d = dict(row)
+        for k, v in d.items():
+            if hasattr(v, 'isoformat'):
+                d[k] = v.isoformat()
+        customer_history_list.append(d)
+
+    # 참고사진 (base64 원본 포함)
+    photos = db.fetch_all("SELECT * FROM customer_photos ORDER BY id")
+    photos_list = []
+    for row in photos:
+        d = dict(row)
+        for k, v in d.items():
+            if hasattr(v, 'isoformat'):
+                d[k] = v.isoformat()
+        photos_list.append(d)
+
     backup_data = {
         "exported_at": datetime.now().isoformat(),
         "customers": customers_list,
         "reservations": reservations_list,
         "call_history": call_history_list,
+        "customer_history": customer_history_list,
+        "customer_photos": photos_list,
     }
+
+    # ?format=json이면 다운로드 헤더 없이 JSON 반환 (자동백업용)
+    if request.args.get("format") == "json":
+        return jsonify(backup_data)
 
     filename = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     json_str = json.dumps(backup_data, ensure_ascii=False, indent=2)

@@ -40,9 +40,128 @@ const App = (() => {
             goToday();
             loadBridgeStatus();
             loadGoogleStatus();
+            // 자동 DB 백업 (로딩 후 2초 뒤)
+            setTimeout(_tryAutoBackup, 2000);
         } else {
             loadMonth();
         }
+    }
+
+    // ==================== 자동 DB 백업 (File System Access API) ====================
+
+    let _backupDirHandle = null;
+
+    async function _tryAutoBackup() {
+        if (!isPC()) return;
+        if (!('showDirectoryPicker' in window)) return;
+
+        const today = new Date().toISOString().slice(0, 10);
+        const lastBackup = localStorage.getItem('lastBackupDate');
+        if (lastBackup === today) return; // 오늘 이미 백업함
+
+        // 저장된 디렉토리 핸들이 있는지 확인
+        if (_backupDirHandle) {
+            // 권한 확인
+            const perm = await _backupDirHandle.queryPermission({ mode: 'readwrite' });
+            if (perm === 'granted') {
+                await _doAutoBackup();
+                return;
+            }
+        }
+
+        // IndexedDB에서 핸들 복원 시도
+        try {
+            const handle = await _getStoredDirHandle();
+            if (handle) {
+                const perm = await handle.queryPermission({ mode: 'readwrite' });
+                if (perm === 'granted') {
+                    _backupDirHandle = handle;
+                    await _doAutoBackup();
+                    return;
+                }
+                // 권한 만료 → 재요청
+                const req = await handle.requestPermission({ mode: 'readwrite' });
+                if (req === 'granted') {
+                    _backupDirHandle = handle;
+                    await _doAutoBackup();
+                    return;
+                }
+            }
+        } catch (e) { /* 복원 실패 */ }
+
+        // 핸들 없음 → 사용자에게 물어보기
+        _showBackupPrompt();
+    }
+
+    function _showBackupPrompt() {
+        const bar = document.createElement('div');
+        bar.className = 'backup-prompt';
+        bar.innerHTML = `
+            <span>💾 DB 자동백업 폴더를 설정하시겠습니까?</span>
+            <button onclick="App.setupBackupFolder()" class="backup-prompt-btn yes">설정</button>
+            <button onclick="this.parentElement.remove();localStorage.setItem('lastBackupDate',new Date().toISOString().slice(0,10))" class="backup-prompt-btn no">오늘은 건너뛰기</button>
+        `;
+        document.body.appendChild(bar);
+    }
+
+    async function setupBackupFolder() {
+        document.querySelector('.backup-prompt')?.remove();
+        try {
+            const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            _backupDirHandle = dirHandle;
+            await _storeDirHandle(dirHandle);
+            await _doAutoBackup();
+            toast('백업 폴더 설정 완료! 앞으로 자동 백업됩니다', 'success');
+        } catch (e) {
+            if (e.name !== 'AbortError') toast('폴더 설정 실패', 'error');
+        }
+    }
+
+    async function _doAutoBackup() {
+        try {
+            const res = await fetch('/api/backup?format=json');
+            if (!res.ok) return;
+            const data = await res.json();
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const filename = `backup_${dateStr}.json`;
+            const jsonStr = JSON.stringify(data, null, 2);
+
+            const fileHandle = await _backupDirHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(jsonStr);
+            await writable.close();
+
+            localStorage.setItem('lastBackupDate', dateStr);
+        } catch (e) {
+            // 권한 문제 등으로 실패 시 조용히 실패
+            console.warn('Auto backup failed:', e);
+        }
+    }
+
+    // IndexedDB에 디렉토리 핸들 저장/복원
+    function _openBackupDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open('jjonggood_backup', 1);
+            req.onupgradeneeded = () => req.result.createObjectStore('handles');
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function _storeDirHandle(handle) {
+        const db = await _openBackupDB();
+        const tx = db.transaction('handles', 'readwrite');
+        tx.objectStore('handles').put(handle, 'backupDir');
+    }
+
+    async function _getStoredDirHandle() {
+        const db = await _openBackupDB();
+        return new Promise((resolve) => {
+            const tx = db.transaction('handles', 'readonly');
+            const req = tx.objectStore('handles').get('backupDir');
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => resolve(null);
+        });
     }
 
     // ==================== 뷰 전환 ====================
@@ -3363,6 +3482,7 @@ const App = (() => {
         showBossScheduleForm, selectBossType, saveBossSchedule,
         showCustomerHistory, loadMoreHistory,
         addRefPhoto, handlePhotoSelect, deleteRefPhoto, showRefPhotos, viewPhoto,
+        setupBackupFolder,
     };
 })();
 

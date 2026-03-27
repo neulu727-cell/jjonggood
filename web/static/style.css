@@ -1909,3 +1909,21 @@ textarea#quickMemo:focus {
     border: none; font-size: 24px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
 }
+
+/* 자동 백업 프롬프트 */
+.backup-prompt {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--card); border: 1.5px solid var(--primary);
+    border-radius: var(--radius-lg); padding: 14px 20px;
+    box-shadow: var(--shadow-lg); z-index: 9000;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 14px; font-weight: 600; color: var(--text);
+    animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+.backup-prompt-btn {
+    padding: 6px 14px; border-radius: var(--radius-sm);
+    border: none; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.backup-prompt-btn.yes { background: var(--primary); color: #fff; }
+.backup-prompt-btn.no { background: var(--border); color: var(--text-light); }
