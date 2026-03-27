@@ -463,6 +463,10 @@ const App = (() => {
         setTimeout(() => document.getElementById('slotCustomerSearch').focus(), 300);
     }
 
+    function onBookedSlotClick() {
+        toast('예약불가 — 이미 예약이 있는 시간입니다', 'error');
+    }
+
     async function searchCustomersForSlot(keyword) {
         const container = document.getElementById('slotCustomerResults');
         if (!keyword.trim()) {
@@ -2196,7 +2200,7 @@ const App = (() => {
         _renderDatePicker();
     }
 
-    function _renderDatePicker() {
+    async function _renderDatePicker() {
         const today = new Date();
         const todayStr = fmtDate(today);
         // 표시할 월 계산
@@ -2208,6 +2212,23 @@ const App = (() => {
         // 월의 첫날, 마지막날
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
+
+        // 해당 월의 휴무일 데이터 가져오기
+        let pickerNames = {};
+        if (year === currentYear && (month + 1) === currentMonth) {
+            pickerNames = monthData.names || {};
+        } else {
+            try {
+                const res = await fetch(`/api/month?y=${year}&m=${month + 1}`);
+                if (res.ok) { const d = await res.json(); pickerNames = d.names || {}; }
+            } catch (e) { /* ignore */ }
+        }
+
+        // 휴무일 세트 구성
+        const bossDates = new Set();
+        for (const [dateStr, entries] of Object.entries(pickerNames)) {
+            if (entries.some(e => e.is_boss)) bossDates.add(dateStr);
+        }
 
         let html = `<p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;font-weight:600">📅 날짜를 선택하세요</p>`;
 
@@ -2244,15 +2265,16 @@ const App = (() => {
             const isSun = d.getDay() === 0;
             const isSat = d.getDay() === 6;
             const dowCls = isSun ? 'sun' : isSat ? 'sat' : '';
+            const isBoss = bossDates.has(dateStr);
 
             if (isPast) {
                 html += `<button class="date-pick-btn disabled ${dowCls}" disabled>
                     <span class="date-pick-day">${day}</span>
                 </button>`;
             } else {
-                html += `<button class="date-pick-btn ${dowCls}${isToday ? ' today' : ''}" onclick="App.onDatePick('${dateStr}')">
+                html += `<button class="date-pick-btn ${dowCls}${isToday ? ' today' : ''}${isBoss ? ' boss-day' : ''}" onclick="App.onDatePick('${dateStr}')">
                     <span class="date-pick-day">${day}</span>
-                    ${isToday ? '<span class="date-pick-dow">오늘</span>' : ''}
+                    ${isBoss ? '<span class="date-pick-dow" style="color:#EF4444">🏖️</span>' : (isToday ? '<span class="date-pick-dow">오늘</span>' : '')}
                 </button>`;
             }
         }
@@ -2327,15 +2349,18 @@ const App = (() => {
                     }
 
                     const r = info.res;
+                    const isBoss = r.customer_phone === 'BOSS';
+                    const bossClass = isBoss ? ' boss-block' : '';
+                    const nameLabel = isBoss ? '🏖️ 휴무' : esc(r.pet_name);
                     if (info.isFirst) {
-                        slotHtml += `<div class="time-slot-btn booked-block" style="grid-column:span ${span}" onclick="App.onSlotClick('${slot}');App.closeSheet('timeSlotSheet')">
+                        slotHtml += `<div class="time-slot-btn booked-block${bossClass}" style="grid-column:span ${span}" onclick="App.onBookedSlotClick()">
                             <span class="booked-time">${formatTime(r.time)}~${formatTime(r.end_time)}</span>
-                            <span class="booked-name">${esc(r.pet_name)}</span>
+                            <span class="booked-name">${nameLabel}</span>
                         </div>`;
                     } else {
-                        slotHtml += `<div class="time-slot-btn booked-block cont" style="grid-column:span ${span}" onclick="App.onSlotClick('${slot}');App.closeSheet('timeSlotSheet')">
+                        slotHtml += `<div class="time-slot-btn booked-block${bossClass} cont" style="grid-column:span ${span}" onclick="App.onBookedSlotClick()">
                             <span class="booked-time">${formatTime(r.time)}~${formatTime(r.end_time)}</span>
-                            <span class="booked-name">${esc(r.pet_name)}</span>
+                            <span class="booked-name">${nameLabel}</span>
                         </div>`;
                     }
                     col += span;
@@ -3191,7 +3216,7 @@ const App = (() => {
     return {
         selectDate, closeTimeline, changeMonth, goToday, loadCustomerList,
         get customerSort() { return customerSort; },
-        showView, onSlotClick, searchCustomersForSlot,
+        showView, onSlotClick, onBookedSlotClick, searchCustomersForSlot,
         showNewCustomerFormForSlot, showNewCustomerForm,
         onServiceChange, saveReservation,
         showReservationDetail, showEditReservation, deleteReservation, toggleHistoryAccordion,
