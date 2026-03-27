@@ -3128,14 +3128,6 @@ const App = (() => {
                     </div>
                     <input type="hidden" id="bossDuration" value="120">
                 </div>
-                <div class="form-group res-form-full">
-                    <label>이유/내용 *</label>
-                    <input type="text" id="bossReason" placeholder="예: 병원, 가족여행, 개인휴무" maxlength="50">
-                </div>
-                <div class="form-group res-form-full">
-                    <label>메모</label>
-                    <input type="text" id="bossMemo" placeholder="상세 메모 (선택)" maxlength="200">
-                </div>
                 <div class="res-form-full">
                     <button class="btn-primary" onclick="App.saveBossSchedule()">등록</button>
                 </div>
@@ -3153,12 +3145,8 @@ const App = (() => {
     }
 
     async function saveBossSchedule() {
-        const reason = document.getElementById('bossReason').value.trim();
-        if (!reason) { toast('이유를 입력해주세요', 'error'); return; }
-
         const date = document.getElementById('bossDate').value;
         const type = document.getElementById('bossType').value;
-        const memo = document.getElementById('bossMemo').value.trim();
 
         let time, duration;
         if (type === 'allday') {
@@ -3180,11 +3168,10 @@ const App = (() => {
                     customer_id: CONFIG.bossCustomerId,
                     date: date,
                     time: time,
-                    service_type: reason,
+                    service_type: type === 'allday' ? '휴무' : '일정',
                     duration: duration,
                     amount: 0,
                     quoted_amount: 0,
-                    groomer_memo: memo,
                 }),
             });
             const result = await res.json();
