@@ -923,7 +923,7 @@ const App = (() => {
             const a = p.age ? ' · ' + p.age + (p.age.includes('살') ? '' : '살') : '';
             return `<span class="ud-pet-name">${esc(p.pet_name)}</span><span class="ud-pet-info">${esc(p.breed)}${w}${a}</span>`;
         }).join('<span class="ud-pet-divider">/</span>');
-        const addBtnHtml = `<button class="pet-pill pet-pill-add" style="font-size:12px;padding:2px 8px;margin-left:4px;vertical-align:middle" data-phone="${esc(c.phone)}" data-name="${esc(c.name || '')}" onclick="App.addSiblingPet(this.dataset.phone, this.dataset.name)">+</button>`;
+        const addBtnHtml = `<button class="pet-pill pet-pill-add" style="font-size:12px;padding:2px 8px;margin-left:4px;vertical-align:middle" data-phone="${esc(c.phone)}" data-name="${esc(c.name || '')}" data-channel="${esc(c.channel || '')}" onclick="App.addSiblingPet(this.dataset.phone, this.dataset.name, this.dataset.channel)">+</button>`;
 
         // 모든 예약 이력 합치기
         const siblingRes = c.sibling_reservations || {};
@@ -1404,14 +1404,34 @@ const App = (() => {
 
     function showCustomerForm(customer, onSaved) {
         const isEdit = !!(customer && customer.id);
+        const isSibling = !!(customer && customer._isSibling);
         document.getElementById('customerFormTitle').textContent =
-            isEdit ? '✏️ 고객 정보 수정' : '🐾 신규 고객 등록';
+            isEdit ? '✏️ 고객 정보 수정' : (isSibling ? '🐾 형제견 추가' : '🐾 신규 고객 등록');
 
         const c = customer || {};
         const breedValue = c.breed || '';
 
         let formHtml;
-        if (isEdit) {
+        if (isSibling) {
+            // 형제견 추가: 간소화 폼 (전화번호/유입경로 자동, 이름+몸무게만)
+            formHtml = `
+                <input type="hidden" id="cfChannel" value="${esc(c.channel || '')}">
+                <input type="hidden" id="cfPhone" value="${esc(c.phone || '')}">
+                <input type="hidden" id="cfName" value="${esc(c.name || '')}">
+                <div style="padding:8px 0 12px;color:var(--text-light);font-size:13px">
+                    📞 ${esc(c.phone_display || c.phone || '')} 의 형제견을 추가합니다
+                </div>
+                <div class="form-group">
+                    <label>이름 견종 *</label>
+                    <input type="text" id="cfPetBreed" value="" placeholder="예: 루미 말티푸" autocomplete="off" autofocus>
+                </div>
+                <div class="form-group">
+                    <label>몸무게 (kg)</label>
+                    <input type="number" id="cfWeight" value="" step="0.1" placeholder="예: 3.5">
+                </div>
+                <button class="btn-primary" onclick="App.saveCustomer(false, '${typeof onSaved === 'function' ? 'callback' : ''}')">형제견 등록</button>
+            `;
+        } else if (isEdit) {
             // 수정 폼: 신규와 동일한 필드 구조
             const petBreedVal = [c.pet_name, c.breed].filter(Boolean).join(' ');
             formHtml = `
@@ -1729,9 +1749,9 @@ const App = (() => {
         }
     }
 
-    function addSiblingPet(phone, name) {
+    function addSiblingPet(phone, name, channel) {
         closeSheet('unifiedDetailSheet');
-        showCustomerForm({ phone: phone, phone_display: phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'), name: name }, (newCustomer) => {
+        showCustomerForm({ phone: phone, phone_display: phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'), name: name, channel: channel || '', _isSibling: true }, (newCustomer) => {
             // 형제펫 추가 후 새 펫의 상세로 진입 (통합 페이지에서 전체 가족 보임)
             if (newCustomer && newCustomer.id) {
                 _reloadUnifiedDetail(newCustomer.id);
