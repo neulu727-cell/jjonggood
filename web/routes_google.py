@@ -37,7 +37,7 @@ def _build_redirect_uri() -> str:
 # ==================== 토큰 관리 ====================
 
 def _get_flow(redirect_uri: str):
-    """OAuth Flow 생성"""
+    """OAuth Flow 생성 (PKCE 비활성화 — 세션 유실 시 무한재귀 방지)"""
     client_config = {
         "web": {
             "client_id": config.GOOGLE_CLIENT_ID,
@@ -46,8 +46,9 @@ def _get_flow(redirect_uri: str):
             "token_uri": "https://oauth2.googleapis.com/token",
         }
     }
-    flow = Flow.from_client_config(client_config, scopes=SCOPES)
+    flow = Flow.from_client_config(client_config, scopes=SCOPES, code_verifier=None)
     flow.redirect_uri = redirect_uri
+    flow.code_verifier = None  # PKCE 비활성화
     return flow
 
 
@@ -144,8 +145,6 @@ def google_connect():
         include_granted_scopes="true",
     )
     session["google_oauth_state"] = state
-    # PKCE code_verifier 저장 (콜백에서 필요)
-    session["google_code_verifier"] = flow.code_verifier
     return redirect(auth_url)
 
 
@@ -155,8 +154,6 @@ def google_callback():
     """OAuth 콜백 → 토큰 저장"""
     redirect_uri = _build_redirect_uri()
     flow = _get_flow(redirect_uri)
-    # 세션에서 code_verifier 복원
-    flow.code_verifier = session.pop("google_code_verifier", None)
 
     try:
         # 프록시 뒤에서 http로 들어온 URL을 https로 변환
