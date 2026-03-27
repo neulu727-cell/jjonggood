@@ -3114,8 +3114,8 @@ const App = (() => {
                     if (choice === '1') {
                         _runGoogleSync('/google/sync-incremental', '증분');
                     } else if (choice === '3') {
-                        if (confirm('전체 고객을 동기화합니다.\n시간이 오래 걸릴 수 있습니다. 진행하시겠습니까?')) {
-                            _runGoogleSync('/google/sync-all', '전체');
+                        if (confirm('전체 고객을 5명씩 나눠서 동기화합니다.\n진행하시겠습니까?')) {
+                            _runGoogleBatchSync();
                         }
                     } else if (choice === '2') {
                         if (confirm('Google 연동을 해제하시겠습니까?\n자동 동기화가 중단됩니다.')) {
@@ -3191,6 +3191,49 @@ const App = (() => {
             };
             sse.onerror = function() { sse.close(); loadGoogleStatus(); };
         });
+    }
+
+    async function _runGoogleBatchSync() {
+        const el = document.getElementById('googleStatus');
+        const BATCH_SIZE = 5;
+        let offset = 0;
+        let totalSuccess = 0, totalFail = 0;
+        let allNames = [], allErrors = [];
+
+        if (el) el.innerHTML = '&#9679; 전체 동기화 준비중...';
+
+        while (true) {
+            try {
+                const res = await fetch('/google/sync-batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ offset, limit: BATCH_SIZE }),
+                });
+                const data = await res.json();
+                if (data.error) { toast(data.error, 'error'); break; }
+
+                for (const r of data.results) {
+                    if (r.ok) { totalSuccess++; allNames.push(r.name); }
+                    else { totalFail++; allErrors.push(r.name + ': ' + r.error); }
+                    toast((r.ok ? '✓ ' : '✗ ') + r.name, r.ok ? 'success' : 'error');
+                }
+
+                if (el) el.innerHTML = '&#9679; ' + Math.min(offset + BATCH_SIZE, data.total) + '/' + data.total;
+
+                if (data.done) break;
+                offset += BATCH_SIZE;
+            } catch (e) {
+                toast('동기화 중 오류 발생', 'error');
+                break;
+            }
+        }
+
+        let msg = '전체 동기화 완료: 성공 ' + totalSuccess + '건, 실패 ' + totalFail + '건';
+        if (allNames.length) msg += '\n\n동기화된 연락처:\n' + allNames.join(', ');
+        if (allErrors.length) msg += '\n\n실패:\n' + allErrors.slice(0, 5).join('\n');
+        alert(msg);
+        loadGoogleStatus();
     }
 
     // ==================== 고객 변경이력 ====================

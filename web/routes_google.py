@@ -319,10 +319,10 @@ def google_sync_incremental():
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
-@google_bp.route("/google/sync-all")
+@google_bp.route("/google/sync-batch", methods=["POST"])
 @require_auth
-def google_sync_all():
-    """기존 고객 전체를 Google 연락처에 일괄 동기화 (SSE 스트림)"""
+def google_sync_batch():
+    """고객 배치 동기화 — offset/limit으로 5명씩 처리"""
     if not GOOGLE_AVAILABLE:
         return jsonify({"error": "Google API 패키지가 설치되지 않았습니다"}), 500
 
@@ -331,39 +331,32 @@ def google_sync_all():
     if not creds:
         return jsonify({"error": "Google 연동이 필요합니다"}), 400
 
-    customers = db.fetch_all("SELECT * FROM customers WHERE phone != 'BOSS' ORDER BY id")
-    total = len(customers)
+    data = request.get_json() or {}
+    offset = int(data.get("offset", 0))
+    limit = int(data.get("limit", 5))
 
-    def generate():
-        success = 0
-        fail = 0
-        synced_names = []
-        errors = []
+    all_customers = db.fetch_all("SELECT * FROM customers WHERE phone != 'BOSS' ORDER BY id")
+    total = len(all_customers)
+    batch = all_customers[offset:offset + limit]
 
-        yield f"data: {json.dumps({'type': 'start', 'total': total}, ensure_ascii=False)}\n\n"
+    results = []
+    for c in batch:
+        ok, msg = sync_contact_to_google(
+            c["id"], c["pet_name"], c["weight"], c["breed"],
+            c["phone"], c.get("memo", ""), c.get("google_contact_id"),
+        )
+        weight_str = f" {c['weight']}kg" if c.get("weight") else ""
+        breed_str = f" {c['breed']}" if c.get("breed") else ""
+        name = f"{c['pet_name']}{weight_str}{breed_str}"
+        results.append({"name": name, "ok": ok, "error": "" if ok else msg})
 
-        for i, c in enumerate(customers):
-            ok, msg = sync_contact_to_google(
-                c["id"], c["pet_name"], c["weight"], c["breed"],
-                c["phone"], c.get("memo", ""), c.get("google_contact_id"),
-            )
-            weight_str = f" {c['weight']}kg" if c.get("weight") else ""
-            breed_str = f" {c['breed']}" if c.get("breed") else ""
-            name = f"{c['pet_name']}{weight_str}{breed_str}"
-
-            if ok:
-                success += 1
-                synced_names.append(name)
-                yield f"data: {json.dumps({'type': 'progress', 'i': i + 1, 'total': total, 'name': name, 'ok': True}, ensure_ascii=False)}\n\n"
-            else:
-                fail += 1
-                errors.append(f"{name}: {msg}")
-                yield f"data: {json.dumps({'type': 'progress', 'i': i + 1, 'total': total, 'name': name, 'ok': False, 'error': msg}, ensure_ascii=False)}\n\n"
-
-        yield f"data: {json.dumps({'type': 'done', 'success': success, 'fail': fail, 'synced_names': synced_names, 'errors': errors[:3]}, ensure_ascii=False)}\n\n"
-
-    return Response(generate(), mimetype="text/event-stream",
-                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    return jsonify({
+        "total": total,
+        "offset": offset,
+        "processed": len(batch),
+        "results": results,
+        "done": offset + limit >= total,
+    })
 
 
 # ==================== 연락처 동기화 ====================
