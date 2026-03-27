@@ -1218,7 +1218,7 @@ const App = (() => {
     }
 
     async function deleteReservation(rid) {
-        if (!confirm('이 예약을 삭제하시겠습니까?\n삭제하면 복구할 수 없습니다.')) return;
+        if (!confirm('이 예약만 삭제합니다.\n(고객 정보는 유지됩니다)\n\n삭제하시겠습니까?')) return;
         try {
             const res = await fetch(`/api/reservation/${rid}`, { method: 'DELETE' });
             const result = await res.json();
@@ -1671,7 +1671,7 @@ const App = (() => {
     }
 
     async function deleteCustomer(cid) {
-        if (!confirm('이 고객과 모든 예약을 삭제하시겠습니까?')) return;
+        if (!confirm('⚠️ 이 고객과 모든 예약 이력이 삭제됩니다.\n(복구 불가)\n\n정말 삭제하시겠습니까?')) return;
         try {
             const res = await fetch(`/api/customer/${cid}`, { method: 'DELETE' });
             const result = await res.json();
