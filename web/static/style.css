@@ -203,21 +203,35 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 #timelineContent { display: flex; flex-direction: column; flex: 1; }
 .timeline-list { padding: 0 16px 80px; }
-.clock-chart-wrap {
-    display: flex; align-items: center; gap: 16px;
-    padding: 12px 16px; border-bottom: 1px solid var(--border);
+/* 가로 타임바 */
+.timebar-wrap {
+    padding: 10px 16px 8px; border-bottom: 1px solid var(--border);
     background: var(--card);
 }
-.clock-chart {
-    width: 130px; height: 130px; flex-shrink: 0;
+.tb-stats {
+    font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px;
 }
-.clock-legend {
-    display: flex; flex-direction: column; gap: 6px; font-size: 11px; color: var(--text-secondary);
+.tb-bar {
+    display: flex; gap: 2px; height: 28px; border-radius: 6px; overflow: hidden;
 }
-.clock-legend span {
-    display: flex; align-items: center; gap: 6px;
+.tb-block {
+    flex: 1; border-radius: 3px; min-width: 0; transition: opacity 0.15s;
 }
-.clock-legend i {
+.tb-block:hover { opacity: 0.7; }
+.tb-hours {
+    position: relative; height: 18px; margin-top: 2px;
+}
+.tb-hour {
+    position: absolute; transform: translateX(-50%);
+    font-size: 11px; color: var(--text-secondary); font-weight: 500;
+}
+.tb-legend {
+    display: flex; gap: 12px; margin-top: 6px; font-size: 11px; color: var(--text-secondary);
+}
+.tb-legend span {
+    display: flex; align-items: center; gap: 4px;
+}
+.tb-legend i {
     display: inline-block; width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
 }
 

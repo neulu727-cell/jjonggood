@@ -2073,87 +2073,62 @@ const App = (() => {
     }
 
     function _renderClockChart(slots, booked, items) {
-        const cx = 90, cy = 90, r = 62, rInner = 38, rLabel = 74;
         const total = slots.length;
         if (!total) return '';
 
-        // 시작/끝 시간 (분 단위)
-        const [sh, sm] = slots[0].split(':').map(Number);
-        const [eh, em] = slots[total-1].split(':').map(Number);
-        const startMin = sh * 60 + sm;
-        const endMin = eh * 60 + em + CONFIG.slotInterval;
-        const span = endMin - startMin;
-
-        function arcPath(startFrac, endFrac, outerR, innerR) {
-            const s = (startFrac * 360 - 90) * Math.PI / 180;
-            const e = (endFrac * 360 - 90) * Math.PI / 180;
-            const largeArc = (endFrac - startFrac) > 0.5 ? 1 : 0;
-            const x1 = cx + outerR * Math.cos(s), y1 = cy + outerR * Math.sin(s);
-            const x2 = cx + outerR * Math.cos(e), y2 = cy + outerR * Math.sin(e);
-            const x3 = cx + innerR * Math.cos(e), y3 = cy + innerR * Math.sin(e);
-            const x4 = cx + innerR * Math.cos(s), y4 = cy + innerR * Math.sin(s);
-            return `M${x1},${y1} A${outerR},${outerR} 0 ${largeArc} 1 ${x2},${y2} L${x3},${y3} A${innerR},${innerR} 0 ${largeArc} 0 ${x4},${y4} Z`;
-        }
-
-        let arcs = '';
-        // 빈 슬롯 (연한 배경)
-        const freeColor = '#E8F5E9';
         const bookedColor = '#4F46E5';
         const bossColor = '#EF4444';
         const completedColor = '#22C55E';
+        const freeColor = '#E2E8F0';
 
+        // 시간 라벨 + 슬롯 블록 생성
+        const [sh] = slots[0].split(':').map(Number);
+        const [eh, em] = slots[total-1].split(':').map(Number);
+        const endH = em > 0 ? eh + 1 : eh;
+        const hourCount = endH - sh + 1;
+
+        // 슬롯별 색상 블록
+        let blocks = '';
         for (let i = 0; i < total; i++) {
             const slotTime = slots[i];
-            const [th, tm] = slotTime.split(':').map(Number);
-            const min = th * 60 + tm;
-            const frac1 = (min - startMin) / span;
-            const frac2 = (min - startMin + CONFIG.slotInterval) / span;
             const res = booked[slotTime];
             let color = freeColor;
+            let title = '빈시간';
             if (res) {
                 const isBoss = res.customer_id === CONFIG.bossCustomerId;
                 color = isBoss ? bossColor : res.status === 'completed' ? completedColor : bookedColor;
+                title = res.pet_name || '예약';
             }
-            arcs += `<path d="${arcPath(frac1, frac2, r, rInner)}" fill="${color}" stroke="#fff" stroke-width="1"/>`;
+            blocks += `<div class="tb-block" style="background:${color}" title="${slotTime} ${esc(title)}"></div>`;
         }
 
-        // 시간 라벨 (정시만)
-        let labels = '';
-        const hours = new Set();
-        for (const s of slots) {
-            const [h] = s.split(':').map(Number);
-            hours.add(h);
-        }
-        // 마지막 시간도 추가
-        hours.add(Math.floor(endMin / 60));
-        for (const h of hours) {
-            const min = h * 60;
-            if (min < startMin || min > endMin) continue;
-            const frac = (min - startMin) / span;
-            const ang = (frac * 360 - 90) * Math.PI / 180;
-            const lx = cx + rLabel * Math.cos(ang);
-            const ly = cy + rLabel * Math.sin(ang);
-            const hLabel = h < 12 ? `오전${h}` : h === 12 ? `오후12` : `오후${h-12}`;
-            labels += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" font-size="7" fill="#94A3B8" font-weight="500">${hLabel}</text>`;
+        // 시간 라벨 (정시)
+        let timeLabels = '';
+        for (let h = sh; h <= endH; h++) {
+            const label = h <= 12 ? `${h}` : `${h-12}`;
+            const left = ((h - sh) / hourCount * 100).toFixed(1);
+            timeLabels += `<span class="tb-hour" style="left:${left}%">${label}</span>`;
         }
 
-        // 중앙 텍스트
+        // 통계
         const bookedCount = items.filter(r => r.customer_id !== CONFIG.bossCustomerId).length;
         const freeCount = slots.filter(s => !booked[s]).length;
         const freeHrs = (freeCount * CONFIG.slotInterval / 60);
         const freeLabel = freeHrs % 1 === 0 ? freeHrs + '시간' : freeHrs.toFixed(1) + '시간';
+        const todaySales = items.filter(r => r.status === 'completed' && r.amount > 0)
+            .reduce((sum, r) => sum + r.amount, 0);
+        let statsText = `${bookedCount}건 예약 · 빈 ${freeLabel}`;
+        if (todaySales > 0) statsText += ` · ${todaySales.toLocaleString()}원`;
 
-        return `<div class="clock-chart-wrap">
-            <svg viewBox="0 0 180 180" class="clock-chart">
-                ${arcs}${labels}
-                <text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="11" font-weight="700" fill="#1E293B">${bookedCount}건</text>
-                <text x="${cx}" y="${cy + 8}" text-anchor="middle" font-size="10" fill="#64748B">빈 ${freeLabel}</text>
-            </svg>
-            <div class="clock-legend">
+        return `<div class="timebar-wrap">
+            <div class="tb-stats">${statsText}</div>
+            <div class="tb-bar">${blocks}</div>
+            <div class="tb-hours">${timeLabels}</div>
+            <div class="tb-legend">
                 <span><i style="background:${bookedColor}"></i>예약</span>
                 <span><i style="background:${completedColor}"></i>완료</span>
                 <span><i style="background:${bossColor}"></i>휴무</span>
-                <span><i style="background:${freeColor};border:1px solid #C8E6C9"></i>빈시간</span>
+                <span><i style="background:${freeColor}"></i>빈시간</span>
             </div>
         </div>`;
     }
