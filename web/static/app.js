@@ -409,6 +409,11 @@ const App = (() => {
             </div>
         `;
 
+        // PC에서 동그라미 시간표
+        if (isPC() && items.length > 0) {
+            html += _renderClockChart(slots, booked, items);
+        }
+
         // 예약 내역만 표시 (빈 슬롯 제거)
         html += renderReservationList(items);
 
@@ -642,19 +647,24 @@ const App = (() => {
         const prices = [30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000,100000];
         let priceGrid = prices.map(p => {
             const label = p % 10000 === 0 ? `${p/10000}만` : `${Math.floor(p/10000)}만${(p%10000)/1000}천`;
-            return `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="${p}" onclick="App.selectGridBtn(this)" disabled style="opacity:0.4">${label}</button>`;
+            return `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${label}</button>`;
         }).join('');
-        priceGrid += `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="0" onclick="App.showCustomAmount('resAmount')" disabled style="opacity:0.4">기타</button>`;
-        priceGrid += `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="-1" onclick="App.selectGridBtn(this)" disabled style="opacity:0.4">미정</button>`;
+        priceGrid += `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="0" onclick="App.showCustomAmount('resAmount')">기타</button>`;
+        priceGrid += `<button type="button" class="btn-grid-item" data-field="resAmount" data-value="-1" onclick="App.selectGridBtn(this)">미정</button>`;
 
-        // 이전 서비스 이력
+        // 이전 서비스 불러오기 버튼 + 이력
         let prevHtml = '';
         if (customer.reservations && customer.reservations.length) {
+            const last = customer.reservations[0];
+            const lastLabel = `${esc(last.service_type)}${last.fur_length ? ' / '+esc(last.fur_length) : ''} / ${last.amount === -1 ? '미정' : last.amount ? last.amount.toLocaleString()+'원' : '-'}`;
             const recent = customer.reservations.slice(0, 5);
             prevHtml = `
                 <div class="prev-services">
+                    <button type="button" class="btn-load-prev" onclick="App.applyPrevService('${esc(last.service_type)}',${last.duration},${last.amount||0},'${esc(last.fur_length||'')}')">
+                        🔄 지난 예약 불러오기 <span class="prev-summary">${lastLabel}</span>
+                    </button>
                     <button type="button" class="prev-services-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-                        🐾 이전 서비스 이력 (${customer.reservations.length}건) <span>▼</span>
+                        이전 이력 더보기 (${customer.reservations.length}건) <span>▼</span>
                     </button>
                     <div class="prev-services-list" style="display:none">
                         ${recent.map(r => `<div class="prev-service-item" onclick="App.applyPrevService('${esc(r.service_type)}',${r.duration},${r.amount||0},'${esc(r.fur_length||'')}')">
@@ -746,8 +756,6 @@ const App = (() => {
             });
             document.querySelectorAll('[data-field="'+prefix+'Amount"]').forEach(b => {
                 b.classList.toggle('active', parseInt(b.dataset.value) === price);
-                b.disabled = isConsult;
-                b.style.opacity = isConsult ? '0.4' : '';
             });
             const durLabel = document.getElementById('durLabel');
             const priceLabel = document.getElementById('priceLabel');
@@ -1098,12 +1106,13 @@ const App = (() => {
             ).join('');
 
             const prices = [30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000,100000];
+            const priceActive = !prices.includes(r.amount) && r.amount > 0;
             let priceGrid = prices.map(p => {
                 const label = p % 10000 === 0 ? `${p/10000}만` : `${Math.floor(p/10000)}만${(p%10000)/1000}천`;
-                return `<button type="button" class="btn-grid-item${p===r.amount?' active':''}" data-field="editResAmount" data-value="${p}" onclick="App.selectGridBtn(this)"${disAttr}>${label}</button>`;
+                return `<button type="button" class="btn-grid-item${p===r.amount?' active':''}" data-field="editResAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${label}</button>`;
             }).join('');
-            priceGrid += `<button type="button" class="btn-grid-item" data-field="editResAmount" data-value="0" onclick="App.showCustomAmount('editResAmount')"${disAttr}>기타</button>`;
-            priceGrid += `<button type="button" class="btn-grid-item${r.amount===-1?' active':''}" data-field="editResAmount" data-value="-1" onclick="App.selectGridBtn(this)"${disAttr}>미정</button>`;
+            priceGrid += `<button type="button" class="btn-grid-item${priceActive?' active':''}" data-field="editResAmount" data-value="0" onclick="App.showCustomAmount('editResAmount')">기타</button>`;
+            priceGrid += `<button type="button" class="btn-grid-item${r.amount===-1?' active':''}" data-field="editResAmount" data-value="-1" onclick="App.selectGridBtn(this)">미정</button>`;
             const form = document.getElementById('reservationForm');
             document.getElementById('sheetTitle').textContent = '✏️ 예약 수정';
             form.innerHTML = `
@@ -1440,7 +1449,7 @@ const App = (() => {
                     <label>유입경로</label>
                     <input type="hidden" id="cfChannel" value="${esc(c.channel || '')}">
                     <div class="btn-grid channel-grid">
-                        ${['방문','카카오','네이버톡톡','전화','인스타DM','문자'].map(ch =>
+                        ${['방문','카카오채널','카톡채팅','네이버톡톡','전화','인스타DM','문자'].map(ch =>
                             `<button type="button" class="btn-grid-item${ch===(c.channel||'')?' active':''}" onclick="App.selectChannel(this,'${ch}')">${ch}</button>`
                         ).join('')}
                     </div>
@@ -1482,7 +1491,7 @@ const App = (() => {
                     <label>유입경로</label>
                     <input type="hidden" id="cfChannel" value="">
                     <div class="btn-grid channel-grid">
-                        ${['방문','카카오','네이버톡톡','전화','인스타DM','문자'].map(ch =>
+                        ${['방문','카카오채널','카톡채팅','네이버톡톡','전화','인스타DM','문자'].map(ch =>
                             `<button type="button" class="btn-grid-item" onclick="App.selectChannel(this,'${ch}')">${ch}</button>`
                         ).join('')}
                     </div>
@@ -2020,6 +2029,102 @@ const App = (() => {
         return html;
     }
 
+    function _slotDiff(a, b) {
+        const [ah, am] = a.split(':').map(Number);
+        const [bh, bm] = b.split(':').map(Number);
+        return (bh * 60 + bm) - (ah * 60 + am);
+    }
+    function _slotAdd(slot, minutes) {
+        const [h, m] = slot.split(':').map(Number);
+        const total = h * 60 + m + minutes;
+        return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
+    }
+
+    function _renderClockChart(slots, booked, items) {
+        const cx = 80, cy = 80, r = 62, rInner = 38, rLabel = 74;
+        const total = slots.length;
+        if (!total) return '';
+
+        // 시작/끝 시간 (분 단위)
+        const [sh, sm] = slots[0].split(':').map(Number);
+        const [eh, em] = slots[total-1].split(':').map(Number);
+        const startMin = sh * 60 + sm;
+        const endMin = eh * 60 + em + CONFIG.slotInterval;
+        const span = endMin - startMin;
+
+        function arcPath(startFrac, endFrac, outerR, innerR) {
+            const s = (startFrac * 360 - 90) * Math.PI / 180;
+            const e = (endFrac * 360 - 90) * Math.PI / 180;
+            const largeArc = (endFrac - startFrac) > 0.5 ? 1 : 0;
+            const x1 = cx + outerR * Math.cos(s), y1 = cy + outerR * Math.sin(s);
+            const x2 = cx + outerR * Math.cos(e), y2 = cy + outerR * Math.sin(e);
+            const x3 = cx + innerR * Math.cos(e), y3 = cy + innerR * Math.sin(e);
+            const x4 = cx + innerR * Math.cos(s), y4 = cy + innerR * Math.sin(s);
+            return `M${x1},${y1} A${outerR},${outerR} 0 ${largeArc} 1 ${x2},${y2} L${x3},${y3} A${innerR},${innerR} 0 ${largeArc} 0 ${x4},${y4} Z`;
+        }
+
+        let arcs = '';
+        // 빈 슬롯 (연한 배경)
+        const freeColor = '#E8F5E9';
+        const bookedColor = '#4F46E5';
+        const bossColor = '#EF4444';
+        const completedColor = '#22C55E';
+
+        for (let i = 0; i < total; i++) {
+            const slotTime = slots[i];
+            const [th, tm] = slotTime.split(':').map(Number);
+            const min = th * 60 + tm;
+            const frac1 = (min - startMin) / span;
+            const frac2 = (min - startMin + CONFIG.slotInterval) / span;
+            const res = booked[slotTime];
+            let color = freeColor;
+            if (res) {
+                const isBoss = res.customer_id === CONFIG.bossCustomerId;
+                color = isBoss ? bossColor : res.status === 'completed' ? completedColor : bookedColor;
+            }
+            arcs += `<path d="${arcPath(frac1, frac2, r, rInner)}" fill="${color}" stroke="#fff" stroke-width="1"/>`;
+        }
+
+        // 시간 라벨 (정시만)
+        let labels = '';
+        const hours = new Set();
+        for (const s of slots) {
+            const [h] = s.split(':').map(Number);
+            hours.add(h);
+        }
+        // 마지막 시간도 추가
+        hours.add(Math.floor(endMin / 60));
+        for (const h of hours) {
+            const min = h * 60;
+            if (min < startMin || min > endMin) continue;
+            const frac = (min - startMin) / span;
+            const ang = (frac * 360 - 90) * Math.PI / 180;
+            const lx = cx + rLabel * Math.cos(ang);
+            const ly = cy + rLabel * Math.sin(ang);
+            labels += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#94A3B8" font-weight="500">${h}</text>`;
+        }
+
+        // 중앙 텍스트
+        const bookedCount = items.filter(r => r.customer_id !== CONFIG.bossCustomerId).length;
+        const freeCount = slots.filter(s => !booked[s]).length;
+        const freeHrs = (freeCount * CONFIG.slotInterval / 60);
+        const freeLabel = freeHrs % 1 === 0 ? freeHrs + '시간' : freeHrs.toFixed(1) + '시간';
+
+        return `<div class="clock-chart-wrap">
+            <svg viewBox="0 0 160 160" class="clock-chart">
+                ${arcs}${labels}
+                <text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="11" font-weight="700" fill="#1E293B">${bookedCount}건</text>
+                <text x="${cx}" y="${cy + 8}" text-anchor="middle" font-size="10" fill="#64748B">빈 ${freeLabel}</text>
+            </svg>
+            <div class="clock-legend">
+                <span><i style="background:${bookedColor}"></i>예약</span>
+                <span><i style="background:${completedColor}"></i>완료</span>
+                <span><i style="background:${bossColor}"></i>휴무</span>
+                <span><i style="background:${freeColor};border:1px solid #C8E6C9"></i>빈시간</span>
+            </div>
+        </div>`;
+    }
+
     function generateTimeSlots() {
         const slots = [];
         const [sh, sm] = CONFIG.businessStart.split(':').map(Number);
@@ -2232,11 +2337,15 @@ const App = (() => {
         const items = data.reservations || [];
         const confirmed = items.filter(r => r.status === 'confirmed').length;
         const completed = items.filter(r => r.status === 'completed').length;
+        const todaySales = items.filter(r => r.status === 'completed' && r.amount > 0)
+            .reduce((sum, r) => sum + r.amount, 0);
         const date = new Date(data.date + 'T00:00:00');
         const dow = WEEKDAYS_KR[date.getDay()];
         const parts = data.date.split('-');
         dateEl.textContent = parts[1] + '/' + parts[2] + '(' + dow + ')';
-        infoEl.textContent = '예약 ' + confirmed + ' 완료 ' + completed;
+        let info = '예약 ' + confirmed + ' 완료 ' + completed;
+        if (todaySales > 0) info += ' · ' + todaySales.toLocaleString() + '원';
+        infoEl.textContent = info;
     }
 
     async function loadCallSidebar() {
