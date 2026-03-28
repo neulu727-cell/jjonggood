@@ -131,20 +131,23 @@ def _build_people_service(creds):
 @google_bp.route("/google/connect")
 @require_auth
 def google_connect():
-    """Google OAuth 시작"""
+    """Google OAuth 시작 (PKCE 없이 직접 URL 생성)"""
     if not GOOGLE_AVAILABLE:
         return jsonify({"error": "Google API 패키지가 설치되지 않았습니다"}), 500
     if not config.GOOGLE_CLIENT_ID or not config.GOOGLE_CLIENT_SECRET:
         return jsonify({"error": "Google OAuth가 설정되지 않았습니다"}), 400
 
     redirect_uri = _build_redirect_uri()
-    flow = _get_flow(redirect_uri)
-    auth_url, state = flow.authorization_url(
-        access_type="offline",
-        prompt="consent",
-        include_granted_scopes="true",
-    )
-    session["google_oauth_state"] = state
+    from urllib.parse import urlencode
+    params = urlencode({
+        "client_id": config.GOOGLE_CLIENT_ID,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": " ".join(SCOPES),
+        "access_type": "offline",
+        "prompt": "consent",
+    })
+    auth_url = f"https://accounts.google.com/o/oauth2/auth?{params}"
     return redirect(auth_url)
 
 
