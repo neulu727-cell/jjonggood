@@ -116,7 +116,12 @@ def update_reservation(rid):
     if "service_type" in data:
         data["service_type"] = str(data["service_type"])[:50]
 
-    queries.update_reservation_with_history(db, rid, **data)
+    try:
+        queries.update_reservation_with_history(db, rid, **data)
+    except Exception as e:
+        import logging
+        logging.getLogger("jjonggood").error("예약 수정 실패 rid=%s data=%s: %s", rid, data, e)
+        return jsonify({"error": f"수정 실패: {e}"}), 500
     bump_update()
     return jsonify({"ok": True})
 

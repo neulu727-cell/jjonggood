@@ -246,11 +246,26 @@ def update_reservation_with_history(db: DatabaseManager, reservation_id: int, **
     if not row:
         return
     current = dict(row)
+    # PostgreSQL 타입 → 문자열 정규화 (비교 정확도 향상)
+    for col in ("date", "time"):
+        val = current.get(col)
+        if val is not None:
+            if hasattr(val, 'strftime'):
+                current[col] = val.strftime("%Y-%m-%d") if col == "date" else val.strftime("%H:%M")
+            elif hasattr(val, 'isoformat'):
+                current[col] = val.isoformat()[:5] if col == "time" else val.isoformat()[:10]
+    # None → 기본값 정규화
+    for col in ("amount", "quoted_amount", "duration"):
+        if current.get(col) is None:
+            current[col] = 0
+    for col in ("request", "payment_method", "fur_length", "groomer_memo", "service_type"):
+        if current.get(col) is None:
+            current[col] = ""
     today = datetime.now(KST).strftime("%Y-%m-%d")
     changed = {}
     for k, v in safe_fields.items():
         old_val = str(current.get(k, ""))
-        new_val = str(v)
+        new_val = str(v) if v is not None else ""
         if old_val != new_val:
             changed[k] = v
             db.execute(

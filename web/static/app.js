@@ -1196,6 +1196,12 @@ const App = (() => {
             if (!confirm(`메모가 ${memoText.length}자입니다. 500자까지만 저장됩니다. 계속하시겠습니까?`)) return;
         }
 
+        // NaN 방지
+        if (isNaN(data.amount)) data.amount = 0;
+        if (isNaN(data.quoted_amount)) data.quoted_amount = 0;
+        if (isNaN(data.duration)) data.duration = 0;
+        console.log('[updateReservation] rid=', rid, 'data=', JSON.stringify(data));
+
         try {
             const res = await fetch(`/api/reservation/${rid}`, {
                 method: 'PUT',
@@ -1203,6 +1209,7 @@ const App = (() => {
                 body: JSON.stringify(data),
             });
             const result = await res.json();
+            console.log('[updateReservation] response=', res.status, result);
             if (result.ok) {
                 // 통합 메모: 기다리지 않고 백그라운드 동기화
                 const custId = document.getElementById('editResCustId')?.value;
@@ -1225,7 +1232,8 @@ const App = (() => {
                 toast(result.error || '수정 실패', 'error');
             }
         } catch (e) {
-            toast('수정 실패', 'error');
+            console.error('[updateReservation] error:', e);
+            toast('수정 실패: ' + e.message, 'error');
         }
     }
 
