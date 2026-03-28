@@ -1,6 +1,6 @@
 /* Service Worker — 쫑굿 예약관리 PWA */
 
-const CACHE_NAME = 'jjonggood-v51';
+const CACHE_NAME = 'jjonggood-v52';
 const OFFLINE_URL = '/offline.html';
 
 // 프리캐시: SW 설치 시 즉시 캐시할 리소스

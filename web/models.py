@@ -18,6 +18,7 @@ class Customer:
     channel: str = ""
     phone2: str = ""
     phone3: str = ""
+    keyring: bool = False
     google_contact_id: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
