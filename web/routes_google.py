@@ -369,14 +369,17 @@ def google_sync_batch():
 
     data = request.get_json() or {}
     offset = int(data.get("offset", 0))
-    limit = int(data.get("limit", 5))
+    limit = min(int(data.get("limit", 3)), 5)  # 기본 3명, 최대 5명 (rate limit 방지)
 
     all_customers = db.fetch_all("SELECT * FROM customers WHERE phone != 'BOSS' ORDER BY id")
     total = len(all_customers)
     batch = all_customers[offset:offset + limit]
 
+    import time
     results = []
-    for c in batch:
+    for i, c in enumerate(batch):
+        if i > 0:
+            time.sleep(1.5)  # Rate limit 방지: 건당 1.5초 간격
         ok, msg = sync_contact_to_google(
             c["id"], c["pet_name"], c["weight"], c["breed"],
             c["phone"], c.get("memo", ""), c.get("google_contact_id"),
@@ -458,6 +461,12 @@ def sync_contact_to_google(customer_id: int, pet_name: str, weight, breed: str,
             return False, "Google 연동이 필요합니다"
 
         service = _build_people_service(creds)
+
+        # resourceName 형식 보정: "people/" 접두사 필수
+        if google_contact_id and not google_contact_id.startswith("people/"):
+            google_contact_id = f"people/{google_contact_id}"
+            db.execute("UPDATE customers SET google_contact_id = ? WHERE id = ?",
+                       (google_contact_id, customer_id))
 
         if google_contact_id:
             _update_existing_contact(db, service, customer_id, google_contact_id,
