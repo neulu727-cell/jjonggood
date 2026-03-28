@@ -151,30 +151,50 @@ def google_connect():
 @google_bp.route("/google/callback")
 @require_auth
 def google_callback():
-    """OAuth 콜백 → 토큰 저장"""
+    """OAuth 콜백 → 토큰 저장 (Flow 우회, 직접 HTTP 교환)"""
+    import requests as http_requests
+
     redirect_uri = _build_redirect_uri()
-    flow = _get_flow(redirect_uri)
+    code = request.args.get("code")
+    error = request.args.get("error")
+
+    if error:
+        log.error("Google OAuth error: %s", error)
+        return f"<script>alert('Google 인증 거부: {error}');window.location='/';</script>"
+
+    if not code:
+        return "<script>alert('Google 인증 실패: 인증 코드가 없습니다');window.location='/';</script>"
 
     try:
-        # 프록시 뒤에서 http로 들어온 URL을 https로 변환
-        auth_response = request.url
-        if auth_response.startswith("http://") and "localhost" not in auth_response:
-            auth_response = "https://" + auth_response[7:]
-        flow.fetch_token(authorization_response=auth_response)
+        # Flow.fetch_token 대신 직접 POST로 토큰 교환 (무한재귀 방지)
+        token_resp = http_requests.post("https://oauth2.googleapis.com/token", data={
+            "code": code,
+            "client_id": config.GOOGLE_CLIENT_ID,
+            "client_secret": config.GOOGLE_CLIENT_SECRET,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        }, timeout=15)
+
+        token_data = token_resp.json()
+
+        if "error" in token_data:
+            log.error("Google token exchange failed: %s", token_data)
+            msg = token_data.get("error_description", token_data["error"])
+            return f"<script>alert('Google 인증 실패: {msg}');window.location='/';</script>"
+
+        access_token = token_data["access_token"]
+        refresh_token = token_data.get("refresh_token", "")
+        expires_at = datetime.now(KST) + timedelta(seconds=token_data.get("expires_in", 3600))
+
+        db = get_db()
+        _save_tokens(db, access_token, refresh_token, expires_at)
+        log.info("Google OAuth connected successfully (direct exchange)")
+
+        return "<script>alert('Google 연락처 연동 완료!');window.location='/';</script>"
+
     except Exception as e:
-        log.error("Google OAuth token fetch failed: %s", e)
-        log.error("auth_response URL: %s", auth_response)
-        log.error("redirect_uri: %s", redirect_uri)
+        log.error("Google OAuth token exchange failed: %s", e)
         return f"<script>alert('Google 인증 실패: {e}');window.location='/';</script>"
-
-    creds = flow.credentials
-    expires_at = datetime.now(KST) + timedelta(hours=1)
-
-    db = get_db()
-    _save_tokens(db, creds.token, creds.refresh_token, expires_at)
-    log.info("Google OAuth connected successfully")
-
-    return "<script>alert('Google 연락처 연동 완료!');window.location='/';</script>"
 
 
 @google_bp.route("/google/status")
