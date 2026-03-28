@@ -155,19 +155,23 @@ def google_connect():
 @require_auth
 def google_callback():
     """OAuth 콜백 → 토큰 저장 (Flow 우회, 직접 HTTP 교환)"""
-    import sys
-    sys.setrecursionlimit(200)  # 무한재귀 빠르게 잡기
+    import sys, traceback
+    old_limit = sys.getrecursionlimit()
+    sys.setrecursionlimit(300)
     try:
         return _do_google_callback()
     except RecursionError:
-        log.error("Google callback: RecursionError caught — redirect_uri=%s, host=%s",
-                  _build_redirect_uri(), request.host_url)
-        return f"<script>alert('Google 인증 실패: 재귀 오류 (redirect_uri={_build_redirect_uri()})');window.location='/';</script>"
+        tb = traceback.format_exc()
+        log.error("Google callback RecursionError:\n%s", tb)
+        log.error("redirect_uri=%s, host=%s", _build_redirect_uri(), request.host_url)
+        # traceback 마지막 몇 줄을 alert에 표시하여 디버그
+        short_tb = "\\n".join(tb.strip().split("\\n")[-6:])
+        return f"<script>alert('재귀오류 traceback:\\n{short_tb}');window.location='/';</script>"
     except Exception as e:
         log.error("Google callback error: %s", e)
         return f"<script>alert('Google 인증 실패: {e}');window.location='/';</script>"
     finally:
-        sys.setrecursionlimit(1000)
+        sys.setrecursionlimit(old_limit)
 
 
 def _do_google_callback():
