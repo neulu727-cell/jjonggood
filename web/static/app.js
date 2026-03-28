@@ -2101,7 +2101,8 @@ const App = (() => {
             const ang = (frac * 360 - 90) * Math.PI / 180;
             const lx = cx + rLabel * Math.cos(ang);
             const ly = cy + rLabel * Math.sin(ang);
-            labels += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#94A3B8" font-weight="500">${h}</text>`;
+            const hLabel = h < 12 ? `오전${h}` : h === 12 ? `오후12` : `오후${h-12}`;
+            labels += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" font-size="8" fill="#94A3B8" font-weight="500">${hLabel}</text>`;
         }
 
         // 중앙 텍스트
