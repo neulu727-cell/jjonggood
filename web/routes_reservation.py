@@ -63,41 +63,47 @@ def create_reservation():
 @reservation_bp.route("/api/reservation/<int:rid>", methods=["GET"])
 @require_auth
 def get_reservation(rid):
-    db = get_db()
-    r = queries.get_reservation_by_id(db, rid)
-    if not r:
-        return jsonify({"error": "not found"}), 404
-    customer = queries.get_customer_by_id(db, r.customer_id)
-    siblings = queries.get_siblings(db, r.customer_phone, exclude_id=r.customer_id) if customer else []
-    start_h, start_m = map(int, r.time.split(":"))
-    end_minutes = start_h * 60 + start_m + r.duration
-    end_h, end_m = divmod(end_minutes, 60)
-    return jsonify({
-        "id": r.id,
-        "customer_id": r.customer_id,
-        "customer_name": r.customer_name,
-        "pet_name": r.pet_name,
-        "breed": r.breed,
-        "customer_phone": r.customer_phone,
-        "weight": customer.weight if customer else None,
-        "age": customer.age if customer else "",
-        "notes": customer.notes if customer else "",
-        "date": r.date,
-        "time": r.time,
-        "end_time": f"{end_h:02d}:{end_m:02d}",
-        "service_type": r.service_type,
-        "duration": r.duration,
-        "amount": r.amount,
-        "quoted_amount": r.quoted_amount,
-        "payment_method": r.payment_method,
-        "fur_length": r.fur_length,
-        "request": r.request,
-        "groomer_memo": r.groomer_memo,
-        "customer_memo": customer.memo if customer else "",
-        "status": r.status,
-        "completed_at": r.completed_at,
-        "siblings": [{"id": s["id"], "pet_name": s["pet_name"], "breed": s["breed"]} for s in siblings],
-    })
+    try:
+        db = get_db()
+        r = queries.get_reservation_by_id(db, rid)
+        if not r:
+            return jsonify({"error": "not found"}), 404
+        customer = queries.get_customer_by_id(db, r.customer_id)
+        siblings = queries.get_siblings(db, r.customer_phone, exclude_id=r.customer_id) if customer else []
+        time_parts = r.time.split(":")
+        start_h, start_m = int(time_parts[0]), int(time_parts[1])
+        end_minutes = start_h * 60 + start_m + r.duration
+        end_h, end_m = divmod(end_minutes, 60)
+        return jsonify({
+            "id": r.id,
+            "customer_id": r.customer_id,
+            "customer_name": r.customer_name,
+            "pet_name": r.pet_name,
+            "breed": r.breed,
+            "customer_phone": r.customer_phone,
+            "weight": customer.weight if customer else None,
+            "age": customer.age if customer else "",
+            "notes": customer.notes if customer else "",
+            "date": r.date,
+            "time": r.time,
+            "end_time": f"{end_h:02d}:{end_m:02d}",
+            "service_type": r.service_type,
+            "duration": r.duration,
+            "amount": r.amount,
+            "quoted_amount": getattr(r, "quoted_amount", 0) or 0,
+            "payment_method": r.payment_method,
+            "fur_length": r.fur_length,
+            "request": r.request,
+            "groomer_memo": r.groomer_memo,
+            "customer_memo": customer.memo if customer else "",
+            "status": r.status,
+            "completed_at": r.completed_at,
+            "siblings": [{"id": s["id"], "pet_name": s["pet_name"], "breed": s.get("breed", "")} for s in siblings],
+        })
+    except Exception as e:
+        import logging, traceback
+        logging.getLogger("jjonggood").error("GET /api/reservation/%s 실패: %s\n%s", rid, e, traceback.format_exc())
+        return jsonify({"error": f"서버 오류: {e}"}), 500
 
 
 @reservation_bp.route("/api/reservation/<int:rid>", methods=["PUT"])

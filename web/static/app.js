@@ -1083,7 +1083,12 @@ const App = (() => {
     async function showEditReservation(rid) {
         try {
             const res = await fetch(`/api/reservation/${rid}`);
-            if (!res.ok) { toast('불러오기 실패', 'error'); return; }
+            if (!res.ok) {
+                const errBody = await res.json().catch(() => ({}));
+                console.error('[showEditReservation] GET failed:', res.status, errBody);
+                toast('불러오기 실패: ' + (errBody.error || res.status), 'error');
+                return;
+            }
             const r = await res.json();
             closeSheet('unifiedDetailSheet');
 
