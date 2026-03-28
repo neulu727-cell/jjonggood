@@ -369,6 +369,24 @@ class DatabaseManager:
                     );
                     CREATE INDEX IF NOT EXISTS idx_customer_photos_cid ON customer_photos(customer_id);
                 """)
+                # 마이그레이션: 키링 증정 여부
+                cur.execute("""
+                    DO $$ BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'customers' AND column_name = 'keyring'
+                        ) THEN
+                            ALTER TABLE customers ADD COLUMN keyring BOOLEAN DEFAULT FALSE;
+                        END IF;
+                    END $$;
+                """)
+                # 마이그레이션: 기존 메모에서 키링 데이터 마이그레이션
+                cur.execute("""
+                    UPDATE customers SET keyring = TRUE
+                    WHERE keyring = FALSE
+                      AND (memo LIKE '%키링증정완료%' OR memo LIKE '%키링완료%'
+                           OR notes LIKE '%키링증정완료%' OR notes LIKE '%키링완료%');
+                """)
                 # 마이그레이션: 전체얼컷 기본 소요시간 90→120분
                 cur.execute("""
                     UPDATE service_types SET default_duration = 120

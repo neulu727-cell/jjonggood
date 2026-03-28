@@ -296,6 +296,17 @@ def delete_customer(cid):
     return jsonify({"error": "삭제 기능이 비활성화되어 있습니다"}), 403
 
 
+@customer_bp.route("/api/customer/<int:cid>/keyring", methods=["PUT"])
+@require_auth
+def toggle_keyring(cid):
+    db = get_db()
+    data = request.get_json() or {}
+    keyring = bool(data.get("keyring", False))
+    db.execute("UPDATE customers SET keyring = ?, updated_at = NOW() WHERE id = ?", (keyring, cid))
+    bump_update()
+    return jsonify({"ok": True, "keyring": keyring})
+
+
 @customer_bp.route("/api/customer/by-phone")
 @require_auth
 def find_by_phone():

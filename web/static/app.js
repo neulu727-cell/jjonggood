@@ -475,7 +475,7 @@ const App = (() => {
                     </div>
                     <div class="res-info">
                         <div class="res-pet">
-                            ${esc(r.pet_name)}
+                            ${r.keyring === false ? '<span class="keyring-dot" title="키링 미증정">🔑</span>' : ''}${esc(r.pet_name)}
                             <span class="breed">${esc(petMeta)}</span>
                         </div>
                         <div class="res-service">${esc(r.service)}${furText}${amtText ? ' · ' + amtText : ''}</div>
@@ -1025,6 +1025,7 @@ const App = (() => {
                     <span class="ud-pet-divider">|</span>
                     <a href="tel:${c.phone}" class="ud-pet-phone">${esc(c.phone_display)}</a>
                     ${c.phone2 ? `<a href="tel:${c.phone2}" class="ud-pet-phone ud-phone-sub" title="보조연락처">${esc(c.phone2_display)}</a>` : ''}
+                    <button class="keyring-badge ${c.keyring ? 'given' : ''}" onclick="App.toggleKeyring(${c.id}, ${!c.keyring})" title="${c.keyring ? '키링 증정 완료' : '키링 미증정 - 클릭하여 증정 처리'}">🔑${c.keyring ? '' : '?'}</button>
                     <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})" aria-label="고객 정보 수정">수정</button>
                     <button class="ud-edit-link ud-photo-link" onclick="App.showRefPhotos(${c.id})" aria-label="참고사진">📷</button>
                 </div>
@@ -1755,6 +1756,22 @@ const App = (() => {
             _reloadUnifiedDetail(mainCid);
         } catch (e) {
             toast('저장 실패', 'error');
+        }
+    }
+
+    async function toggleKeyring(cid, value) {
+        try {
+            const res = await fetch(`/api/customer/${cid}/keyring`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keyring: value }),
+            });
+            if (!res.ok) throw new Error();
+            toast(value ? '키링 증정 완료' : '키링 미증정으로 변경', 'success');
+            cachedCustomers = null;
+            _reloadUnifiedDetail(cid);
+        } catch (e) {
+            toast('변경 실패', 'error');
         }
     }
 
@@ -3671,7 +3688,7 @@ const App = (() => {
         showReservationDetail, showEditReservation, deleteReservation, toggleHistoryAccordion,
         updateReservation, changeStatus,
         searchCustomers, setCustomerSort, showCustomerDetail,
-        showCustomerForm_edit, addSiblingPet, startMemoEdit, cancelMemoEdit, saveMergedMemo,
+        showCustomerForm_edit, addSiblingPet, startMemoEdit, cancelMemoEdit, saveMergedMemo, toggleKeyring,
         saveCustomer, deleteCustomer, onBreedInput, onBreedKeydown, selectBreed,
         toggleCallHistory, showCallPopup, closeCallPopup,
         reserveFromCall, registerFromCall, downloadBackup, copyIntakeForm,

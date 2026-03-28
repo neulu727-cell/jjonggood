@@ -34,7 +34,7 @@ def create_customer(db: DatabaseManager, name: str, phone: str, pet_name: str,
     return cursor.lastrowid
 
 
-_CUSTOMER_FIELDS = {"name", "phone", "pet_name", "breed", "weight", "age", "notes", "memo", "channel", "phone2", "phone3"}
+_CUSTOMER_FIELDS = {"name", "phone", "pet_name", "breed", "weight", "age", "notes", "memo", "channel", "phone2", "phone3", "keyring"}
 
 def update_customer(db: DatabaseManager, customer_id: int, **fields) -> None:
     if not fields:
@@ -154,7 +154,7 @@ def get_reservations_by_date_with_memo(db: DatabaseManager, date: str) -> list:
         """SELECT r.id, TO_CHAR(r.time, 'HH24:MI') as time, r.duration,
                   r.customer_id, c.name as customer_name, c.pet_name,
                   c.phone as customer_phone, c.breed, c.weight, c.age,
-                  c.memo as customer_memo,
+                  c.memo as customer_memo, c.keyring,
                   r.service_type as service, r.amount, r.fur_length,
                   r.request, r.groomer_memo, r.status,
                   TO_CHAR(r.completed_at, 'YYYY-MM-DD HH24:MI:SS') as completed_at
