@@ -2073,7 +2073,7 @@ const App = (() => {
     }
 
     function _renderClockChart(slots, booked, items) {
-        const cx = 80, cy = 80, r = 62, rInner = 38, rLabel = 74;
+        const cx = 90, cy = 90, r = 62, rInner = 38, rLabel = 74;
         const total = slots.length;
         if (!total) return '';
 
@@ -2134,7 +2134,7 @@ const App = (() => {
             const lx = cx + rLabel * Math.cos(ang);
             const ly = cy + rLabel * Math.sin(ang);
             const hLabel = h < 12 ? `오전${h}` : h === 12 ? `오후12` : `오후${h-12}`;
-            labels += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" font-size="8" fill="#94A3B8" font-weight="500">${hLabel}</text>`;
+            labels += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central" font-size="7" fill="#94A3B8" font-weight="500">${hLabel}</text>`;
         }
 
         // 중앙 텍스트
@@ -2144,7 +2144,7 @@ const App = (() => {
         const freeLabel = freeHrs % 1 === 0 ? freeHrs + '시간' : freeHrs.toFixed(1) + '시간';
 
         return `<div class="clock-chart-wrap">
-            <svg viewBox="0 0 160 160" class="clock-chart">
+            <svg viewBox="0 0 180 180" class="clock-chart">
                 ${arcs}${labels}
                 <text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="11" font-weight="700" fill="#1E293B">${bookedCount}건</text>
                 <text x="${cx}" y="${cy + 8}" text-anchor="middle" font-size="10" fill="#64748B">빈 ${freeLabel}</text>
