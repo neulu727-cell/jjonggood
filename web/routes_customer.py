@@ -197,6 +197,7 @@ def get_customer(cid):
         "notes": d.get("notes", ""), "memo": d.get("memo", ""), "channel": d.get("channel", ""),
         "phone2": d.get("phone2", ""), "phone2_display": format_phone_display(d.get("phone2", "")),
         "phone3": d.get("phone3", ""), "phone3_display": format_phone_display(d.get("phone3", "")),
+        "keyring": bool(d.get("keyring", False)),
         "last_visit": d["last_visit"],
         "stats": d["stats"],
         "reservations": res_list,
