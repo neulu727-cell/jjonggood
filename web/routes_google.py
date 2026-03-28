@@ -155,9 +155,26 @@ def google_connect():
 @require_auth
 def google_callback():
     """OAuth 콜백 → 토큰 저장 (Flow 우회, 직접 HTTP 교환)"""
+    import sys
+    sys.setrecursionlimit(200)  # 무한재귀 빠르게 잡기
+    try:
+        return _do_google_callback()
+    except RecursionError:
+        log.error("Google callback: RecursionError caught — redirect_uri=%s, host=%s",
+                  _build_redirect_uri(), request.host_url)
+        return f"<script>alert('Google 인증 실패: 재귀 오류 (redirect_uri={_build_redirect_uri()})');window.location='/';</script>"
+    except Exception as e:
+        log.error("Google callback error: %s", e)
+        return f"<script>alert('Google 인증 실패: {e}');window.location='/';</script>"
+    finally:
+        sys.setrecursionlimit(1000)
+
+
+def _do_google_callback():
     import requests as http_requests
 
     redirect_uri = _build_redirect_uri()
+    log.info("Google callback: redirect_uri=%s, host_url=%s", redirect_uri, request.host_url)
     code = request.args.get("code")
     error = request.args.get("error")
 
@@ -168,36 +185,31 @@ def google_callback():
     if not code:
         return "<script>alert('Google 인증 실패: 인증 코드가 없습니다');window.location='/';</script>"
 
-    try:
-        # Flow.fetch_token 대신 직접 POST로 토큰 교환 (무한재귀 방지)
-        token_resp = http_requests.post("https://oauth2.googleapis.com/token", data={
-            "code": code,
-            "client_id": config.GOOGLE_CLIENT_ID,
-            "client_secret": config.GOOGLE_CLIENT_SECRET,
-            "redirect_uri": redirect_uri,
-            "grant_type": "authorization_code",
-        }, timeout=15)
+    # Flow.fetch_token 대신 직접 POST로 토큰 교환 (무한재귀 방지)
+    token_resp = http_requests.post("https://oauth2.googleapis.com/token", data={
+        "code": code,
+        "client_id": config.GOOGLE_CLIENT_ID,
+        "client_secret": config.GOOGLE_CLIENT_SECRET,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code",
+    }, timeout=15)
 
-        token_data = token_resp.json()
+    token_data = token_resp.json()
 
-        if "error" in token_data:
-            log.error("Google token exchange failed: %s", token_data)
-            msg = token_data.get("error_description", token_data["error"])
-            return f"<script>alert('Google 인증 실패: {msg}');window.location='/';</script>"
+    if "error" in token_data:
+        log.error("Google token exchange failed: %s — redirect_uri=%s", token_data, redirect_uri)
+        msg = token_data.get("error_description", token_data["error"])
+        return f"<script>alert('Google 인증 실패: {msg}');window.location='/';</script>"
 
-        access_token = token_data["access_token"]
-        refresh_token = token_data.get("refresh_token", "")
-        expires_at = datetime.now(KST) + timedelta(seconds=token_data.get("expires_in", 3600))
+    access_token = token_data["access_token"]
+    refresh_token = token_data.get("refresh_token", "")
+    expires_at = datetime.now(KST) + timedelta(seconds=token_data.get("expires_in", 3600))
 
-        db = get_db()
-        _save_tokens(db, access_token, refresh_token, expires_at)
-        log.info("Google OAuth connected successfully (direct exchange)")
+    db = get_db()
+    _save_tokens(db, access_token, refresh_token, expires_at)
+    log.info("Google OAuth connected successfully (direct exchange)")
 
-        return "<script>alert('Google 연락처 연동 완료!');window.location='/';</script>"
-
-    except Exception as e:
-        log.error("Google OAuth token exchange failed: %s", e)
-        return f"<script>alert('Google 인증 실패: {e}');window.location='/';</script>"
+    return "<script>alert('Google 연락처 연동 완료!');window.location='/';</script>"
 
 
 @google_bp.route("/google/status")
