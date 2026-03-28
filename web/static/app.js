@@ -475,7 +475,7 @@ const App = (() => {
                     </div>
                     <div class="res-info">
                         <div class="res-pet">
-                            ${r.keyring === false ? '<span class="keyring-dot">🔑</span>' : ''}${esc(r.pet_name)}
+                            ${!r.keyring ? '<span class="keyring-dot">🔑</span>' : ''}${esc(r.pet_name)}
                             <span class="breed">${esc(petMeta)}</span>
                         </div>
                         <div class="res-service">${esc(r.service)}${furText}${amtText ? ' · ' + amtText : ''}</div>
@@ -922,14 +922,17 @@ const App = (() => {
         _unifiedActiveResId = activeRes ? activeRes.id : null;
         const content = document.getElementById('unifiedDetailContent');
         const siblings = c.siblings || [];
-        const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, weight: c.weight, age: c.age || '', memo: c.memo || '' }, ...siblings.map(s => ({...s, age: s.age || '', memo: s.memo || ''}))];
+        const allPets = [{ id: c.id, pet_name: c.pet_name, breed: c.breed, weight: c.weight, age: c.age || '', memo: c.memo || '', keyring: c.keyring }, ...siblings.map(s => ({...s, age: s.age || '', memo: s.memo || ''}))];
         const hasSiblings = siblings.length > 0;
 
         // 헤더: 모든 펫을 한 줄에 나열 (견종 · 체중 · 나이)
         let petsHeaderHtml = allPets.map((p, i) => {
             const w = p.weight ? ' · ' + p.weight + 'kg' : '';
             const a = p.age ? ' · ' + p.age + (p.age.includes('살') ? '' : '살') : '';
-            return `<span class="ud-pet-name">${esc(p.pet_name)}</span><span class="ud-pet-info">${esc(p.breed)}${w}${a}</span>`;
+            const kr = p.keyring
+                ? `<button class="keyring-badge given" onclick="App.toggleKeyring(${p.id}, false)">🔑</button>`
+                : `<button class="keyring-badge not-given" onclick="App.toggleKeyring(${p.id}, true)">🔑!</button>`;
+            return `<span class="ud-pet-name">${esc(p.pet_name)}</span>${kr}<span class="ud-pet-info">${esc(p.breed)}${w}${a}</span>`;
         }).join('<span class="ud-pet-divider">/</span>');
         const addBtnHtml = `<button class="pet-pill pet-pill-add" style="font-size:12px;padding:2px 8px;margin-left:4px;vertical-align:middle" data-phone="${esc(c.phone)}" data-name="${esc(c.name || '')}" data-channel="${esc(c.channel || '')}" onclick="App.addSiblingPet(this.dataset.phone, this.dataset.name, this.dataset.channel)">+</button>`;
 
@@ -1025,7 +1028,6 @@ const App = (() => {
                     <span class="ud-pet-divider">|</span>
                     <a href="tel:${c.phone}" class="ud-pet-phone">${esc(c.phone_display)}</a>
                     ${c.phone2 ? `<a href="tel:${c.phone2}" class="ud-pet-phone ud-phone-sub" title="보조연락처">${esc(c.phone2_display)}</a>` : ''}
-                    <button class="keyring-badge ${c.keyring ? 'given' : 'not-given'}" onclick="App.toggleKeyring(${c.id}, ${!c.keyring})">${c.keyring ? '🔑 증정완료' : '🔑 키링 미증정!'}</button>
                     <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})" aria-label="고객 정보 수정">수정</button>
                     <button class="ud-edit-link ud-photo-link" onclick="App.showRefPhotos(${c.id})" aria-label="참고사진">📷</button>
                 </div>
