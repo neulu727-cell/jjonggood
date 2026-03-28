@@ -409,8 +409,8 @@ const App = (() => {
             </div>
         `;
 
-        // PC에서 동그라미 시간표
-        if (isPC() && items.length > 0) {
+        // 타임바 (PC + 모바일)
+        if (items.length > 0) {
             html += _renderClockChart(slots, booked, items);
         }
 
