@@ -475,7 +475,7 @@ const App = (() => {
                     </div>
                     <div class="res-info">
                         <div class="res-pet">
-                            ${r.keyring === false ? '<span class="keyring-dot" title="키링 미증정">🔑</span>' : ''}${esc(r.pet_name)}
+                            ${r.keyring === false ? '<span class="keyring-dot">🔑</span>' : ''}${esc(r.pet_name)}
                             <span class="breed">${esc(petMeta)}</span>
                         </div>
                         <div class="res-service">${esc(r.service)}${furText}${amtText ? ' · ' + amtText : ''}</div>
@@ -1025,7 +1025,7 @@ const App = (() => {
                     <span class="ud-pet-divider">|</span>
                     <a href="tel:${c.phone}" class="ud-pet-phone">${esc(c.phone_display)}</a>
                     ${c.phone2 ? `<a href="tel:${c.phone2}" class="ud-pet-phone ud-phone-sub" title="보조연락처">${esc(c.phone2_display)}</a>` : ''}
-                    <button class="keyring-badge ${c.keyring ? 'given' : ''}" onclick="App.toggleKeyring(${c.id}, ${!c.keyring})" title="${c.keyring ? '키링 증정 완료' : '키링 미증정 - 클릭하여 증정 처리'}">🔑${c.keyring ? '' : '?'}</button>
+                    <button class="keyring-badge ${c.keyring ? 'given' : 'not-given'}" onclick="App.toggleKeyring(${c.id}, ${!c.keyring})">${c.keyring ? '🔑 증정완료' : '🔑 키링 미증정!'}</button>
                     <button class="ud-edit-link" onclick="App.showCustomerForm_edit(${c.id})" aria-label="고객 정보 수정">수정</button>
                     <button class="ud-edit-link ud-photo-link" onclick="App.showRefPhotos(${c.id})" aria-label="참고사진">📷</button>
                 </div>
