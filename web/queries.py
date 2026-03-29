@@ -354,7 +354,7 @@ def get_reservation_names_by_month(db: DatabaseManager, year: int, month: int) -
     rows = db.fetch_all(
         """SELECT TO_CHAR(r.date, 'YYYY-MM-DD') as date_str,
                   TO_CHAR(r.time, 'HH24:MI') as time_str,
-                  c.pet_name, c.breed, c.phone, r.service_type, r.status
+                  c.pet_name, c.breed, c.phone, r.service_type, r.status, r.duration
            FROM reservations r
            LEFT JOIN customers c ON r.customer_id = c.id
            WHERE EXTRACT(YEAR FROM r.date) = ? AND EXTRACT(MONTH FROM r.date) = ?
@@ -373,6 +373,7 @@ def get_reservation_names_by_month(db: DatabaseManager, year: int, month: int) -
             "time": row["time_str"] or "",
             "status": row["status"] or "confirmed",
             "is_boss": row["phone"] == "BOSS",
+            "is_allday": row["phone"] == "BOSS" and (row.get("duration") or 0) >= 480,
             "service_type": row["service_type"] or "",
         })
     return result

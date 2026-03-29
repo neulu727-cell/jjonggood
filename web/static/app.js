@@ -306,9 +306,12 @@ const App = (() => {
             for (let i = 0; i < Math.min(names.length, maxBadges); i++) {
                 const entry = names[i];
                 if (entry.is_boss) {
-                    const reason = entry.service_type || '휴무';
-                    const label = '휴무(' + (reason.length > 3 ? reason.substring(0,3) + '..' : reason) + ')';
-                    badgesHtml += `<span class="cal-badge boss">${esc(label)}</span>`;
+                    // 종일 휴무만 캘린더에 표시, 시간대 지정 휴무는 스킵
+                    if (entry.is_allday) {
+                        const reason = entry.service_type || '휴무';
+                        const label = '종일휴무';
+                        badgesHtml += `<span class="cal-badge boss">${esc(label)}</span>`;
+                    }
                     continue;
                 }
                 let label = entry.pet_name;
