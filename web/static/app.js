@@ -1759,14 +1759,23 @@ const App = (() => {
         const memo = ta.value.trim();
         const petIds = allPetIdsStr ? allPetIdsStr.split(',').map(Number) : [mainCid];
         try {
+            let googleResult = null;
             for (const id of petIds) {
-                await fetch(`/api/customer/${id}`, {
+                const res = await fetch(`/api/customer/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ memo }),
                 });
+                const data = await res.json();
+                if (!googleResult && data.google_synced !== undefined) googleResult = data;
             }
-            toast('메모 저장됨', 'success');
+            if (googleResult && googleResult.google_synced) {
+                toast('메모 저장 + Google 동기화 완료', 'success');
+            } else if (googleResult && googleResult.google_msg) {
+                toast('메모 저장됨 (Google: ' + googleResult.google_msg + ')', 'warning');
+            } else {
+                toast('메모 저장됨', 'success');
+            }
             cachedCustomers = null;
             _reloadUnifiedDetail(mainCid);
         } catch (e) {
