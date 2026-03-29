@@ -109,14 +109,21 @@ def _get_credentials(db):
 
     if needs_refresh:
         try:
-            import requests as http_requests
-            resp = http_requests.post("https://oauth2.googleapis.com/token", data={
+            import urllib.request
+            import urllib.parse
+            post_data = urllib.parse.urlencode({
                 "client_id": config.GOOGLE_CLIENT_ID,
                 "client_secret": config.GOOGLE_CLIENT_SECRET,
                 "refresh_token": refresh_token,
                 "grant_type": "refresh_token",
-            }, timeout=15)
-            token_data = resp.json()
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                "https://oauth2.googleapis.com/token",
+                data=post_data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                token_data = json.loads(resp.read().decode("utf-8"))
             if "error" in token_data:
                 log.error("Google token refresh failed: %s", token_data)
                 return None
@@ -194,7 +201,8 @@ def google_callback():
 
 
 def _do_google_callback():
-    import requests as http_requests
+    import urllib.request as url_request
+    import urllib.parse
 
     redirect_uri = _build_redirect_uri()
     log.info("Google callback: redirect_uri=%s, host_url=%s", redirect_uri, request.host_url)
@@ -208,16 +216,21 @@ def _do_google_callback():
     if not code:
         return "<script>alert('Google 인증 실패: 인증 코드가 없습니다');window.location='/';</script>"
 
-    # Flow.fetch_token 대신 직접 POST로 토큰 교환 (무한재귀 방지)
-    token_resp = http_requests.post("https://oauth2.googleapis.com/token", data={
+    # Flow.fetch_token 대신 직접 POST로 토큰 교환 (urllib — Python 3.14 SSL 재귀 우회)
+    post_data = urllib.parse.urlencode({
         "code": code,
         "client_id": config.GOOGLE_CLIENT_ID,
         "client_secret": config.GOOGLE_CLIENT_SECRET,
         "redirect_uri": redirect_uri,
         "grant_type": "authorization_code",
-    }, timeout=15)
-
-    token_data = token_resp.json()
+    }).encode("utf-8")
+    req = url_request.Request(
+        "https://oauth2.googleapis.com/token",
+        data=post_data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    with url_request.urlopen(req, timeout=15) as resp:
+        token_data = json.loads(resp.read().decode("utf-8"))
 
     if "error" in token_data:
         log.error("Google token exchange failed: %s — redirect_uri=%s", token_data, redirect_uri)
