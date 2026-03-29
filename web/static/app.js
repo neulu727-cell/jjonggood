@@ -775,13 +775,22 @@ const App = (() => {
     }
 
     function showCustomAmount(fieldId) {
-        const val = prompt('금액을 입력하세요 (숫자만)', '');
+        const current = document.getElementById(fieldId)?.value;
+        const defaultVal = current && parseInt(current) > 0 ? current : '';
+        const val = prompt('금액을 입력하세요 (숫자만)', defaultVal);
         if (val === null) return;
         const num = parseInt(val.replace(/[^0-9]/g, ''));
         if (!num || num <= 0) return;
         document.getElementById(fieldId).value = num;
-        // 모든 금액 버튼 active 해제
-        document.querySelectorAll(`[data-field="${fieldId}"]`).forEach(b => b.classList.remove('active'));
+        // 모든 금액 버튼 active 해제 후 기타 버튼 active + 금액 표시
+        document.querySelectorAll(`[data-field="${fieldId}"]`).forEach(b => {
+            b.classList.remove('active');
+            if (b.getAttribute('onclick')?.includes('showCustomAmount')) {
+                b.classList.add('active');
+                const label = num >= 10000 ? (num % 10000 === 0 ? `${num/10000}만` : `${Math.floor(num/10000)}만${(num%10000)/1000}천`) : num.toLocaleString();
+                b.textContent = `기타 ${label}원`;
+            }
+        });
         const priceLabel = document.getElementById('priceLabel');
         if (priceLabel) priceLabel.textContent = num.toLocaleString() + '원';
     }
@@ -1119,7 +1128,8 @@ const App = (() => {
                 const label = p % 10000 === 0 ? `${p/10000}만` : `${Math.floor(p/10000)}만${(p%10000)/1000}천`;
                 return `<button type="button" class="btn-grid-item${p===r.amount?' active':''}" data-field="editResAmount" data-value="${p}" onclick="App.selectGridBtn(this)">${label}</button>`;
             }).join('');
-            priceGrid += `<button type="button" class="btn-grid-item${priceActive?' active':''}" data-field="editResAmount" data-value="0" onclick="App.showCustomAmount('editResAmount')">기타</button>`;
+            const customLabel = priceActive ? `기타 ${r.amount >= 10000 ? (r.amount % 10000 === 0 ? r.amount/10000+'만' : Math.floor(r.amount/10000)+'만'+(r.amount%10000)/1000+'천') : r.amount.toLocaleString()}원` : '기타';
+            priceGrid += `<button type="button" class="btn-grid-item${priceActive?' active':''}" data-field="editResAmount" data-value="0" onclick="App.showCustomAmount('editResAmount')">${customLabel}</button>`;
             priceGrid += `<button type="button" class="btn-grid-item${r.amount===-1?' active':''}" data-field="editResAmount" data-value="-1" onclick="App.selectGridBtn(this)">미정</button>`;
             const form = document.getElementById('reservationForm');
             document.getElementById('sheetTitle').textContent = '✏️ 예약 수정';
