@@ -109,13 +109,32 @@ def _get_credentials(db):
 
     if needs_refresh:
         try:
-            from google.auth.transport.requests import Request
-            creds.refresh(Request())
-            new_expiry = datetime.now(KST) + timedelta(hours=1)
-            _save_tokens(db, creds.token, creds.refresh_token or refresh_token, new_expiry)
-            log.info("Google token refreshed successfully")
+            import requests as http_requests
+            resp = http_requests.post("https://oauth2.googleapis.com/token", data={
+                "client_id": config.GOOGLE_CLIENT_ID,
+                "client_secret": config.GOOGLE_CLIENT_SECRET,
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token",
+            }, timeout=15)
+            token_data = resp.json()
+            if "error" in token_data:
+                log.error("Google token refresh failed: %s", token_data)
+                return None
+            new_access = token_data["access_token"]
+            new_expiry = datetime.now(KST) + timedelta(seconds=token_data.get("expires_in", 3600))
+            new_refresh = token_data.get("refresh_token", refresh_token)
+            _save_tokens(db, new_access, new_refresh, new_expiry)
+            # Credentials 객체도 새 토큰으로 갱신
+            creds = Credentials(
+                token=new_access,
+                refresh_token=new_refresh,
+                token_uri="https://oauth2.googleapis.com/token",
+                client_id=config.GOOGLE_CLIENT_ID,
+                client_secret=config.GOOGLE_CLIENT_SECRET,
+            )
+            log.info("Google token refreshed successfully (direct HTTP POST)")
         except Exception as e:
-            log.error("Google token refresh failed: %s", e)
+            log.error("Google token refresh failed: %s", e, exc_info=True)
             return None
 
     return creds

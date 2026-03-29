@@ -141,10 +141,15 @@ def create_customer():
     google_synced = False
     google_msg = ""
     try:
-        from web.routes_google import sync_contact_to_google
-        google_synced, google_msg = sync_contact_to_google(cid, pet_name, weight, breed, phone, memo)
+        from web.routes_google import sync_contact_to_google, GOOGLE_AVAILABLE
+        if not GOOGLE_AVAILABLE:
+            google_msg = "Google API 패키지 미설치"
+        else:
+            google_synced, google_msg = sync_contact_to_google(cid, pet_name, weight, breed, phone, memo)
+            if not google_synced:
+                log.warning("Google sync failed on create (customer %s): %s", cid, google_msg)
     except Exception as e:
-        log.warning("Google sync failed on create (customer %s): %s", cid, e)
+        log.error("Google sync exception on create (customer %s): %s", cid, e, exc_info=True)
         google_msg = str(e)
 
     bump_update()
