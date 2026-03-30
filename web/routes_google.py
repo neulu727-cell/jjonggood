@@ -466,7 +466,10 @@ def _build_contact_body(pet_name: str, weight, breed: str, phone: str, memo: str
     """People API 용 연락처 body 생성"""
     weight_str = f" {weight}kg" if weight else ""
     breed_str = f" {breed}" if breed else ""
-    display_name = f"{pet_name}{weight_str}{breed_str}".strip()
+    # 휴대폰 뒷번호 4자리 추가
+    digits = ''.join(c for c in (phone or '') if c.isdigit())
+    phone_suffix = f" {digits[-4:]}" if len(digits) >= 4 else ""
+    display_name = f"{pet_name}{weight_str}{breed_str}{phone_suffix}".strip()
 
     body = {
         "names": [{"givenName": display_name}],

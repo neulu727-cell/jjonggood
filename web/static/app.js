@@ -268,6 +268,11 @@ const App = (() => {
             monthData = { counts: {}, names: {} };
         }
         renderCalendar();
+        // 오늘 날짜 셀로 스크롤
+        const todayCell = document.querySelector('.cal-cell.today');
+        if (todayCell) {
+            todayCell.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
     }
 
     function updateMonthLabel() {
