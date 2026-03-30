@@ -42,7 +42,7 @@ class DatabaseManager:
         dsn += "connect_timeout=10&keepalives=1&keepalives_idle=30&keepalives_interval=10&keepalives_count=3&options=-c%20statement_timeout%3D30000"
 
         self._pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=2, maxconn=10, dsn=dsn
+            minconn=1, maxconn=4, dsn=dsn
         )
         self._create_tables()
 
