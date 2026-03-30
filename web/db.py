@@ -8,9 +8,13 @@ SQLite DatabaseManager와 동일한 인터페이스 제공.
 """
 
 import os
+import time
+import logging
 import psycopg2
 import psycopg2.pool
 import psycopg2.extras
+
+log = logging.getLogger("jjonggood.db")
 
 
 class CursorResult:
@@ -43,25 +47,35 @@ class DatabaseManager:
         self._create_tables()
 
     def _get_conn(self):
-        """풀에서 커넥션을 꺼내되, 죽은 연결이면 재생성."""
-        conn = self._pool.getconn()
-        try:
-            # 연결 상태 확인 (죽은 연결 감지)
-            conn.isolation_level
-            if conn.closed:
-                raise psycopg2.OperationalError("closed")
-            # 실제 ping + KST 설정
-            with conn.cursor() as cur:
-                cur.execute("SET timezone = 'Asia/Seoul'")
-                cur.execute("SELECT 1")
-        except Exception:
-            # 죽은 연결 → 버리고 새로 만들기
+        """풀에서 커넥션을 꺼내되, 죽은 연결이면 재생성.
+        Supabase 절전 복구를 위해 최대 2회 재시도."""
+        for attempt in range(3):
+            conn = None
             try:
-                self._pool.putconn(conn, close=True)
-            except Exception:
-                pass
-            conn = self._pool.getconn()
-        return conn
+                conn = self._pool.getconn()
+                # 연결 상태 확인 (죽은 연결 감지)
+                conn.isolation_level
+                if conn.closed:
+                    raise psycopg2.OperationalError("closed")
+                # 실제 ping + KST 설정
+                with conn.cursor() as cur:
+                    cur.execute("SET timezone = 'Asia/Seoul'")
+                    cur.execute("SELECT 1")
+                return conn
+            except Exception as e:
+                # 죽은 연결 → 버리고 재시도
+                if conn is not None:
+                    try:
+                        self._pool.putconn(conn, close=True)
+                    except Exception:
+                        pass
+                if attempt < 2:
+                    wait = 2 * (attempt + 1)  # 2초, 4초
+                    log.warning("DB 연결 실패 (시도 %d/3), %d초 후 재시도: %s", attempt + 1, wait, e)
+                    time.sleep(wait)
+                else:
+                    log.error("DB 연결 실패 (3회 시도 모두 실패): %s", e)
+                    raise
 
     def _put_conn(self, conn):
         self._pool.putconn(conn)
