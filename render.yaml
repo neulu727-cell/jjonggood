@@ -3,7 +3,7 @@ services:
     name: jjonggood
     runtime: python
     buildCommand: pip install -r web/requirements.txt
-    startCommand: gunicorn 'web.app:create_app()' --bind 0.0.0.0:$PORT --worker-class gthread --workers 1 --threads 12 --timeout 120 --worker-tmp-dir /dev/shm --max-requests 1000 --max-requests-jitter 50 --access-logfile - --error-logfile -
+    startCommand: gunicorn 'web.app:create_app()' --bind 0.0.0.0:$PORT --worker-class gevent --workers 2 --timeout 120 --worker-tmp-dir /dev/shm --max-requests 1000 --max-requests-jitter 50 --access-logfile - --error-logfile -
     envVars:
       - key: DATABASE_URL
         sync: false
